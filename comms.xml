@@ -1,0 +1,12 @@
+<SeedData>
+
+  <Communications>
+    <Communication billingEntity.code="RHE-RS">
+    101:AD_ASD
+    </Communication>
+    <Communication billingEntity.code="WRE-RS">
+    102:WER_WASD
+    </Communication>
+  </Communications>
+
+<SeedData>

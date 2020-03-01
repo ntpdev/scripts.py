@@ -1,0 +1,7 @@
+{
+    "theme": "bluespring",
+    "size": "small",
+    "splashscreen": true,
+    "display": 720,
+    "countries": ["Latvia", "Liechtenstein", "Lithuania", "Luxembourg"]
+}

@@ -1,0 +1,16 @@
+{
+  "data": [
+    {
+      "type": "billingEntity",
+      "id": 101,
+      "code": "RHE-RS",
+      "name": "ad asd"
+    },
+    {
+      "type": "billingEntity",
+      "id": 102,
+      "code": "WRE-RS",
+      "name": "wer wasd"
+    }
+  ]
+}

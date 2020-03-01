@@ -6,13 +6,11 @@ def distribute(initial, people):
     n = 1
     while remaining > 0:
         x = min(n, remaining)
-        print(f'{remaining} {x}')
-        i = (n-1) % len(xs)
-        xs[i] = xs[i] + x
-        remaining = remaining - x
+        xs[(n-1) % len(xs)] += x
+        remaining -= x
         n = n + 1
-    print(xs)
-    print(sum(xs))
+    assert sum(xs) == initial
+    return xs
 
 # given a set of student ratings allocate candies such that
 # - each student has at least 1
@@ -42,4 +40,4 @@ print(soln([2,2,4,6,8,8]))
 print(soln([9,9,7,5,3,3]))
 print(soln(ratings))
 
-distribute(1000,10)
+print(distribute(1000,10))

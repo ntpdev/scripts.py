@@ -13,8 +13,10 @@ def numWays(steps, sz):
                 print(ways)
     return ways[-1]
 
-print(numWays(3, [1,2]))
+n = numWays(3, [1,2])
+assert n == 2
+print(n)
 
 print(numWays(8, [1,2]))
 
-#print(numWays(21, [1,3,7,15]))
+print(numWays(21, [1,3,7,15]))

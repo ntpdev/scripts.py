@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 def fibm(maxN):
     memo = [-1] * maxN

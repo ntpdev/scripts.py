@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import functools
 
 # https://leetcode.com/articles/distribute-candies/

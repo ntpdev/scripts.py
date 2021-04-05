@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 import numpy as np
 import pandas as pd
 from scipy.signal import find_peaks
@@ -25,13 +25,10 @@ def samp():
     fig.show()
 
 
-def drawVert(fig, tms):
-    for tm in tms:
-        if tm.endswith("13:30"):
-            fig.add_vline(x=tm, line_width=1, line_dash="dash", line_color="blue")
-        if tm.endswith("19:59"):
-            fig.add_vline(x=tm, line_width=1, line_dash="dash", line_color="black")
-
+def drawVert(fig, tms, idxs):
+    for op, cl in idxs:
+        fig.add_vline(x=tms.iloc[op], line_width=1, line_dash="dash", line_color="blue")
+        fig.add_vline(x=tms.iloc[cl], line_width=1, line_dash="dash", line_color='grey')
 
 def highs(df, window):
     hs = df['High'].rolling(window, center=True).max()
@@ -82,32 +79,41 @@ def peaks(df, tms, fig):
 def bar_containing(df, dt):
     return (df['Date'] <= dt) & (df['DateCl'] > dt)
 
-# return a tuple of (open_index, close_index, high_bound, lower_bound)
-def find_day_index(df, n):
-    xs = []
-    op = df[df['Date'].dt.time == time(22,00)].index
-    cl = df[df['Date'].dt.time == time(19,59)].index
-    for x,y in zip(op, cl):
-        h = df['High'][x:y+1].max()
-        l = df['Low'][x:y+1].min()
-        xs.append( (x,y, ((h // n) + 1)*n  , ((l // n)*n)) )
-    return xs
+# return a high and low range to nearest multiple of n
+def make_yrange(df, op, cl, n):
+    h = df['High'][op:cl].max()
+    l = df['Low'][op:cl].min()
+    return  (l // n)*n, ((h // n) + 1)*n
 
-#    fig.show()
+# pair of start_index:end_index suitable for use with iloc[s:e]
+def make_day_index(df):
+    # filter by hour > 21 since holidays can have low volume
+    is_first_bar = (df['Date'].diff().fillna(pd.Timedelta(hours=1)) > timedelta(minutes=59)) & (df['Date'].dt.hour > 21)
+    xs = df[is_first_bar].index.to_list()
+    # add index after final bar 
+    xs.append(df.shape[0])
+    return [ (op,cl) for op,cl in zip(xs, xs[1:]) ]
 
+def make_rth_index(df, day_index):
+    is_first_bar = (df['Date'].diff().fillna(pd.Timedelta(hours=1)) > timedelta(minutes=59)) & (df['Date'].dt.hour > 21)
+    rth_opens = df[is_first_bar].Date.apply(lambda e: e + np.timedelta64(930 - e.minute, 'm'))
+    rth_closes = df[is_first_bar].Date.apply(lambda e: e + np.timedelta64(1260 - e.minute, 'm'))
+    return [ (op, cl) for op,cl in zip(df[df.Date.isin(rth_opens)].index, df[df.Date.isin(rth_closes)].index) ]
 
 df = pd.read_csv('d:\\cvol22.csv', parse_dates=['Date', 'DateCl'], index_col=0)
-print(df.tail())
 # create a string for X labels
 tm = df['Date'].dt.strftime('%d %H:%M')
 fig = go.Figure(data=[go.Candlestick(x=tm, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close']),
     go.Scatter(x=tm, y=df['VWAP'], line=dict(color='orange')) ])
-drawVert(fig, tm)
+xs = make_day_index(df)
+rths = make_rth_index(df, xs)
+drawVert(fig, tm, rths)
 peaks(df, tm, fig)
-#xs = find_day_index(df, 5)
-#x = xs[-1]
-#fig.layout.xaxis.range = [x[0], x[1]]
-#fig.layout.yaxis.range = [x[3], x[2]]
+
+op, cl = xs[0]
+fig.layout.xaxis.range = [op, cl]
+l, h = make_yrange(df, op, cl ,5)
+fig.layout.yaxis.range = [l, h]
 fig.show()
 
 #hilo(df)

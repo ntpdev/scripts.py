@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 from datetime import date, time, timedelta
 import numpy as np
 import pandas as pd
@@ -6,22 +6,58 @@ import glob as gb
 import sys
 
 def exportNinja(df, outfile):
-#    df = pd.read_csv(infile, parse_dates=['Date'], index_col=0)
     print(df.tail())
     with open(outfile, 'w') as f:
         for i,r in df.iterrows():
             s = '%s;%4.2f;%4.2f;%4.2f;%4.2f;%d\n' % (i.strftime('%Y%m%d %H%M%S'),r['Open'],r['High'],r['Low'],r['Close'],r['Volume'])
             f.write(s)
 
+def daily_bars(df):
+    # find start & end indexes by looking for gaps in index
+    selector = (df.index.minute == 0) & (df.index.to_series().diff() != timedelta(minutes=1))
+    return aggregate_bars(df, df[selector].index, df[selector.shift(periods=-1, fill_value=True)].index)
+
+def rth_bars(df):
+    selector = (df.index.minute == 0) & (df.index.to_series().diff() != timedelta(minutes=1))
+    idx = df[selector].index.to_series()
+    # open will always have a gap before it 23:00 CET to add to get RTH hours 14:30 - 20:59
+    idx_open = idx.add(timedelta(hours=15, minutes=30))
+    idx_open = df.index.intersection(pd.Index(idx_open))
+    idx_close = idx.add(timedelta(hours=21, minutes=59))
+    idx_close = df.index.intersection(pd.Index(idx_close))
+    return aggregate_bars(df, idx_open, idx_close)
+
 def calc_vwap(df):
+    is_first_bar = df.index.to_series().diff() != timedelta(minutes=1)
     xs = []
     start = 0
     for i,r in df.iterrows():
-        if (isfirstbar(i)):
+        if is_first_bar.loc[i]:
             start = i
-        x = np.average( df['WAP'].loc[start:i], weights=df['Volume'].loc[start:i] )
-        xs.append(round(x, 2))
+        v = np.average( df['WAP'].loc[start:i], weights=df['Volume'].loc[start:i] )
+        xs.append(round(v, 2))
     return pd.Series(xs, df.index)
+
+# create a new DF which aggregates bars between inclusive indexes
+def aggregate_bars(df, idxs_start, idxs_end):
+    rows = []
+    dts = []
+    for s,e in zip(idxs_start, idxs_end):
+        dts.append(e.date())
+        r = {}
+        r['Open'] = df.Open[s]
+        r['High'] = df.High[s:e].max()
+        r['Low'] = df.Low[s:e].min()
+        r['Close'] = df.Close[e]
+        r['Volume'] = df.Volume[s:e].sum()
+        vwap = np.average( df.WAP[s:e], weights=df.Volume[s:e] )
+        r['VWAP'] = round(vwap, 2)
+        rows.append(r)
+    daily = pd.DataFrame(rows, index=dts)
+    daily['Change'] = daily['Close'].sub(daily['Close'].shift())
+    daily['DayChg'] = daily['Close'].sub(daily['Open'])
+    daily['Range'] = daily['High'].sub(daily['Low'])
+    return daily
 
 def aggregrate_bars_between(df, tm_open, tm_close):
     rows = []
@@ -76,11 +112,6 @@ def combine(acc, dt_snd, snd, period):
     r['Volume'] = acc['Volume'] + snd['Volume']
     r['VWAP'] = snd['VWAP']
     return r
-
-def isRTH(d):
-    op = time(13,30)
-    cl = time(20,15)
-    return d.time() >= op and d.time() < cl
 
 def islastbar(d):
     return (d.hour == 20 and (d.minute == 14 or d.minute == 59)) or (d.hour == 13 and d.minute == 29)
@@ -149,14 +180,23 @@ def fn1():
     dfd = dfd[dfd.volume > 1000]
     print(dfd.tail(19))
 
-def load_files(contract):
-    dfs = [load_file(e) for e in gb.glob( f'd:\\{contract}*.csv') ]
+def load_files(fname):
+    dfs = [load_file(e) for e in gb.glob(fname) ]
     return pd.concat(dfs)
 
-def load_file(fn):
-    df = pd.read_csv(fn, parse_dates=['Date'], index_col='Date')
-    print('loaded %s %d x %d' % (fn, df.shape[0], df.shape[1]) )
+def load_file(fname):
+    df = pd.read_csv(fname, parse_dates=['Date'], index_col='Date')
+    print(f'loaded {fname} {df.shape[0]} {df.shape[1]}')
     return df
+
+def print_summary(df):
+    print('--- Daily bars ---')
+    df2 = daily_bars(df)
+    print(df2)
+
+    print('--- RTH bars ---')
+    df2 = rth_bars(df)
+    print(df2)
 
 #df = pd.read_csv("../../Downloads/spy.csv")
 #print(df.tail())
@@ -166,17 +206,13 @@ def load_file(fn):
 # i = df[df['Date'].apply(lambda e:e.time() == dt.time(14,30) )].index
 # df.iloc[i]
 #df = pd.read_csv('d:\esm1 20210322.csv', parse_dates=['Date'], index_col='Date')
-df = load_files('esm1')
+df = load_files('d:\\esm1*.csv')
+print_summary(df)
 df['VWAP'] = calc_vwap(df)
-print(df.head())
+print(df)
 #exportNinja(df, 'd:\ESM1.Last.txt')
 #hilo(df, 4)
 
-daily = aggregate_daily_bars(df)
-print(daily)
-
 #df.to_csv('d:\z.csv')
 df2 = aggregateMinVolume(df, 2500)
-print(df2.head())
 df2.to_csv('d:\cvol22.csv')
-

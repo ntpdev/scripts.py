@@ -5,20 +5,12 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 
-def make_colour(h,l):
-    return 'green' if h > abs(l) else 'red'
-
-print(f'Hello world {datetime.now()}')
-xs = glob.glob('/media/niroo/ULTRA/esh1*')
-idx_end = 2600
-hi_count = []
-lo_count = []
-hi_count.append(0)
-lo_count.append(0)
-for s in xs:
-    print(s)
-    df = pd.read_csv(s, index_col='Date')
-    print(df)
+def calc_hilo(df):
+    idx_end = 2600
+    hi_count = []
+    lo_count = []
+    hi_count.append(0)
+    lo_count.append(0)
     for i in range(1,idx_end):
         current = df.High.iloc[i]
         ch = 0
@@ -42,10 +34,23 @@ for s in xs:
         hi_count.append(ch)
         lo_count.append(cl)
 
-df['HiCount'] = pd.Series(hi_count, index=df.index[0:idx_end], dtype='Int32')
-df['LoCount'] = pd.Series(lo_count, index=df.index[0:idx_end], dtype='Int32')
+    df['HiCount'] = pd.Series(hi_count, index=df.index[0:idx_end], dtype='Int32')
+    df['LoCount'] = pd.Series(lo_count, index=df.index[0:idx_end], dtype='Int32')
+
+def make_colour(h,l):
+    return 'green' if h > abs(l) else 'red'
+
+print(f'Hello world {datetime.now()}')
+#xs = glob.glob('/media/niroo/ULTRA/esh1*')
+xs = glob.glob('D:\esh1*.csv')
+for s in xs:
+    print(s)
+    df = pd.read_csv(s, index_col='Date')
+    print(df)
+    calc_hilo(df)
 
 cols = []
+idx_end = 2600
 c = 'grey'
 cols.append(c)
 for i in range(1,idx_end):
@@ -59,7 +64,7 @@ for i in range(1,idx_end):
 #df['Colour'] = pd.Series(cols, index=df.index[0:200], dtype='Int32')
 df['Colour'] = pd.Series(cols, index=df.index[0:idx_end])
 
-print(df.iloc[0:39])
+print(df.iloc[80:120])
 
 fig = go.Figure()
 fig.add_trace(go.Bar(x=df.index[0:idx_end],

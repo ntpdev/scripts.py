@@ -41,8 +41,8 @@ def make_colour(h,l):
     return 'green' if h > abs(l) else 'red'
 
 print(f'Hello world {datetime.now()}')
-#xs = glob.glob('/media/niroo/ULTRA/esh1*')
-xs = glob.glob('D:\esh1*.csv')
+xs = glob.glob('/media/niroo/ULTRA/esh1*')
+#xs = glob.glob('D:\\esh1*.csv')
 for s in xs:
     print(s)
     df = pd.read_csv(s, index_col='Date')

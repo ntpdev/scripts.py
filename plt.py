@@ -2,7 +2,6 @@
 from datetime import datetime, date, time, timedelta
 import numpy as np
 import pandas as pd
-from scipy.signal import find_peaks
 import plotly.graph_objects as go
 import plotly.offline as pyo 
 from plotly.offline import init_notebook_mode
@@ -100,17 +99,19 @@ def make_rth_index(df, day_index):
     rth_closes = df[is_first_bar].Date.apply(lambda e: e + np.timedelta64(1260 - e.minute, 'm'))
     return [ (op, cl) for op,cl in zip(df[df.Date.isin(rth_opens)].index, df[df.Date.isin(rth_closes)].index) ]
 
-df = pd.read_csv('d:\\cvol22.csv', parse_dates=['Date', 'DateCl'], index_col=0)
+#df = pd.read_csv('d:\\cvol22.csv', parse_dates=['Date', 'DateCl'], index_col=0)
+df = pd.read_csv('/media/niroo/ULTRA/cvol22.csv', parse_dates=['Date', 'DateCl'], index_col=0)
+
 # create a string for X labels
 tm = df['Date'].dt.strftime('%d %H:%M')
 fig = go.Figure(data=[go.Candlestick(x=tm, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close']),
-    go.Scatter(x=tm, y=df['VWAP'], line=dict(color='orange')) ])
+                      go.Scatter(x=tm, y=df['VWAP'], line=dict(color='orange')) ])
 xs = make_day_index(df)
 rths = make_rth_index(df, xs)
 drawVert(fig, tm, rths)
 peaks(df, tm, fig)
 
-op, cl = xs[0]
+op, cl = xs[1]
 fig.layout.xaxis.range = [op, cl]
 l, h = make_yrange(df, op, cl ,5)
 fig.layout.yaxis.range = [l, h]

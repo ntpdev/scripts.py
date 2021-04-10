@@ -101,7 +101,7 @@ def make_colour(h,l):
 
 print(f'Hello world {datetime.now()}')
 #df = load_files('/media/niroo/ULTRA/esh1*')
-df = load_files('D:\\esh1*.csv')
+df = load_files('D:\\esm1*.csv')
 df['VWAP'] = calc_vwap(df)
 calc_hilo(df)
 print('--- RTH bars ---')

@@ -6,6 +6,7 @@ import inspect
 import logging
 import time
 import os.path
+import sys
 import pandas as pd
 
 from ibapi import wrapper
@@ -315,10 +316,11 @@ class TestApp(TestWrapper, TestClient):
         super().historicalDataEnd(reqId, start, end)
         print("HistoricalDataEnd. ReqId:", reqId, "from", start, "to", end)
         self.df = pd.DataFrame(self.rows)
-        fname = 'd:\esm1 20210329.csv'
+        fname = 'd:\esm1 20210405.csv'
         print('saving ' + fname)
         self.df.to_csv(fname)
         print(self.df)
+        sys.exit(0)
 
     @printWhenExecuting
     def contractOperations(self):

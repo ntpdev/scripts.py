@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.offline as pyo 
+import platform
+import sys
 from plotly.offline import init_notebook_mode
 
 def samp():
@@ -23,11 +25,13 @@ def samp():
 
     fig.show()
 
-
-def drawVert(fig, tms, idxs):
+#        color="LightSeaGreen",
+def draw_daily_lines(df, fig, tms, idxs):
     for op, cl in idxs:
         fig.add_vline(x=tms.iloc[op], line_width=1, line_dash="dash", line_color="blue")
         fig.add_vline(x=tms.iloc[cl], line_width=1, line_dash="dash", line_color='grey')
+        y = df.Open.iloc[op]
+        fig.add_shape(type='line', x0=tms.iloc[op], y0=y, x1=tms.iloc[cl], y1=y, line=dict(color='LightSeaGreen', dash='dot'))
 
 def highs(df, window):
     hs = df['High'].rolling(window, center=True).max()
@@ -96,22 +100,26 @@ def make_day_index(df):
 def make_rth_index(df, day_index):
     is_first_bar = (df['Date'].diff().fillna(pd.Timedelta(hours=1)) > timedelta(minutes=59)) & (df['Date'].dt.hour > 21)
     rth_opens = df[is_first_bar].Date.apply(lambda e: e + np.timedelta64(930 - e.minute, 'm'))
-    rth_closes = df[is_first_bar].Date.apply(lambda e: e + np.timedelta64(1260 - e.minute, 'm'))
+    rth_closes = df[is_first_bar].Date.apply(lambda e: e + np.timedelta64(1320 - e.minute, 'm'))
     return [ (op, cl) for op,cl in zip(df[df.Date.isin(rth_opens)].index, df[df.Date.isin(rth_closes)].index) ]
 
-#df = pd.read_csv('d:\\cvol22.csv', parse_dates=['Date', 'DateCl'], index_col=0)
-df = pd.read_csv('/media/niroo/ULTRA/cvol22.csv', parse_dates=['Date', 'DateCl'], index_col=0)
+
+def make_filename(fname):
+    p = '/media/niroo/ULTRA/' if platform.system() == 'Linux' else 'd:\\'
+    return p + fname
+
+df = pd.read_csv(make_filename('cvol22.csv'), parse_dates=['Date', 'DateCl'], index_col=0)
 
 # create a string for X labels
 tm = df['Date'].dt.strftime('%d %H:%M')
-fig = go.Figure(data=[go.Candlestick(x=tm, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close']),
-                      go.Scatter(x=tm, y=df['VWAP'], line=dict(color='orange')) ])
+fig = go.Figure(data=[go.Candlestick(x=tm, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='ES'),
+                      go.Scatter(x=tm, y=df['VWAP'], line=dict(color='orange'), name='vwap') ])
 xs = make_day_index(df)
 rths = make_rth_index(df, xs)
-drawVert(fig, tm, rths)
+draw_daily_lines(df, fig, tm, rths)
 peaks(df, tm, fig)
 
-op, cl = xs[1]
+op, cl = xs[4]
 fig.layout.xaxis.range = [op, cl]
 l, h = make_yrange(df, op, cl ,5)
 fig.layout.yaxis.range = [l, h]

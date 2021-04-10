@@ -1,8 +1,9 @@
 #!/usr/bin/python3
-from datetime import date, time, timedelta
+from datetime import date, time, timedelta, datetime
 import numpy as np
 import pandas as pd
 import glob as gb
+import platform
 import sys
 
 def exportNinja(df, outfile):
@@ -80,9 +81,18 @@ def aggregate(df):
 def aggregateMinVolume(df, minvol):
     rows = []
     acc = {}
+#    selector = (df.index.minute == 0) & (df.index.to_series().diff() != timedelta(minutes=1))
+    selector = df.index.to_series().diff() != timedelta(minutes=1)
+    openbar = (df.index.minute == 0) & selector
+    lastbar = selector.shift(-1, fill_value=True)
+    eur_open = date(2021,1,1)
+    rth_open = date(2021,1,1)
     for i,r in df.iterrows():
+        if openbar.loc[i]:
+            eur_open = i + timedelta(hours=8, minutes=59)
+            rth_open = i + timedelta(hours=15, minutes=29)
         acc = single(i,r,1) if len(acc) == 0 else combine(acc, i, r, 1)
-        if acc['Volume'] >= minvol or islastbar(i) :
+        if acc['Volume'] >= minvol or lastbar.loc[i] or i == eur_open or i == rth_open:
             rows.append(acc)
             acc = {}
     if len(acc) > 0:
@@ -180,6 +190,10 @@ def fn1():
     dfd = dfd[dfd.volume > 1000]
     print(dfd.tail(19))
 
+def make_filename(fname):
+    p = '/media/niroo/ULTRA/' if platform.system() == 'Linux' else 'd:\\'
+    return p + fname
+
 def load_files(fname):
     dfs = [load_file(e) for e in gb.glob(fname) ]
     return pd.concat(dfs)
@@ -205,14 +219,12 @@ def print_summary(df):
 # df[df['Date'].apply(lambda e:e.time() == dt.time(14,30) )]
 # i = df[df['Date'].apply(lambda e:e.time() == dt.time(14,30) )].index
 # df.iloc[i]
-#df = pd.read_csv('d:\esm1 20210322.csv', parse_dates=['Date'], index_col='Date')
-df = load_files('d:\\esm1*.csv')
+df = load_files(make_filename('esm1*.csv'))
 print_summary(df)
 df['VWAP'] = calc_vwap(df)
-print(df)
+#print(df)
 #exportNinja(df, 'd:\ESM1.Last.txt')
 #hilo(df, 4)
 
-#df.to_csv('d:\z.csv')
 df2 = aggregateMinVolume(df, 2500)
-#df2.to_csv('d:\\cvol22.csv')
+df2.to_csv(make_filename('cvol22.csv'))

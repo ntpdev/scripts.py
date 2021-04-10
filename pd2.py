@@ -100,7 +100,7 @@ def make_colour(h,l):
     return 'green' if h > abs(l) else 'red'
 
 print(f'Hello world {datetime.now()}')
-#xs = load_files('/media/niroo/ULTRA/esh1*')
+#df = load_files('/media/niroo/ULTRA/esh1*')
 df = load_files('D:\\esh1*.csv')
 df['VWAP'] = calc_vwap(df)
 calc_hilo(df)

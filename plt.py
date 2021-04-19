@@ -111,7 +111,7 @@ def make_filename(fname):
 df = pd.read_csv(make_filename('cvol22.csv'), parse_dates=['Date', 'DateCl'], index_col=0)
 
 # create a string for X labels
-tm = df['Date'].dt.strftime('%d %H:%M')
+tm = df['Date'].dt.strftime('%d/%m %H:%M')
 fig = go.Figure(data=[go.Candlestick(x=tm, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='ES'),
                       go.Scatter(x=tm, y=df['VWAP'], line=dict(color='orange'), name='vwap') ])
 xs = make_day_index(df)
@@ -119,7 +119,7 @@ rths = make_rth_index(df, xs)
 draw_daily_lines(df, fig, tm, rths)
 peaks(df, tm, fig)
 
-op, cl = xs[4]
+op, cl = xs[-1]
 fig.layout.xaxis.range = [op, cl]
 l, h = make_yrange(df, op, cl ,5)
 fig.layout.yaxis.range = [l, h]

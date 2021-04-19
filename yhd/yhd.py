@@ -3,6 +3,7 @@ from datetime import datetime, date, time, timedelta
 import numpy as np
 import pandas as pd
 import glob as gb
+import platform
 import sys
 import yfinance as yf
 
@@ -37,8 +38,43 @@ def calc_pct_change(ser):
     base = ser.iloc[0]
     return round(ser / base - 1, 3) * 100
 
-def make_filename(ticker):
-    return f'd:\\{ticker}.csv'
+def calc_extended_run(df, n):
+    df['SMA'] = df.Close.rolling(n).mean()
+    df['Diff'] = df.Close - df.SMA
+    df['Q'] = np.sign(df.Diff)
+    ys = df.Q
+    df['Run'] = ys * (ys.groupby((ys != ys.shift()).cumsum()).cumcount()+1)
+    return df
+
+def find_pullbacks(df):
+    in_run = False
+    in_trade = False
+    ds = []
+    ixs = []
+    ix = None
+    d = {}
+    for i,r in df.iterrows():
+        if r.Run > 4:
+            in_run = True
+        if in_run and r.Run <= -1:
+            d['Open'] = r.Close
+            in_run = False
+            in_trade = True
+            ix = i
+        if in_trade and r.Run >= 1:
+            d['Close'] = r.Close
+            ds.append(d)
+            ixs.append(ix)
+            d = {}
+            in_trade = False
+    trades = pd.DataFrame(ds, index=ixs)
+    trades['Points'] = ((trades.Close - trades.Open) / trades.Open) * 100
+    trades['Total'] = trades.Points.cumsum()
+    return trades
+
+def make_filename(fname):
+    p = '/media/niroo/ULTRA/' if platform.system() == 'Linux' else 'd:\\'
+    return f'{p}{fname}.csv'
 
 def save(ticker, df):
     fname = make_filename(ticker)
@@ -46,8 +82,9 @@ def save(ticker, df):
     print('saved ' + fname)
 
 def download(ticker):
-    isf = yf.Ticker(ticker)
-    df = isf.history(period='2y')
+    t = yf.Ticker(ticker)
+    df = t.history(period='2y')
+    print('download...' + ticker)
     df2 = df.drop(columns=['Dividends', 'Stock Splits'])
     df2 = df2.round(2)
     df2['PctChg'] = df2.Close.pct_change().round(4) * 100
@@ -70,8 +107,10 @@ def print_stats(df):
 
 # WRKS.L MTRO.L HSW.L
 ticker = 'QQQ'
-df = download(ticker)
-#df = pd.read_csv(make_filename(ticker), parse_dates=['Date'], index_col='Date')
+#df = download(ticker)
+df = pd.read_csv(make_filename(ticker), parse_dates=['Date'], index_col='Date')
+df = calc_extended_run(df, 5)
 print(df[-49:])
-save(ticker, df)
+print(find_pullbacks(df))
+#save(ticker, df)
 print_stats(df)

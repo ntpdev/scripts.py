@@ -99,9 +99,13 @@ def calc_hilo(df):
 def make_colour(h,l):
     return 'green' if h > abs(l) else 'red'
 
+def make_filename(fname):
+    p = '/media/niroo/ULTRA/' if platform.system() == 'Linux' else 'd:\\'
+    return p + fname
+
 print(f'Hello world {datetime.now()}')
 #df = load_files('/media/niroo/ULTRA/esh1*')
-df = load_files('D:\\esm1*.csv')
+df = load_files(make_filename('esm1*.csv'))
 df['VWAP'] = calc_vwap(df)
 calc_hilo(df)
 print('--- RTH bars ---')

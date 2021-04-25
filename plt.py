@@ -119,7 +119,7 @@ rths = make_rth_index(df, xs)
 draw_daily_lines(df, fig, tm, rths)
 peaks(df, tm, fig)
 
-op, cl = xs[-1]
+op, cl = xs[-6]
 fig.layout.xaxis.range = [op, cl]
 l, h = make_yrange(df, op, cl ,5)
 fig.layout.yaxis.range = [l, h]

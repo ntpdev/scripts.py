@@ -107,8 +107,8 @@ def print_stats(df):
 
 # WRKS.L MTRO.L HSW.L
 ticker = 'QQQ'
-#df = download(ticker)
-df = pd.read_csv(make_filename(ticker), parse_dates=['Date'], index_col='Date')
+df = download(ticker)
+#df = pd.read_csv(make_filename(ticker), parse_dates=['Date'], index_col='Date')
 df = calc_extended_run(df, 5)
 print(df[-49:])
 print(find_pullbacks(df))

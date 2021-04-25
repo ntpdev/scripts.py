@@ -92,6 +92,8 @@ def aggregateMinVolume(df, minvol):
             eur_open = i + timedelta(hours=8, minutes=59)
             rth_open = i + timedelta(hours=15, minutes=29)
         acc = single(i,r,1) if len(acc) == 0 else combine(acc, i, r, 1)
+        #if i == datetime(2021,4,20,14,29,0):
+        #    breakpoint()
         if acc['Volume'] >= minvol or lastbar.loc[i] or i == eur_open or i == rth_open:
             rows.append(acc)
             acc = {}
@@ -226,5 +228,5 @@ df['VWAP'] = calc_vwap(df)
 #exportNinja(df, 'd:\ESM1.Last.txt')
 #hilo(df, 4)
 
-df2 = aggregateMinVolume(df, 2500)
-df2.to_csv(make_filename('cvol22.csv'))
+#df2 = aggregateMinVolume(df, 2500)
+#df2.to_csv(make_filename('cvol22.csv'))

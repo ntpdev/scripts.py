@@ -34,7 +34,7 @@ def calc_hilo(ser):
         cs.append(count_back(ser, i))
     return pd.Series(cs, ser.index)
 
-def calc_pct_change(ser):
+def calc_rel_change(ser):
     base = ser.iloc[0]
     return round(ser / base - 1, 3) * 100
 
@@ -76,6 +76,11 @@ def make_filename(fname):
     p = '/media/niroo/ULTRA/' if platform.system() == 'Linux' else 'd:\\'
     return f'{p}{fname}.csv'
 
+def download_save(ticker):
+    df = download(ticker)
+    save(ticker, df)
+    return df
+
 def save(ticker, df):
     fname = make_filename(ticker)
     df.to_csv(fname)
@@ -89,7 +94,7 @@ def download(ticker):
     df2 = df2.round(2)
     df2['PctChg'] = df2.Close.pct_change().round(4) * 100
     df2['HiLo'] = calc_hilo(df2.Close)
-    df2['RelChg'] = calc_pct_change(df2.Close)
+    df2['RelChg'] = calc_rel_change(df2.Close)
     return df2
 
 def print_range(df, n):
@@ -97,20 +102,21 @@ def print_range(df, n):
     l = df.Low[-n:].min()
     c = df.Close[-1]
     r = 100*(c-l)/(h-l)
-    print(f'{n}d range {l:.2f} {h:.2f} {r:.2f}%')
+    print(f'{n}d range {l:.2f} {h:.1f} {r:.1f}%')
 
-def print_stats(df):
-    xs = df.PctChg.rolling(50).std()
-    print(f'50d stddev {xs[-1]:.2f}%')
+def print_stats(df, n):
+    print(df[-49:])
+    xs = df.PctChg.rolling(n).std()
+    print(f'{n}d stddev {xs[-1]:.2f}%')
     print_range(df, 20)
     print_range(df, 50)
 
-# WRKS.L MTRO.L HSW.L
-ticker = 'QQQ'
-df = download(ticker)
+# WRKS.L MTRO.L HSW.L VDTK.L
+ticker = 'STAN.L'
+df = download_save(ticker)
 #df = pd.read_csv(make_filename(ticker), parse_dates=['Date'], index_col='Date')
 df = calc_extended_run(df, 5)
 print(df[-49:])
 print(find_pullbacks(df))
 #save(ticker, df)
-print_stats(df)
+print_stats(df, 50)

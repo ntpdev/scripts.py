@@ -13,49 +13,13 @@
         select { width: 8em; }
         input  { width: 5em; }
     </style>
-    <script>
-        'use strict'
-        const stocks = ['spy', 'qqq','fxi','fb','amzn','nvda','goog','msft','aapl','tsla','coin'].sort()
-
-        function add_items() {
-            const lb = document.getElementById("lb")
-            for (const s of stocks) {
-                var opt = document.createElement("option")
-                opt.text = s
-                lb.appendChild(opt)
-            }
-        }
-
-        function lb_onChange(lb) {
-            const txt = document.getElementById("txt")
-            console.log("sel")
-            txt.value = lb.options[lb.selectedIndex].text
-            pb_onClick()
-        }
-
-        function txt_onKeyUp(event) {
-          const txt = document.getElementById("txt")
-          if (event.key === "Enter") { pb_onClick() } 
-        }
-
-        function pb_onClick() {
-            const txt = document.getElementById("txt")
-            if (txt.value) {
-                const chart1 = document.getElementById("c1")
-                const chart2 = document.getElementById("c2")
-                const url = "https://api.wsj.net/api/kaavio/charts/big.chart?nosettings=1&symb="
-                chart1.src = url + txt.value + "&uf=0&type=4&size=3&style=320&freq=7&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=3&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1"
-                chart2.src = url + txt.value + "&uf=0&type=4&size=3&style=320&freq=6&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=2&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1"
-            }
-        }
-    </script>
   </head>
   <body onload="add_items()">
     <div class="container">
         <div class="row">
           <div class="col-lg-2">
             <input type="text" id="txt" onkeyup="txt_onKeyUp(event)">
-            <button type="button" onclick="pb_onClick()">
+            <button type="button" id="go">
               <i class="bi bi-search"></i>
             </button>
             <br>
@@ -71,5 +35,44 @@
     </div>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
-  </body>
+    <script>
+      'use strict'
+      const stocks = ['spy', 'qqq','fxi','fb','amzn','nvda','goog','msft','aapl','tsla','coin'].sort()
+
+      function add_items() {
+          const lb = document.getElementById("lb")
+          for (const s of stocks) {
+              var opt = document.createElement("option")
+              opt.text = s
+              lb.appendChild(opt)
+          }
+
+          const btn = document.getElementById("go")
+          btn.onclick = btn_onClick
+      }
+
+      function lb_onChange(lb) {
+          const txt = document.getElementById("txt")
+          console.log("sel")
+          txt.value = lb.options[lb.selectedIndex].text
+          btn_onClick()
+      }
+
+      function txt_onKeyUp(event) {
+        const txt = document.getElementById("txt")
+        if (event.key === "Enter") { btn_onClick() } 
+      }
+
+      function btn_onClick() {
+          const txt = document.getElementById("txt")
+          if (txt.value) {
+              const chart1 = document.getElementById("c1")
+              const chart2 = document.getElementById("c2")
+              const url = "https://api.wsj.net/api/kaavio/charts/big.chart?nosettings=1&symb="
+              chart1.src = url + txt.value + "&uf=0&type=4&size=3&style=320&freq=7&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=3&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1"
+              chart2.src = url + txt.value + "&uf=0&type=4&size=3&style=320&freq=6&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=2&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1"
+          }
+      }
+  </script>
+</body>
 </html>

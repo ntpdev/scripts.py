@@ -18,8 +18,8 @@ Syntax highlighted code block
 - Bulleted
 - List
 
-1. [Futures](fut.html)
-2. [Bigcharts](bigc.html)
+1. [Futures](./fut.html)
+2. [Bigcharts](./bigc.html)
 
 **Bold** and _Italic_ and `Code` text
 

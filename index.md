@@ -18,8 +18,8 @@ Syntax highlighted code block
 - Bulleted
 - List
 
-1. [Futures](../scripts.py/fut.html)
-2. [Bigcharts](../scripts.py/bigc.html)
+1. [Futures](https://ntpdev.gitbub.io/scripts.py/fut.html)
+2. [Bigcharts](https://ntpdev.gitbub.io/scripts.py/bigc.html)
 
 **Bold** and _Italic_ and `Code` text
 

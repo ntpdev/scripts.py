@@ -10,21 +10,22 @@
     <title>Bigcharts Intraday</title>
     <style>
         body   { background-color: rgb(243, 246, 250); }
-        select { width: 8em; }
+        select { width: 8em; margin-top: 1em; }
         input  { width: 5em; }
+        button { margin-left: 0.5em; }
+        img    { margin-bottom: 1em; }
     </style>
   </head>
-  <body onload="add_items()">
+  <body>
     <div class="container">
         <div class="row">
           <div class="col-lg-2">
-            <input type="text" id="txt" onkeyup="txt_onKeyUp(event)">
-            <button type="button" id="go">
+            <input type="text" id="txtSymbol">
+            <button type="button" id="btnGo">
               <i class="bi bi-search"></i>
             </button>
             <br>
-            <select id="lb" size="15" width="10em" onchange="lb_onChange(this)">
-            </select>
+            <select id="lb" size="15" width="10em"></select>
           </div>
           <div class="col-lg-10">
             <img src="https://api.wsj.net/api/kaavio/charts/big.chart?nosettings=1&symb=SPY&uf=0&type=4&size=3&sid=9864&style=320&freq=7&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=3&rand=1050503780&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1" id="c1"/>
@@ -38,33 +39,28 @@
     <script>
       'use strict'
       const stocks = ['spy', 'qqq','fxi','fb','amzn','nvda','goog','msft','aapl','tsla','coin'].sort()
+      const lb = document.getElementById("lb")
+      const txt = document.getElementById("txtSymbol")
+      const btn = document.getElementById("btnGo")
 
       function add_items() {
-          const lb = document.getElementById("lb")
           for (const s of stocks) {
               var opt = document.createElement("option")
               opt.text = s
               lb.appendChild(opt)
           }
-
-          const btn = document.getElementById("go")
-          btn.onclick = btn_onClick
       }
 
-      function lb_onChange(lb) {
-          const txt = document.getElementById("txt")
-          console.log("sel")
+      function lb_onChange() {
           txt.value = lb.options[lb.selectedIndex].text
           btn_onClick()
       }
 
       function txt_onKeyUp(event) {
-        const txt = document.getElementById("txt")
-        if (event.key === "Enter") { btn_onClick() } 
+        if (event.key === 'Enter') { btn_onClick() } 
       }
 
       function btn_onClick() {
-          const txt = document.getElementById("txt")
           if (txt.value) {
               const chart1 = document.getElementById("c1")
               const chart2 = document.getElementById("c2")
@@ -73,6 +69,15 @@
               chart2.src = url + txt.value + "&uf=0&type=4&size=3&style=320&freq=6&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=2&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1"
           }
       }
+
+      function init() {
+        btn.addEventListener('click', btn_onClick )
+        txt.addEventListener('keyup', txt_onKeyUp )
+        lb.addEventListener('change', lb_onChange )
+        add_items()
+      }
+
+      window.addEventListener('DOMContentLoaded', init )
   </script>
 </body>
 </html>

@@ -42,6 +42,8 @@
       const lb = document.getElementById("lb")
       const txt = document.getElementById("txtSymbol")
       const btn = document.getElementById("btnGo")
+      const chart1 = document.getElementById("c1")
+      const chart2 = document.getElementById("c2")
 
       function add_items() {
           for (const s of stocks) {
@@ -62,8 +64,6 @@
 
       function btn_onClick() {
           if (txt.value) {
-              const chart1 = document.getElementById("c1")
-              const chart2 = document.getElementById("c2")
               const url = "https://api.wsj.net/api/kaavio/charts/big.chart?nosettings=1&symb="
               chart1.src = url + txt.value + "&uf=0&type=4&size=3&style=320&freq=7&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=3&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1"
               chart2.src = url + txt.value + "&uf=0&type=4&size=3&style=320&freq=6&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=2&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1"

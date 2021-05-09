@@ -1,6 +1,7 @@
 ## Welcome to GitHub Pages
 - [Futures](fut.html)
 - [Bigcharts](bigc.html)
+- [ADVFN](adv.html)
 
 You can use the [editor on GitHub](https://github.com/ntpdev/scripts.py/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
 
@@ -22,7 +23,6 @@ Syntax highlighted code block
 
 1. [Futures](https://ntpdev.gitbub.io/scripts.py/fut.html)
 2. [Bigcharts](https://ntpdev.gitbub.io/scripts.py/bigc.html)
-3. [ADVFN](https://ntpdev.gitbub.io/scripts.py/adv.html)
 
 **Bold** and _Italic_ and `Code` text
 

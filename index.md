@@ -22,6 +22,7 @@ Syntax highlighted code block
 
 1. [Futures](https://ntpdev.gitbub.io/scripts.py/fut.html)
 2. [Bigcharts](https://ntpdev.gitbub.io/scripts.py/bigc.html)
+3. [ADVFN](https://ntpdev.gitbub.io/scripts.py/adv.html)
 
 **Bold** and _Italic_ and `Code` text
 

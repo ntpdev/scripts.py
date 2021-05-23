@@ -2,7 +2,7 @@
 - [Futures](fut.html)
 - [Bigcharts](bigc.html)
 - [ADVFN](adv.html)
-- [FANGMAN+T](https://stockcharts.com/freecharts/candleglance.html?FB,AAPL,NVDA,GOOG,MSFT,AMZN,NFLX,TSLA,XLK|B|0)
+- [FANGMAN+T](https://stockcharts.com/freecharts/candleglance.html?FB,AAPL,NVDA,GOOG,MSFT,AMZN,NFLX,TSLA,XLK)
 
 You can use the [editor on GitHub](https://github.com/ntpdev/scripts.py/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
 

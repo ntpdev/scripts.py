@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 from datetime import datetime, date, time, timedelta
+import argparse
 import numpy as np
 import pandas as pd
 import glob as gb
@@ -111,12 +112,19 @@ def print_stats(df, n):
     print_range(df, 20)
     print_range(df, 50)
 
+def process(ticker):
 # WRKS.L MTRO.L HSW.L VDTK.L
-ticker = 'STAN.L'
-df = download_save(ticker)
-#df = pd.read_csv(make_filename(ticker), parse_dates=['Date'], index_col='Date')
-df = calc_extended_run(df, 5)
-print(df[-49:])
-print(find_pullbacks(df))
-#save(ticker, df)
-print_stats(df, 50)
+    df = download_save(ticker)
+    #df = pd.read_csv(make_filename(ticker), parse_dates=['Date'], index_col='Date')
+    df = calc_extended_run(df, 5)
+    print(df[-49:])
+    print(find_pullbacks(df))
+    #save(ticker, df)
+    print_stats(df, 50)
+
+parser = argparse.ArgumentParser(description='Download historic prices from yahoo')
+parser.add_argument('tickers', metavar='Ticker', nargs='+', help='tickers eg SPY ISF.L')
+
+args = parser.parse_args()
+for t in args.tickers:
+    process(t)

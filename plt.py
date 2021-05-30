@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import argparse
 from datetime import datetime, date, time, timedelta
 import numpy as np
 import pandas as pd
@@ -84,8 +85,8 @@ def bar_containing(df, dt):
 
 # return a high and low range to nearest multiple of n
 def make_yrange(df, op, cl, n):
-    h = df['High'][op:cl].max()
-    l = df['Low'][op:cl].min()
+    h = df['High'][op:cl].max() + n // 2
+    l = df['Low'][op:cl].min() - n // 2
     return  (l // n)*n, ((h // n) + 1)*n
 
 # pair of start_index:end_index suitable for use with iloc[s:e]
@@ -108,22 +109,28 @@ def make_filename(fname):
     p = '/media/niroo/ULTRA/' if platform.system() == 'Linux' else 'd:\\'
     return p + fname
 
-df = pd.read_csv(make_filename('cvol22.csv'), parse_dates=['Date', 'DateCl'], index_col=0)
+def plot(index):
+    df = pd.read_csv(make_filename('cvol22.csv'), parse_dates=['Date', 'DateCl'], index_col=0)
 
-# create a string for X labels
-tm = df['Date'].dt.strftime('%d/%m %H:%M')
-fig = go.Figure(data=[go.Candlestick(x=tm, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='ES'),
-                      go.Scatter(x=tm, y=df['VWAP'], line=dict(color='orange'), name='vwap') ])
-xs = make_day_index(df)
-rths = make_rth_index(df, xs)
-draw_daily_lines(df, fig, tm, rths)
-peaks(df, tm, fig)
+    # create a string for X labels
+    tm = df['Date'].dt.strftime('%d/%m %H:%M')
+    fig = go.Figure(data=[go.Candlestick(x=tm, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='ES'),
+                        go.Scatter(x=tm, y=df['VWAP'], line=dict(color='orange'), name='vwap') ])
+    xs = make_day_index(df)
+    rths = make_rth_index(df, xs)
+    draw_daily_lines(df, fig, tm, rths)
+    peaks(df, tm, fig)
 
-op, cl = xs[-1]
-fig.layout.xaxis.range = [op, cl]
-l, h = make_yrange(df, op, cl ,5)
-fig.layout.yaxis.range = [l, h]
-fig.show()
+    op, cl = xs[index]
+    fig.layout.xaxis.range = [op, cl]
+    l, h = make_yrange(df, op, cl, 4)
+    fig.layout.yaxis.range = [l, h]
+    fig.show()
 
+parser = argparse.ArgumentParser(description='Plot daily chart')
+parser.add_argument('--index', type=int, default=-1, help='Index of day to plot e.g. -1 for last')
+
+argv = parser.parse_args()
+plot(argv.index)
 #hilo(df)
 #samp()

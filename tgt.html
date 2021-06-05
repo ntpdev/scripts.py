@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css">
+    <title>Stop Target Calculator</title>
+    <style>
+        body   { background-color: rgb(243, 246, 250); }
+        select { width: 8em; margin-top: 1em; }
+        input  { width: 5em; }
+        button { margin-left: 0.5em; }
+        img    { margin-bottom: 1em; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+        <div class="row">
+          <div class="col-lg-4">
+            <label for="txtTarget">Target</label>
+            <input type="number" id="txtTarget">
+            <label for="txtStop">Stop</label>
+            <input type="number" id="txtStop">
+            <button type="button" id="btnGo">
+              <i class="bi bi-calculator"></i>
+            </button>
+            <br>
+          </div>
+          <div class="col-lg-8">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">Target</th>
+                  <td id="tgt"></td>
+                </tr>
+                <tr>
+                  <th scope="row">Scale</th>
+                  <td id="scl"></td>
+                </tr>
+                <tr>
+                  <th scope="row">Entry</th>
+                  <td id="ent"></td>
+                </tr>
+                <tr>
+                  <th scope="row">Stop</th>
+                  <td id="stp"></td>
+                </tr>
+                <tr>
+                  <th scope="row">Risk</th>
+                  <td id="rsk"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>  
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+    <script>
+      'use strict'
+      const txtTarget = document.getElementById("txtTarget")
+      const txtStop = document.getElementById("txtStop")
+      const btn = document.getElementById("btnGo")
+      const clTgt = document.getElementById("tgt")
+      const clScl = document.getElementById("scl")
+      const clEnt = document.getElementById("ent")
+      const clStp = document.getElementById("stp")
+      const clRsk = document.getElementById("rsk")
+      const rdLong = document.getElementById("rdDirnL")
+
+      function txt_onKeyUp(event) {
+        if (event.key === 'Enter') { btn_onClick() } 
+      }
+
+      function btn_onClick() {
+          if (txtTarget.value && txtStop.value) {
+            var target = parseFloat(txtTarget.value)
+            var stp = parseFloat(txtStop.value)
+            var dirn = tgt > stp ? 1 : -1
+            var d = Math.floor( ((target - stp) * 4) / 3)
+            alert(`${d} ${dirn}`)
+            var tgt = stp + d * 0.75
+            var scl = stp + d * 0.5
+            var ent = stp + d * 0.25
+            clTgt.innerHTML = tgt.toFixed(2)
+            clScl.innerHTML = scl.toFixed(2)
+            clEnt.innerHTML = ent.toFixed(2)
+            clRsk.innerHTML = (dirn * d/4).toFixed(2)
+            clStp.innerHTML = stp.toFixed(2)            
+          }
+      }
+
+      function init() {
+        btn.addEventListener('click', btn_onClick )
+        txtTarget.addEventListener('keyup', txt_onKeyUp )
+        txtStop.addEventListener('keyup', txt_onKeyUp )
+      }
+
+      window.addEventListener('DOMContentLoaded', init )
+  </script>
+</body>
+</html>

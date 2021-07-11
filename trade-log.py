@@ -12,6 +12,8 @@ def parseTimeDate(sTime, sDate):
      return datetime.strptime( f'{sDate} {sTime}', '%Y%m%d  %H:%M:%S')
 
 def processSingleTrade(openPositions, trades, seqNo, r):
+    if r['Local symbol'] == 'MESU1':
+        return seqNo
     if len(openPositions) == 0 or openPositions[0]['Action'] == r.Action:
         trade = {}
         trade['Action'] = r.Action
@@ -82,7 +84,9 @@ parser = argparse.ArgumentParser(description='Process IB trade logs')
 parser.add_argument('--skip', metavar='skip', default=0, type=int, help='number of rows to skip')
 args = parser.parse_args()
 
-df = pd.read_csv('\\Users\\niroo\\OneDrive\\Documents\\trades.20210531.csv')
+dfa = pd.read_csv('\\Users\\niroo\\OneDrive\\Documents\\trades.20210531.csv')
+dfb = pd.read_csv('\\Users\\niroo\\OneDrive\\Documents\\trades3.csv')
+df = pd.concat( [dfa, dfb] )
 #df = pd.read_csv('\\Users\\niroo\\OneDrive\\Documents\\trades2.csv')
 print(df)
 dfTrades = process_trade_log(df, args.skip)

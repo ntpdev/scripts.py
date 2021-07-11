@@ -221,11 +221,11 @@ def print_summary(df):
 # df[df['Date'].apply(lambda e:e.time() == dt.time(14,30) )]
 # i = df[df['Date'].apply(lambda e:e.time() == dt.time(14,30) )].index
 # df.iloc[i]
-df = load_files(make_filename('esm1*.csv'))
+df = load_files(make_filename('esu1*.csv'))
 print_summary(df)
 df['VWAP'] = calc_vwap(df)
 print(df)
-exportNinja(df, 'd:\\ESM1.Last.txt')
+exportNinja(df, 'd:\\ES 09-21.Last.txt')
 #hilo(df, 4)
 
 #df.to_csv('d:\z.csv')

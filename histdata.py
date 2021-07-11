@@ -316,7 +316,7 @@ class TestApp(TestWrapper, TestClient):
         super().historicalDataEnd(reqId, start, end)
         print("HistoricalDataEnd. ReqId:", reqId, "from", start, "to", end)
         self.df = pd.DataFrame(self.rows)
-        fname = 'd:\\esm1 20210531.csv'
+        fname = 'd:\\esu1 20210628.csv'
         print('saving ' + fname)
         self.df.to_csv(fname)
         print(self.df)
@@ -343,7 +343,7 @@ def contractES():
         contract.secType = "FUT"
         contract.exchange = "GLOBEX"
         contract.currency = "USD"
-        contract.lastTradeDateOrContractMonth = "202106"
+        contract.lastTradeDateOrContractMonth = "202109"
         return contract
 
 def main():

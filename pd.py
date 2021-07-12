@@ -6,8 +6,8 @@ import glob as gb
 import platform
 import sys
 
-def exportNinja(df, outfile):
-    print(df.tail())
+def exportNinja(df, outfile):  
+    print(f'exporting in Ninja Trader format {outfile} {len(df)}')
     with open(outfile, 'w') as f:
         for i,r in df.iterrows():
             s = '%s;%4.2f;%4.2f;%4.2f;%4.2f;%d\n' % (i.strftime('%Y%m%d %H%M%S'),r['Open'],r['High'],r['Low'],r['Close'],r['Volume'])
@@ -224,8 +224,7 @@ def print_summary(df):
 df = load_files(make_filename('esu1*.csv'))
 print_summary(df)
 df['VWAP'] = calc_vwap(df)
-print(df)
-exportNinja(df, 'd:\\ES 09-21.Last.txt')
+exportNinja(df, make_filename('ES 09-21.Last.txt'))
 #hilo(df, 4)
 
 #df.to_csv('d:\z.csv')

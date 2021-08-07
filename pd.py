@@ -2,9 +2,8 @@
 from datetime import date, time, timedelta, datetime
 import numpy as np
 import pandas as pd
-import glob as gb
-import platform
 import sys
+from tsutils import make_filename, load_files, day_index, rth_index, aggregate_daily_bars
 
 def exportNinja(df, outfile):  
     print(f'exporting in Ninja Trader format {outfile} {len(df)}')
@@ -13,20 +12,12 @@ def exportNinja(df, outfile):
             s = '%s;%4.2f;%4.2f;%4.2f;%4.2f;%d\n' % (i.strftime('%Y%m%d %H%M%S'),r['Open'],r['High'],r['Low'],r['Close'],r['Volume'])
             f.write(s)
 
-def daily_bars(df):
-    # find start & end indexes by looking for gaps in index
-    selector = (df.index.minute == 0) & (df.index.to_series().diff() != timedelta(minutes=1))
-    return aggregate_bars(df, df[selector].index, df[selector.shift(periods=-1, fill_value=True)].index)
 
-def rth_bars(df):
-    selector = (df.index.minute == 0) & (df.index.to_series().diff() != timedelta(minutes=1))
-    idx = df[selector].index.to_series()
-    # open will always have a gap before it 23:00 CET to add to get RTH hours 14:30 - 20:59
-    idx_open = idx.add(timedelta(hours=15, minutes=30))
-    idx_open = df.index.intersection(pd.Index(idx_open))
-    idx_close = idx.add(timedelta(hours=21, minutes=59))
-    idx_close = df.index.intersection(pd.Index(idx_close))
-    return aggregate_bars(df, idx_open, idx_close)
+def exportMinVol(df, outfile):
+    df2 = aggregateMinVolume(df, 2500)
+    print(f'exporting minVol file {outfile} {len(df2)}')
+    df2.to_csv(outfile)
+
 
 def calc_vwap(df):
     is_first_bar = df.index.to_series().diff() != timedelta(minutes=1)
@@ -92,8 +83,6 @@ def aggregateMinVolume(df, minvol):
             eur_open = i + timedelta(hours=8, minutes=59)
             rth_open = i + timedelta(hours=15, minutes=29)
         acc = single(i,r,1) if len(acc) == 0 else combine(acc, i, r, 1)
-        #if i == datetime(2021,4,20,14,29,0):
-        #    breakpoint()
         if acc['Volume'] >= minvol or lastbar.loc[i] or i == eur_open or i == rth_open:
             rows.append(acc)
             acc = {}
@@ -168,18 +157,6 @@ def hilo(df, rev):
             if c == 2:
                 sys.exit(0)
 
-def aggregate_daily_bars(df):
-    df3 = aggregrate_bars_between(df, time(13,30) ,time(20,14))
-    df3['Dt'] = df3['Date'].apply(lambda e: e.date())
-    df3.set_index('Dt', inplace=True)
-    df3['Volume'] = df3['Volume'].astype('int64')
-# copy to new DF
-    daily = df3[['Open', 'High', 'Low', 'Close', 'VWAP', 'Volume']].copy()
-    daily.index.rename('Date', inplace=True)
-    daily['Change'] = df3['Close'].sub(df3['Close'].shift())
-    daily['DayChg'] = df3['Close'].sub(df3['Open'])
-    daily['Range'] = df3['High'].sub(df3['Low'])
-    return daily
 
 # https://firstratedata.com/i/futures/ES
 def fn1():
@@ -192,41 +169,20 @@ def fn1():
     dfd = dfd[dfd.volume > 1000]
     print(dfd.tail(19))
 
-def make_filename(fname):
-    p = '/media/niroo/ULTRA/' if platform.system() == 'Linux' else 'd:\\'
-    return p + fname
-
-def load_files(fname):
-    dfs = [load_file(e) for e in gb.glob(fname) ]
-    return pd.concat(dfs)
-
-def load_file(fname):
-    df = pd.read_csv(fname, parse_dates=['Date'], index_col='Date')
-    print(f'loaded {fname} {df.shape[0]} {df.shape[1]}')
-    return df
-
 def print_summary(df):
+    di = day_index(df)
+    dr = rth_index(di)
     print('--- Daily bars ---')
-    df2 = daily_bars(df)
+    df2 = aggregate_daily_bars(df, di)
     print(df2)
 
     print('--- RTH bars ---')
-    df2 = rth_bars(df)
+    df2 = aggregate_daily_bars(df, dr)
     print(df2)
 
-#df = pd.read_csv("../../Downloads/spy.csv")
-#print(df.tail())
 
-# find bar at certain time
-# df[df['Date'].apply(lambda e:e.time() == dt.time(14,30) )]
-# i = df[df['Date'].apply(lambda e:e.time() == dt.time(14,30) )].index
-# df.iloc[i]
 df = load_files(make_filename('esu1*.csv'))
 print_summary(df)
 df['VWAP'] = calc_vwap(df)
 exportNinja(df, make_filename('ES 09-21.Last.txt'))
-#hilo(df, 4)
-
-#df.to_csv('d:\z.csv')
-df2 = aggregateMinVolume(df, 2500)
-df2.to_csv(make_filename('cvol22.csv'))
+exportMinVol(df, make_filename('es-minvol.csv'))

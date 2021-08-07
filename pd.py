@@ -3,7 +3,7 @@ from datetime import date, time, timedelta, datetime
 import numpy as np
 import pandas as pd
 import sys
-from tsutils import make_filename, load_files, day_index, rth_index, aggregate_daily_bars
+from tsutils import make_filename, load_files, day_index, rth_index, aggregate_daily_bars, calc_vwap
 
 def exportNinja(df, outfile):  
     print(f'exporting in Ninja Trader format {outfile} {len(df)}')
@@ -18,17 +18,6 @@ def exportMinVol(df, outfile):
     print(f'exporting minVol file {outfile} {len(df2)}')
     df2.to_csv(outfile)
 
-
-def calc_vwap(df):
-    is_first_bar = df.index.to_series().diff() != timedelta(minutes=1)
-    xs = []
-    start = 0
-    for i,r in df.iterrows():
-        if is_first_bar.loc[i]:
-            start = i
-        v = np.average( df['WAP'].loc[start:i], weights=df['Volume'].loc[start:i] )
-        xs.append(round(v, 2))
-    return pd.Series(xs, df.index)
 
 # create a new DF which aggregates bars between inclusive indexes
 def aggregate_bars(df, idxs_start, idxs_end):

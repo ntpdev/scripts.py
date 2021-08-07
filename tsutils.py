@@ -52,6 +52,18 @@ def aggregate(df, s, e):
     return r
 
 
+def calc_vwap(df):
+    is_first_bar = df.index.to_series().diff() != timedelta(minutes=1)
+    xs = []
+    start = 0
+    for i,r in df.iterrows():
+        if is_first_bar.loc[i]:
+            start = i
+        v = np.average( df['WAP'].loc[start:i], weights=df['Volume'].loc[start:i] )
+        xs.append(round(v, 2))
+    return pd.Series(xs, df.index)
+
+
 def make_filename(fname):
     p = '/media/niroo/ULTRA/' if platform.system() == 'Linux' else 'd:\\'
     return p + fname

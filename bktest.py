@@ -1,34 +1,12 @@
 #!/usr/bin/python3
 from datetime import date, time, timedelta, datetime
+import tsutils as ts
 import numpy as np
 import pandas as pd
 import glob as gb
 import platform
 import sys
 
-def make_filename(fname):
-    p = '/media/niroo/ULTRA/' if platform.system() == 'Linux' else 'd:\\'
-    return p + fname
-
-def load_files(fname):
-    dfs = [load_file(e) for e in gb.glob(fname) ]
-    return pd.concat(dfs)
-
-def load_file(fname):
-    df = pd.read_csv(fname, parse_dates=['Date'], index_col='Date')
-    print(f'loaded {fname} {df.shape[0]} {df.shape[1]}')
-    return df
-
-def calc_vwap(df):
-    is_first_bar = df.index.to_series().diff() != timedelta(minutes=1)
-    xs = []
-    start = 0
-    for i,r in df.iterrows():
-        if is_first_bar.loc[i]:
-            start = i
-        v = np.average( df['WAP'].loc[start:i], weights=df['Volume'].loc[start:i] )
-        xs.append(round(v, 2))
-    return pd.Series(xs, df.index)
 
 def opening_range(df, start, min_retrace):
     c = 0
@@ -46,6 +24,7 @@ def opening_range(df, start, min_retrace):
 
     print(f'{c} {rng_lo} {rng_hi}')
     return rng_lo, rng_hi
+
 
 def orb(df, start, rng_lo, rng_hi):
     c = 0
@@ -96,8 +75,8 @@ def orb(df, start, rng_lo, rng_hi):
     x['Profit'] = dirn * (close_price - open_price)
     return x
 
-df = load_files(make_filename('esu1*.csv'))
-df['VWAP'] = calc_vwap(df)
+df = ts.load_files(ts.make_filename('esu1*.csv'))
+df['VWAP'] = ts.calc_vwap(df)
 print(df)
 
 selector = (df.index.minute == 0) & (df.index.to_series().diff() != timedelta(minutes=1))

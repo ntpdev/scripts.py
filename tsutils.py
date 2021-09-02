@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 from datetime import date, time, timedelta, datetime
+from collections import deque
 import numpy as np
 import pandas as pd
 import glob as gb
@@ -64,6 +65,14 @@ def calc_vwap(df):
     return pd.Series(xs, df.index)
 
 
+def make_threeLB(x, xs):
+    if x > xs[0]:
+        xs.append(x)
+    if len(xs) > 2 and x < xs[2]:
+        xs = deque()
+        xs.append(x)
+    return xs
+
 def make_filename(fname):
     p = '/media/niroo/ULTRA/' if platform.system() == 'Linux' else 'd:\\'
     return p + fname
@@ -78,3 +87,56 @@ def load_file(fname):
     df = pd.read_csv(fname, parse_dates=['Date'], index_col='Date')
     print(f'loaded {fname} {df.shape[0]} {df.shape[1]}')
     return df
+
+class LineBreak:
+
+    def __init__(self, n):
+        self.reversalBocksLength = n
+        self.dirn = 0
+        self.lines = deque(maxlen = n + 1)
+        self.blocks = []
+
+    def append(self, x):
+        if len(self.lines) < self.reversalBocksLength:
+            self._appendBlock(x)
+        else:
+            high = max(self.lines)
+            low = min(self.lines)
+            if x > high or x < low:
+                # if reversal add prior close to queue of lines
+                if (x > high and self.dirn == -1) or (x < low and self.dirn == 1):
+                    print(f'reversal adding {self.lines[-2]}')
+                    self.lines.append(self.lines[-2])
+                self._appendBlock(x)
+    
+    def asDataFrame(self):
+        return pd.DataFrame(self.blocks)
+
+# add closing price to lines queue and if there is at least 1 prior line add a block
+# update direction of the last block in self.dirn
+    def _appendBlock(self, x):
+        if len(self.lines) > 0:
+            last = self.lines[-1]                    
+            self.dirn = 1 if x > last else -1                
+            self.lines.append(x)
+            block = {}
+            block['open'] = last
+            block['close'] = x
+            block['dirn'] = self.dirn
+            self.blocks.append(block)
+        else:
+            self.lines.append(x)
+
+# first block is wrong
+    def test(self):
+        cls = [135, 132, 128, 133, 130, 130, 132, 134, 139, 137, 145, 158, 147, 143, 150, 149, 160, 164, 167, 156, 165, 168,
+        171,173,169,177,180,176,170,175,179,173,170,170,168,165,171,175,179,175]
+        for c in cls:
+            self.append(c)
+            print(f'{c} {self.lines}')
+        df = self.asDataFrame()
+        print(df)
+
+# to reload a module then reload the name/alias of the imported module
+# from importlib import reload
+# reload(ts)

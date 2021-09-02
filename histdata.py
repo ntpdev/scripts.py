@@ -316,7 +316,7 @@ class TestApp(TestWrapper, TestClient):
         super().historicalDataEnd(reqId, start, end)
         print("HistoricalDataEnd. ReqId:", reqId, "from", start, "to", end)
         self.df = pd.DataFrame(self.rows)
-        fname = 'd:\\esu1 20210802.csv'
+        fname = 'd:\\esu1 20210823.csv'
         print('saving ' + fname)
         self.df.to_csv(fname)
         print(self.df)

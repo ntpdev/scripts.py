@@ -3,7 +3,7 @@ from datetime import date, time, timedelta, datetime
 import numpy as np
 import pandas as pd
 import sys
-from tsutils import make_filename, load_files, day_index, rth_index, aggregate_daily_bars, calc_vwap
+from tsutils import make_filename, load_files, day_index, rth_index, aggregate_daily_bars, calc_vwap, calc_atr
 
 def exportNinja(df, outfile):  
     print(f'exporting in Ninja Trader format {outfile} {len(df)}')
@@ -173,5 +173,6 @@ def print_summary(df):
 df = load_files(make_filename('esu1*.csv'))
 print_summary(df)
 df['VWAP'] = calc_vwap(df)
-exportNinja(df, make_filename('ES 09-21.Last.txt'))
-exportMinVol(df, make_filename('es-minvol.csv'))
+print(calc_atr(df, 5))
+#exportNinja(df, make_filename('ES 09-21.Last.txt'))
+#exportMinVol(df, make_filename('es-minvol.csv'))

@@ -64,6 +64,12 @@ def calc_vwap(df):
     return pd.Series(xs, df.index)
 
 
+def calc_atr(df, n):
+    rng = df.High.rolling(n).max() - df.Low.rolling(n).min()
+    df2 = pd.DataFrame( {'tm':df.index.time, 'rng':rng}, index=rng.index )
+    return df2.groupby('tm').rng.agg('mean')
+
+
 def make_filename(fname):
     p = '/media/niroo/ULTRA/' if platform.system() == 'Linux' else 'd:\\'
     return p + fname

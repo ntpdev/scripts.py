@@ -48,7 +48,10 @@ def aggregate(df, s, e):
     r['Low'] = df.Low[s:e].min()
     r['Close'] = df.Close[e]
     r['Volume'] = df.Volume[s:e].sum()
-    vwap = np.average( df.WAP[s:e], weights=df.Volume[s:e] )
+    vwap = 0
+    # contract expiry is opening price of day so day has no volume
+    if r['Volume'] > 0:
+        vwap = np.average( df.WAP[s:e], weights=df.Volume[s:e] )
     r['VWAP'] = round(vwap, 2)
     return r
 
@@ -96,9 +99,9 @@ class LineBreak:
         self.lines = deque(maxlen = n + 1)
         self.blocks = []
 
-    def append(self, x):
+    def append(self, x, dt):
         if len(self.lines) < self.reversalBocksLength:
-            self._appendBlock(x)
+            self._appendBlock(x, dt)
         else:
             high = max(self.lines)
             low = min(self.lines)
@@ -107,19 +110,20 @@ class LineBreak:
                 if (x > high and self.dirn == -1) or (x < low and self.dirn == 1):
                     print(f'reversal adding {self.lines[-2]}')
                     self.lines.append(self.lines[-2])
-                self._appendBlock(x)
+                self._appendBlock(x, dt)
     
     def asDataFrame(self):
         return pd.DataFrame(self.blocks)
 
 # add closing price to lines queue and if there is at least 1 prior line add a block
 # update direction of the last block in self.dirn
-    def _appendBlock(self, x):
+    def _appendBlock(self, x, dt):
         if len(self.lines) > 0:
-            last = self.lines[-1]                    
+            last = self.lines[-1]          
             self.dirn = 1 if x > last else -1                
             self.lines.append(x)
             block = {}
+            block['date'] = dt
             block['open'] = last
             block['close'] = x
             block['dirn'] = self.dirn

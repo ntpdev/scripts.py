@@ -170,14 +170,16 @@ def print_summary(df):
     df2 = aggregate_daily_bars(df, dr)
     print(df2)
     lb = LineBreak(3)
-    for c in df2['Close']:
-        lb.append(c)
+    for i,r in df2.iterrows():
+        lb.append(r['Close'], i)
+#    for c in df2['Close']:
+#        lb.append(c)
     df3 = lb.asDataFrame()
     print(df3)
 
 
-df = load_files(make_filename('esu1*.csv'))
+df = load_files(make_filename('esz1*.csv'))
 print_summary(df)
 df['VWAP'] = calc_vwap(df)
-exportNinja(df, make_filename('ES 09-21.Last.txt'))
+exportNinja(df, make_filename('ES 12-21.Last.txt'))
 exportMinVol(df, make_filename('es-minvol.csv'))

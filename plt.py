@@ -26,6 +26,14 @@ def samp():
 
     fig.show()
 
+def samp3LB():
+    df = pd.read_csv('d:/3lb.csv', delimiter='\s+', converters={'date': lambda e: datetime.strptime(e, '%Y-%m-%d')})
+    colours = df['dirn'].map({-1: "red", 1: "green"})
+    xs = df['date'].dt.strftime('%m-%d')
+    fig = go.Figure(data=[go.Bar(x = xs, y = df['close']-df['open'], base = df['open'], marker=dict(color = colours))])
+    fig.update_xaxes(type='category')
+    fig.show()
+
 #        color="LightSeaGreen",
 def draw_daily_lines(df, fig, tms, idxs):
     for op, cl in idxs:
@@ -110,7 +118,7 @@ def make_filename(fname):
     return p + fname
 
 def plot(index):
-    df = pd.read_csv(make_filename('cvol22.csv'), parse_dates=['Date', 'DateCl'], index_col=0)
+    df = pd.read_csv(make_filename('es-minvol.csv'), parse_dates=['Date', 'DateCl'], index_col=0)
 
     # create a string for X labels
     tm = df['Date'].dt.strftime('%d/%m %H:%M')
@@ -133,4 +141,4 @@ parser.add_argument('--index', type=int, default=-1, help='Index of day to plot 
 argv = parser.parse_args()
 plot(argv.index)
 #hilo(df)
-#samp()
+#samp3LB()

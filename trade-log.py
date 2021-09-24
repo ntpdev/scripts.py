@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 from datetime import datetime, date, time, timedelta
-from collections import deque
 import argparse
 import numpy as np
 import pandas as pd
@@ -8,39 +7,64 @@ import glob as gb
 import platform
 import sys
 
-def parseTimeDate(sTime, sDate):
-     return datetime.strptime( f'{sDate} {sTime}', '%Y%m%d  %H:%M:%S')
+class Blotter:
 
-def processSingleTrade(openPositions, trades, seqNo, r):
-    if r['Local symbol'] == 'MESU1':
-        return seqNo
-    if len(openPositions) == 0 or openPositions[0]['Action'] == r.Action:
-        trade = {}
-        trade['Action'] = r.Action
-        trade['Open'] = r.Price
-        dt = parseTimeDate(r.Time, r.Date)
-        trade['Date'] = dt.date()
-        trade['Seq'] = seqNo
-        trade['Symbol'] = r['Local symbol']
-        trade['OpTm'] = dt
-        openPositions.append(trade)
-    else:
-        trade = openPositions.popleft()
-        open = trade['Open']
-        trade['Close'] = r.Price
-        trade['ClTm'] = parseTimeDate(r.Time, r.Date)
-        trade['Duration'] = round((trade['ClTm'] - trade['OpTm']).total_seconds() / 60.0,2)
-        if trade['Action'] == 'BOT':
-            trade['Points'] = trade['Close'] - trade['Open']
+    def __init__(self):
+        self.openPositions = []
+        self.seqNo = 0
+        self.trades = []
+
+    def process_trade_log(self, df, skipRows):
+        for i,r in df.iterrows():
+            if i < skipRows:
+                continue
+            for x in range(r.Quantity):
+                self.process_single_trade(r)
+        return pd.DataFrame(self.trades)    
+
+    def process_single_trade(self, r):
+        found = self.find_matching(r['Local symbol'], r['Action'])
+        if found == -1:
+            self.openPositions.append(r)
         else:
-            trade['Points'] = trade['Open'] - trade['Close']
-        if trade['Symbol'] != r['Local symbol']:
-            print(f'Symbol mismatch for row {r}')
-            sys.exit(0)
-        trade['Ticks'] = 4 * trade['Points']
-        trade['Profit'] = 1.25 * trade['Ticks']
-        trades.append(trade)
-    return seqNo if len(openPositions) != 0 else seqNo + 1
+            op = self.openPositions.pop(found)
+            self.record_trade(op, r)
+            if len(self.openPositions) == 0:
+                self.seqNo += 1
+
+    def record_trade(self, op, cl):
+        trade = {}
+        trade['OpTm'] = op.Timestamp
+#        trade['ClTm'] = cl.Timestamp
+        trade['Seq'] = self.seqNo
+        trade['Symbol'] = op['Local symbol']
+        trade['Action'] = op.Action
+        trade['Open'] = op.Price
+        trade['Close'] = cl.Price
+        pts = (cl.Price - op.Price) * (1 if op.Action == 'BOT' else -1)
+        prf = self.calc_profit(op.Underlying, pts)
+        trade['Points'] = pts
+        trade['Profit'] = prf
+        trade['Comm'] = 1.04
+        trade['Net'] = prf - 1.04
+        self.trades.append(trade)
+ 
+    def find_matching(self, symbol, action):
+        opening_action = 'SLD' if action == 'BOT' else 'BOT'
+        found = -1
+        for i,v in enumerate(self.openPositions):
+            if v['Local symbol'] == symbol and v['Action'] == opening_action:
+                found = i
+                break
+        return found
+    
+    def calc_profit(self, symbol, pts):
+        if symbol == 'MES':
+            return pts * 5
+        if symbol == 'MNQ':
+            return pts * 2
+        return pts
+
 
 def print_trade_stats(dfTrades):
     wins = dfTrades.Ticks[dfTrades.Ticks > 3].count()
@@ -63,33 +87,23 @@ def print_trade_stats(dfTrades):
     print(f'avg w: {avgWin:.1f} avg l: {avgLoss:.1f} ratio: {ratio:.1f}')
     print(f'avg w time: {avgWinDuration:.1f} avg l time: {avgLossDuration:.1f}')
 
-def process_trade_log(df, skipRows):
-    openPositions = deque()
-    seqNo = 0
-    trades = []
-
-    for i,r in df.iterrows():
-        if i < skipRows:
-            continue
-        for x in range(r.Quantity):
-            seqNo = processSingleTrade(openPositions, trades, seqNo, r)
-    dfTrades = pd.DataFrame(trades)
-    if len(openPositions) > 0:
-        print(f'** Unmatched {len(openPositions)}')
-
-#    return dfTrades[['Date','Action', 'Sequence','Symbol', 'Open','Close','Points','Ticks','Profit','OpTm','ClTm','Duration']]
-    return dfTrades[['Date','Action', 'Seq','Symbol', 'Open','Close','Points','Ticks','Profit','Duration']]
+def load_file(fname):
+    df = pd.read_csv(f'\\Users\\niroo\\OneDrive\\Documents\\{fname}', usecols=[0,1,2,3,4,5,6], parse_dates={'Timestamp' : [5,6]})
+    print(f'loaded {fname} {df.shape[0]} {df.shape[1]}')
+    return df
 
 parser = argparse.ArgumentParser(description='Process IB trade logs')
 parser.add_argument('--skip', metavar='skip', default=0, type=int, help='number of rows to skip')
 args = parser.parse_args()
 
-dfa = pd.read_csv('\\Users\\niroo\\OneDrive\\Documents\\trades.20210531.csv')
-dfb = pd.read_csv('\\Users\\niroo\\OneDrive\\Documents\\trades3.csv')
-df = pd.concat( [dfa, dfb] )
-#df = pd.read_csv('\\Users\\niroo\\OneDrive\\Documents\\trades2.csv')
-print(df)
-dfTrades = process_trade_log(df, args.skip)
-print(dfTrades)
-print(dfTrades.groupby(['Seq'])['Ticks'].sum() )
-print_trade_stats(dfTrades)
+df = pd.concat( [load_file('trades-0913.csv'), load_file('trades-0920.csv')])
+#df = load_file('test-trades.csv')
+#print(df)
+#dfTrades = process_trade_log(df, args.skip)
+#print(dfTrades)
+#print(dfTrades.groupby(['Seq'])['Ticks'].sum() )
+#print_trade_stats(dfTrades)
+b = Blotter()
+df2 = b.process_trade_log(df, args.skip)
+print(df2.tail(19))
+print(len(b.openPositions))

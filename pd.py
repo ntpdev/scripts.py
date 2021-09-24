@@ -3,7 +3,7 @@ from datetime import date, time, timedelta, datetime
 import numpy as np
 import pandas as pd
 import sys
-from tsutils import make_filename, load_files, day_index, rth_index, aggregate_daily_bars, calc_vwap, LineBreak
+from tsutils import make_filename, load_files, day_index, rth_index, aggregate_daily_bars, calc_vwap, calc_atr, LineBreak
 
 def exportNinja(df, outfile):  
     print(f'exporting in Ninja Trader format {outfile} {len(df)}')

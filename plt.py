@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 import plotly.offline as pyo 
 import platform
 import sys
+import tsutils as ts
 from plotly.offline import init_notebook_mode
 
 def samp():
@@ -113,12 +114,8 @@ def make_rth_index(df, day_index):
     return [ (op, cl) for op,cl in zip(df[df.Date.isin(rth_opens)].index, df[df.Date.isin(rth_closes)].index) ]
 
 
-def make_filename(fname):
-    p = '/media/niroo/ULTRA/' if platform.system() == 'Linux' else 'd:\\'
-    return p + fname
-
 def plot(index):
-    df = pd.read_csv(make_filename('es-minvol.csv'), parse_dates=['Date', 'DateCl'], index_col=0)
+    df = pd.read_csv(ts.make_filename('es-minvol.csv'), parse_dates=['Date', 'DateCl'], index_col=0)
 
     # create a string for X labels
     tm = df['Date'].dt.strftime('%d/%m %H:%M')
@@ -135,10 +132,18 @@ def plot(index):
     fig.layout.yaxis.range = [l, h]
     fig.show()
 
+def plot_atr():
+    df = ts.load_files(ts.make_filename('esu1*.csv'))
+    atr = ts.calc_atr(df, 2)
+    fig = go.Figure()
+    fig.add_trace( go.Scatter(x=atr.index, y=atr, mode='lines', name='ATR5') )
+    fig.show()
+
 parser = argparse.ArgumentParser(description='Plot daily chart')
 parser.add_argument('--index', type=int, default=-1, help='Index of day to plot e.g. -1 for last')
 
 argv = parser.parse_args()
 plot(argv.index)
+#plot_atr()
 #hilo(df)
 #samp3LB()

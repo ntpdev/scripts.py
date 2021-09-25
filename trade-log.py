@@ -12,6 +12,7 @@ class Blotter:
     def __init__(self):
         self.openPositions = []
         self.seqNo = 0
+        self.seqDict = {}
         self.trades = []
 
     def process_trade_log(self, df, skipRows):
@@ -23,20 +24,24 @@ class Blotter:
         return pd.DataFrame(self.trades)    
 
     def process_single_trade(self, r):
-        found = self.find_matching(r['Local symbol'], r['Action'])
+        sym = r['Local symbol']
+        found = self.find_matching(sym, r['Action'])
         if found == -1:
+            if sym not in self.seqDict:
+                self.seqDict[sym] = self.seqNo
+                self.seqNo += 1
             self.openPositions.append(r)
         else:
             op = self.openPositions.pop(found)
             self.record_trade(op, r)
-            if len(self.openPositions) == 0:
-                self.seqNo += 1
+            if self.count_matching(sym) == 0:
+                del self.seqDict[sym]
 
     def record_trade(self, op, cl):
         trade = {}
         trade['OpTm'] = op.Timestamp
 #        trade['ClTm'] = cl.Timestamp
-        trade['Seq'] = self.seqNo
+        trade['Seq'] = self.seqDict[op['Local symbol']]
         trade['Symbol'] = op['Local symbol']
         trade['Action'] = op.Action
         trade['Open'] = op.Price
@@ -57,6 +62,9 @@ class Blotter:
                 found = i
                 break
         return found
+
+    def count_matching(self, symbol):
+        return len([1 for x in self.openPositions if x['Local symbol'] == symbol])
     
     def calc_profit(self, symbol, pts):
         if symbol == 'MES':

@@ -35,6 +35,7 @@ def aggregate_daily_bars(df, daily_index):
 
     daily = pd.DataFrame(rows, index=daily_index.index)
     daily['Change'] = daily['Close'].sub(daily['Close'].shift())
+    daily['Gap'] = daily['Open'].sub(daily['Close'].shift())
     daily['DayChg'] = daily['Close'].sub(daily['Open'])
     daily['Range'] = daily['High'].sub(daily['Low'])
     return daily

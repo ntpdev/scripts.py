@@ -74,44 +74,63 @@ class Blotter:
         return pts
 
 
-def print_trade_stats(dfTrades):
-    wins = dfTrades.Ticks[dfTrades.Ticks > 3].count()
-    sumWins = dfTrades.Ticks[dfTrades.Ticks > 3].sum()
-    loses = dfTrades.Ticks[dfTrades.Ticks < -3].count()
-    sumLoses = dfTrades.Ticks[dfTrades.Ticks < -3].sum()
-    durWin = dfTrades.Duration[dfTrades.Ticks > 0].sum()
-    durLoss = dfTrades.Duration[dfTrades.Ticks < 0].sum()
+def print_trade_stats(trades):
+    wins = trades.Profit[trades.Profit > 3].count()
+    sumWins = trades.Profit[trades.Profit > 3].sum()
+    loses = trades.Profit[trades.Profit < -3].count()
+    sumLoses = trades.Profit[trades.Profit < -3].sum()
+#    durWin = trades.Duration[trades.Profit > 3].sum()
+#    durLoss = trades.Duration[trades.Profit < -3].sum()
     winPerc = 100 * wins / (wins + loses)
     avgWin = sumWins / wins
     avgLoss = sumLoses / loses
     ratio = avgWin / -avgLoss
-    avgWinDuration = durWin / wins
-    avgLossDuration = durLoss / loses
-    cost = 1.04 * len(dfTrades)
+#    avgWinDuration = durWin / wins
+#    avgLossDuration = durLoss / loses
+    cost = 1.04 * len(trades)
 
-    print(f'Contracts: {len(dfTrades)} Ticks: {dfTrades.Ticks.sum()} P/L: ${dfTrades.Profit.sum():.2f} Commisions: ${cost:.2f}')
+    profit = trades.Profit.sum()
+    commisions = trades.Comm.sum()
+    print(f'Contracts: {len(trades)} Profit: ${profit - commisions:.2f} Gross: ${profit:.2f} Commisions: ${commisions:.2f}')
     print(f'wins: {wins} loses: {loses} win%: {winPerc:.0f}%')
     print(f'wins: {sumWins} loses: {sumLoses}')
     print(f'avg w: {avgWin:.1f} avg l: {avgLoss:.1f} ratio: {ratio:.1f}')
-    print(f'avg w time: {avgWinDuration:.1f} avg l time: {avgLossDuration:.1f}')
+#    print(f'avg w time: {avgWinDuration:.1f} avg l time: {avgLossDuration:.1f}')
 
 def load_file(fname):
     df = pd.read_csv(f'\\Users\\niroo\\OneDrive\\Documents\\{fname}', usecols=[0,1,2,3,4,5,6], parse_dates={'Timestamp' : [5,6]})
     print(f'loaded {fname} {df.shape[0]} {df.shape[1]}')
     return df
 
+def load_fileEx(fname):
+    df = pd.read_csv(fname, usecols=[0,1,2,3,4,5,6], parse_dates={'Timestamp' : [5,6]})
+    print(f'loaded {fname} {df.shape[0]} {df.shape[1]}')
+    return df
+
+def aggregrate_by_sequence(df):
+    return df.groupby(['Seq']).agg(
+        Symbol=pd.NamedAgg(column="Symbol", aggfunc="first"),
+        Action=pd.NamedAgg(column="Action", aggfunc="first"),
+        Num=pd.NamedAgg(column="Symbol", aggfunc="count"),
+        Profit=pd.NamedAgg(column="Profit", aggfunc="sum") )
+
 parser = argparse.ArgumentParser(description='Process IB trade logs')
 parser.add_argument('--skip', metavar='skip', default=0, type=int, help='number of rows to skip')
+parser.add_argument('--input', metavar='input', default='', help='file name')
 args = parser.parse_args()
 
-df = pd.concat( [load_file('trades-0913.csv'), load_file('trades-0920.csv')])
-#df = load_file('test-trades.csv')
-#print(df)
-#dfTrades = process_trade_log(df, args.skip)
-#print(dfTrades)
-#print(dfTrades.groupby(['Seq'])['Ticks'].sum() )
-#print_trade_stats(dfTrades)
+if len(args.input) > 0:
+    df = load_fileEx(args.input)
+else:
+    df = pd.concat( [load_file('trades-0913.csv'), load_file('trades-0920.csv'), load_file('trades-0927.csv')] )
+
 b = Blotter()
-df2 = b.process_trade_log(df, args.skip)
-print(df2.tail(19))
-print(len(b.openPositions))
+trades = b.process_trade_log(df, args.skip)
+print(trades.tail(19))
+c = len(b.openPositions)
+if c > 0:
+    print(f'Open contracts {c}')
+else:
+    print('All contracts matched')
+print(aggregrate_by_sequence(trades))
+print_trade_stats(trades)

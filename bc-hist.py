@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import argparse
 from datetime import date, time, timedelta, datetime
 from collections import deque
 import numpy as np
@@ -54,13 +55,15 @@ def load_file(fname):
 #    return df[::-1].reset_index(drop=False)
     return df[::-1]
 
+parser = argparse.ArgumentParser(description='Barchart history')
+parser.add_argument('fname', help='Input file')
+args = parser.parse_args()
 
-df = load_file('C:\\Users\\niroo\\Downloads\\qqq_price-history-09-25-2021.csv')
+df = load_file(args.fname)
 df['HiLo'] = calc_hilo(df['Last'])
 df['PctChg'] = df['Last'].pct_change().round(4) * 100
 print(df)
 print_stats(df, 50)
-
 
 lb = LineBreak(3)
 for i,r in df.iterrows():

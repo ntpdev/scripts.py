@@ -187,6 +187,7 @@ class TestApp(TestWrapper, TestClient):
         self.simplePlaceOid = None
         self.rows = []
         self.df = None
+        self.contract = None
 
     def dumpTestCoverageSituation(self):
         for clntMeth in sorted(self.clntMeth2callCount.keys()):
@@ -274,14 +275,15 @@ class TestApp(TestWrapper, TestClient):
     def historicalDataOperations_req(self):
         # Requesting historical data
         # ! [reqHeadTimeStamp]
-        self.reqHeadTimeStamp(self.nextOrderId(), contractES(), "TRADES", 0, 1)
+        self.contract = contract('ES')
+        self.reqHeadTimeStamp(self.nextOrderId(), self.contract, "TRADES", 0, 1)
         # ! [reqHeadTimeStamp]
 
         # ! [reqhistoricaldata]
         dt = datetime.datetime.combine(datetime.date.today(), datetime.time(22,00) )
         queryTime = dt.strftime("%Y%m%d %H:%M:%S")
 #        queryTime = "20210324 22:00:00"
-        self.reqHistoricalData(self.nextOrderId(), contractES(), queryTime,
+        self.reqHistoricalData(self.nextOrderId(), self.contract, queryTime,
                                "5 D", "1 min", "TRADES", 0, 1, False, [])
 
 
@@ -316,7 +318,8 @@ class TestApp(TestWrapper, TestClient):
         super().historicalDataEnd(reqId, start, end)
         print("HistoricalDataEnd. ReqId:", reqId, "from", start, "to", end)
         self.df = pd.DataFrame(self.rows)
-        fname = 'd:\\esz1 20210920.csv'
+        dt = self.df['Date'][930][:8]
+        fname = f'd:\\{self.contract.symbol}Z1 {dt}.csv'
         print('saving ' + fname)
         self.df.to_csv(fname)
         print(self.df)
@@ -324,7 +327,7 @@ class TestApp(TestWrapper, TestClient):
 
     @printWhenExecuting
     def contractOperations(self):
-        self.reqContractDetails(self.nextOrderId(), contractES())
+        self.reqContractDetails(self.nextOrderId(), contract('ES'))
 
     @iswrapper
     def contractDetails(self, reqId: int, contractDetails: ContractDetails):
@@ -337,9 +340,9 @@ class TestApp(TestWrapper, TestClient):
         print("ContractDetailsEnd. ReqId:", reqId)
         self.historicalDataOperations_req()
 
-def contractES():
+def contract(symbol):
         contract = Contract()
-        contract.symbol = "ES"
+        contract.symbol = symbol
         contract.secType = "FUT"
         contract.exchange = "GLOBEX"
         contract.currency = "USD"

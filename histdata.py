@@ -1,3 +1,8 @@
+#
+# following instructions to install python IB API
+# https://stackoverflow.com/questions/57618117/installing-the-ibapi-package
+# python -m pip install wheel
+
 import argparse
 import datetime
 import collections

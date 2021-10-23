@@ -1,0 +1,35 @@
+{
+    "final_space": true,
+    "blocks": [
+      {
+        "type": "prompt",
+        "alignment": "left",
+        "segments": [
+          {
+            "type": "git",
+            "style": "powerline",
+            "powerline_symbol": "",
+            "foreground": "#193549",
+            "background": "#ffeb3b",
+            "properties": {
+              "display_status": false,
+              "display_stash_count": true,
+              "display_upstream_icon": true
+            }
+          },
+          {
+            "type": "path",
+            "style": "powerline",
+            "powerline_symbol": "",
+            "foreground": "#ffffff",
+            "background": "#ff479c",
+            "properties": {
+              "prefix": "  ",
+              "style": "agnoster_short",
+              "max_depth": 4
+            }
+          }
+        ]
+      }
+    ]
+  }

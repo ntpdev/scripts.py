@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 # returns max num of chars of b that overlap
+#
 def overlap(a, b):
 #  print('---')
   for i in range(len(a)):

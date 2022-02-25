@@ -24,7 +24,7 @@ class Blotter:
         return pd.DataFrame(self.trades)    
 
     def process_single_trade(self, r):
-        sym = r['Local symbol']
+        sym = r['Symbol']
         found = self.find_matching(sym, r['Action'])
         if found == -1:
             if sym not in self.seqDict:
@@ -41,13 +41,13 @@ class Blotter:
         trade = {}
         trade['OpTm'] = op.Timestamp
 #        trade['ClTm'] = cl.Timestamp
-        trade['Seq'] = self.seqDict[op['Local symbol']]
-        trade['Symbol'] = op['Local symbol']
+        trade['Seq'] = self.seqDict[op['Symbol']]
+        trade['Symbol'] = op['Symbol']
         trade['Action'] = op.Action
         trade['Open'] = op.Price
         trade['Close'] = cl.Price
         pts = (cl.Price - op.Price) * (1 if op.Action == 'BOT' else -1)
-        prf = self.calc_profit(op.Underlying, pts)
+        prf = self.calc_profit(op['Fin Instrument'][:3], pts)
         trade['Points'] = pts
         trade['Profit'] = prf
         trade['Comm'] = 1.04
@@ -58,19 +58,21 @@ class Blotter:
         opening_action = 'SLD' if action == 'BOT' else 'BOT'
         found = -1
         for i,v in enumerate(self.openPositions):
-            if v['Local symbol'] == symbol and v['Action'] == opening_action:
+            if v['Symbol'] == symbol and v['Action'] == opening_action:
                 found = i
                 break
         return found
 
     def count_matching(self, symbol):
-        return len([1 for x in self.openPositions if x['Local symbol'] == symbol])
+        return len([1 for x in self.openPositions if x['Symbol'] == symbol])
     
     def calc_profit(self, symbol, pts):
         if symbol == 'MES':
             return pts * 5
         if symbol == 'MNQ':
             return pts * 2
+        if symbol == 'MYM':
+            return pts * 0.5
         return pts
 
 
@@ -105,6 +107,7 @@ def load_file(fname):
 def load_fileEx(fname):
     df = pd.read_csv(fname, usecols=[0,1,2,3,4,5,6], parse_dates={'Timestamp' : [5,6]})
     print(f'loaded {fname} {df.shape[0]} {df.shape[1]}')
+    print(df)
     return df
 
 def aggregrate_by_sequence(df):
@@ -122,7 +125,7 @@ args = parser.parse_args()
 if len(args.input) > 0:
     df = load_fileEx(args.input)
 else:
-    df = pd.concat( [load_file('trades-0913.csv'), load_file('trades-0920.csv'), load_file('trades-0927.csv')] )
+    df = pd.concat( [load_file('trades-0214.csv'), load_file('trades.20220222.csv'), load_file('trades.20220223.csv')] )
 
 b = Blotter()
 trades = b.process_trade_log(df, args.skip)

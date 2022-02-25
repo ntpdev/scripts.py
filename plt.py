@@ -38,6 +38,7 @@ def samp3LB():
 #        color="LightSeaGreen",
 def draw_daily_lines(df, fig, tms, idxs):
     for op, cl in idxs:
+#        print(f'op {tms.iloc[op]} cl {tms.iloc[cl]}')
         fig.add_vline(x=tms.iloc[op], line_width=1, line_dash="dash", line_color="blue")
         fig.add_vline(x=tms.iloc[cl], line_width=1, line_dash="dash", line_color='grey')
         y = df.Open.iloc[op]
@@ -107,12 +108,24 @@ def make_day_index(df):
     xs.append(df.shape[0])
     return [ (op,cl) for op,cl in zip(xs, xs[1:]) ]
 
+# return a list of tuples of the op,cl indexes
 def make_rth_index(df, day_index):
     is_first_bar = (df['Date'].diff().fillna(pd.Timedelta(hours=1)) > timedelta(minutes=59)) & (df['Date'].dt.hour > 21)
     rth_opens = df[is_first_bar].Date.apply(lambda e: e + np.timedelta64(930 - e.minute, 'm'))
     rth_closes = df[is_first_bar].Date.apply(lambda e: e + np.timedelta64(1320 - e.minute, 'm'))
-    return [ (op, cl) for op,cl in zip(df[df.Date.isin(rth_opens)].index, df[df.Date.isin(rth_closes)].index) ]
 
+    # select rows matching time, convert index to a normal col, add col which is date
+    ops = df[df.Date.isin(rth_opens)]
+    ops2 = ops.reset_index()
+    ops2['dt'] = ops2.Date.dt.date
+
+    cls = df[df.Date.isin(rth_closes)]
+    cls2 = cls.reset_index()
+    cls2['dt'] = cls2.Date.dt.date
+
+    # join dfs on date ie include only days that have open+close
+    mrg = pd.merge(ops2, cls2, how='inner', on='dt')
+    return [(x,y) for x,y in zip(mrg['index_x'], mrg['index_y'])]
 
 def plot(index):
     df = pd.read_csv(ts.make_filename('es-minvol.csv'), parse_dates=['Date', 'DateCl'], index_col=0)
@@ -133,7 +146,7 @@ def plot(index):
     fig.show()
 
 def plot_atr():
-    df = ts.load_files(ts.make_filename('esu1*.csv'))
+    df = ts.load_files(ts.make_filename('esh2*.csv'))
     atr = ts.calc_atr(df, 2)
     fig = go.Figure()
     fig.add_trace( go.Scatter(x=atr.index, y=atr, mode='lines', name='ATR5') )

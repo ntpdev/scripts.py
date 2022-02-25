@@ -178,8 +178,8 @@ def print_summary(df):
     print(df3)
 
 
-df = load_files(make_filename('esz1*.csv'))
+df = load_files(make_filename('esh2*.csv'))
 print_summary(df)
 df['VWAP'] = calc_vwap(df)
-exportNinja(df, make_filename('ES 12-21.Last.txt'))
+exportNinja(df, make_filename('ES 03-18.Last.txt'))
 exportMinVol(df, make_filename('es-minvol.csv'))

@@ -82,8 +82,11 @@ def make_threeLB(x, xs):
         xs.append(x)
     return xs
 
+def to_date(timestmp):
+    return timestmp.to_pydatetime().date()
+
 def make_filename(fname):
-    p = '/media/niroo/ULTRA/' if platform.system() == 'Linux' else 'd:\\'
+    p = '/media/niroo/ULTRA/' if platform.system() == 'Linux' else 'f:\\'
     return p + fname
 
 

@@ -18,6 +18,13 @@ def exportMinVol(df, outfile):
     print(f'exporting minVol file {outfile} {len(df2)}')
     df2.to_csv(outfile)
 
+def export_3lb(df, outfile):
+    lb = LineBreak(3)
+    for i,r in df.iterrows():
+        lb.append(r['Close'], i)
+    df2 = lb.asDataFrame()
+    print(f'exporting 3lb file {outfile} {len(df2)}')
+    df2.to_csv(outfile)
 
 # create a new DF which aggregates bars between inclusive indexes
 def aggregate_bars(df, idxs_start, idxs_end):
@@ -169,16 +176,10 @@ def print_summary(df):
     print('--- RTH bars ---')
     df2 = aggregate_daily_bars(df, dr)
     print(df2)
-    lb = LineBreak(3)
-    for i,r in df2.iterrows():
-        lb.append(r['Close'], i)
-#    for c in df2['Close']:
-#        lb.append(c)
-    df3 = lb.asDataFrame()
-    print(df3)
+    export_3lb(df2, make_filename('es-rth-3lb.csv'))
 
 
-df = load_files(make_filename('esh2*.csv'))
+df = load_files(make_filename('esm2*.csv'))
 print_summary(df)
 df['VWAP'] = calc_vwap(df)
 exportNinja(df, make_filename('ES 03-18.Last.txt'))

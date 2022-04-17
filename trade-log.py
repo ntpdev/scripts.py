@@ -50,8 +50,8 @@ class Blotter:
         prf = self.calc_profit(op['Fin Instrument'][:3], pts)
         trade['Points'] = pts
         trade['Profit'] = prf
-        trade['Comm'] = 1.04
-        trade['Net'] = prf - 1.04
+        trade['Comm'] = 1.14
+        trade['Net'] = prf - 1.14
         self.trades.append(trade)
  
     def find_matching(self, symbol, action):

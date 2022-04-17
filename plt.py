@@ -35,6 +35,18 @@ def samp3LB():
     fig.update_xaxes(type='category')
     fig.show()
 
+def plot_3lb(fname):
+    dfall = pd.read_csv(fname, delimiter=',', converters={'date': lambda e: datetime.strptime(e, '%Y-%m-%d')})
+    r = len(dfall)-100
+    df = dfall.iloc[r:] if r > 0 else dfall
+    colours = df['dirn'].map({-1: "red", 1: "green"})
+    xs = df['date'].dt.strftime('%m-%d')
+    fig = go.Figure(data=[go.Bar(x = xs, y = df['close']-df['open'], base = df['open'], marker=dict(color = colours))])
+    fig.update_xaxes(type='category')
+    fig.show()
+
+
+
 #        color="LightSeaGreen",
 def draw_daily_lines(df, fig, tms, idxs):
     for op, cl in idxs:
@@ -154,9 +166,13 @@ def plot_atr():
 
 parser = argparse.ArgumentParser(description='Plot daily chart')
 parser.add_argument('--index', type=int, default=-1, help='Index of day to plot e.g. -1 for last')
+parser.add_argument('--tlb', type=str, default='', help='Display three line break')
 
 argv = parser.parse_args()
-plot(argv.index)
+if len(argv.tlb) > 0:
+    plot_3lb(argv.tlb)
+else:
+    plot(argv.index)
 #plot_atr()
 #hilo(df)
 #samp3LB()

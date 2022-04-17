@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import glob as gb
 import platform
-from tsutils import LineBreak
+import tsutils as ts
 
 def count_back(xs, i):
     current = xs.iloc[i]
@@ -55,6 +55,11 @@ def load_file(fname):
 #    return df[::-1].reset_index(drop=False)
     return df[::-1]
 
+def export_file(df, outfile):
+    fn = ts.make_filename(outfile)
+    print(f'saving file {outfile} {len(df)}')
+    df.to_csv(outfile)
+
 parser = argparse.ArgumentParser(description='Barchart history')
 parser.add_argument('fname', help='Input file')
 args = parser.parse_args()
@@ -62,11 +67,13 @@ args = parser.parse_args()
 df = load_file(args.fname)
 df['HiLo'] = calc_hilo(df['Last'])
 df['PctChg'] = df['Last'].pct_change().round(4) * 100
+export_file(df, args.fname.split('_')[0] + '.csv')
 print(df)
 print_stats(df, 50)
 
-lb = LineBreak(3)
+lb = ts.LineBreak(3)
 for i,r in df.iterrows():
     lb.append(r['Last'], i)
 df3 = lb.asDataFrame()
 print(df3)
+export_file(df3, '3lb.csv')

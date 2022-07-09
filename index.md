@@ -3,7 +3,8 @@
 - [Bigcharts](bigc.html)
 - [ADVFN](adv.html)
 - [Calculator](tgt.html)
-- [FANGMAN+T](https://stockcharts.com/freecharts/candleglance.html?FB,AAPL,NVDA,GOOG,MSFT,AMZN,NFLX,TSLA,XLK)
+- [FANGMAN+T](https://stockcharts.com/freecharts/candleglance.html?META,AAPL,NVDA,GOOG,MSFT,AMZN,NFLX,TSLA,XLK)
+- [SPY](https://schrts.co/RpjzJZVk)
 
 You can use the [editor on GitHub](https://github.com/ntpdev/scripts.py/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
 

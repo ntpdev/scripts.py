@@ -280,7 +280,7 @@ class TestApp(TestWrapper, TestClient):
     def historicalDataOperations_req(self):
         # Requesting historical data
         # ! [reqHeadTimeStamp]
-        self.contract = contract('ES')
+        self.contract = contract('ES', '202209')
         self.reqHeadTimeStamp(self.nextOrderId(), self.contract, "TRADES", 0, 1)
         # ! [reqHeadTimeStamp]
 
@@ -289,7 +289,7 @@ class TestApp(TestWrapper, TestClient):
         queryTime = dt.strftime("%Y%m%d %H:%M:%S")
 #        queryTime = "20210324 22:00:00"
         self.reqHistoricalData(self.nextOrderId(), self.contract, queryTime,
-                               "5 D", "1 min", "TRADES", 0, 1, False, [])
+                               "10 D", "1 min", "TRADES", 0, 1, False, [])
 
 
     @printWhenExecuting
@@ -324,15 +324,24 @@ class TestApp(TestWrapper, TestClient):
         print("HistoricalDataEnd. ReqId:", reqId, "from", start, "to", end)
         self.df = pd.DataFrame(self.rows)
         dt = self.df['Date'][930][:8]
-        fname = f'f:\\{self.contract.symbol}M2 {dt}.csv'
+        fname = self.toFilename(dt)
         print('saving ' + fname)
         self.df.to_csv(fname)
         print(self.df)
         sys.exit(0)
 
+    def toFilename(self, dt):
+        dict = {
+            '202206' : 'M2',
+            '202209' : 'U2',
+            '202212' : 'Z2',
+            '202303' : 'H3'
+        }
+        return f'f:\\{self.contract.symbol}{dict[self.contract.lastTradeDateOrContractMonth]} {dt}.csv'
+
     @printWhenExecuting
     def contractOperations(self):
-        self.reqContractDetails(self.nextOrderId(), contract('ES'))
+        self.reqContractDetails(self.nextOrderId(), contract('ES', '202209'))
 
     @iswrapper
     def contractDetails(self, reqId: int, contractDetails: ContractDetails):
@@ -345,13 +354,13 @@ class TestApp(TestWrapper, TestClient):
         print("ContractDetailsEnd. ReqId:", reqId)
         self.historicalDataOperations_req()
 
-def contract(symbol):
+def contract(symbol, month):
         contract = Contract()
         contract.symbol = symbol
         contract.secType = "FUT"
         contract.exchange = "GLOBEX"
         contract.currency = "USD"
-        contract.lastTradeDateOrContractMonth = "202206"
+        contract.lastTradeDateOrContractMonth = month
         return contract
 
 def main():

@@ -14,13 +14,9 @@ with open(fn + '.out', 'w') as fout:
     for s in a:
         fout.write(s + '\n')
     
-    first = True
-    x = ''
-    for s in a:
-        if not first:
-            x = x + ', '
-        x = x + s
-        first = False
+    x = a[0]
+    for s in a[1:]:
+        x = x + ',' + s
     fout.write(x + '\n')
 
 

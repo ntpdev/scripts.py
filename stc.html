@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css">
+    <title>Stockcharts Daily</title>
+    <style>
+        body   { background-color: rgb(243, 246, 250); }
+        select { width: 8em; margin-top: 1em; }
+        input  { width: 5em; }
+        button { margin-left: 0.5em; }
+        img    { margin-bottom: 1em; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+        <div class="row">
+          <div class="col-lg-2">
+            <input type="text" id="txtSymbol">
+            <button type="button" id="btnGo">
+              <i class="bi bi-search"></i>
+            </button>
+            <br>
+            <select id="lb" size="15" width="10em"></select>
+          </div>
+          <div class="col-lg-10">
+            <img src='' id="c1"/>
+          </div>  
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+    <script>
+      'use strict'
+      const xs = ['qqq','aapl','abnb','docn','amzn','asml','cflt','nvda','shop','snow','team','ttd','tyl','upst','veev','zm','zs']
+      xs.map(e => e.toUpperCase())
+      const stocks = xs.sort()
+      const lb = document.getElementById("lb")
+      const txt = document.getElementById("txtSymbol")
+      const btn = document.getElementById("btnGo")
+      const chart1 = document.getElementById("c1")
+      const chart2 = document.getElementById("c2")
+
+      function add_items() {
+          for (const s of stocks) {
+              var opt = document.createElement("option")
+              opt.text = s
+              lb.appendChild(opt)
+          }
+      }
+
+      function lb_onChange() {
+          txt.value = lb.options[lb.selectedIndex].text
+          btn_onClick()
+      }
+
+      function txt_onKeyUp(event) {
+        if (event.key === 'Enter') { btn_onClick() } 
+      }
+
+      // https://stockcharts.com/c-sc/sc?s=PINS&p=D&b=3&g=0&i=t1464249264c&r=1661363443366 daily
+      // https://stockcharts.com/c-sc/sc?s=PINS&p=W&b=5&g=0&i=t6604025745c&r=1661363114088 weekly
+      function btn_onClick() {
+          if (txt.value) {
+              const url = "https://stockcharts.com/c-sc/sc?s=" + txt.value
+              chart1.src = url + '&p=D&b=3&g=0&i=t1464249264c&r=1661363443366'
+              chart2.src = url + '&p=D&b=3&g=0&i=t2259472301c&r=1661361822062'
+          }
+      }
+
+      function init() {
+        btn.addEventListener('click', btn_onClick )
+        txt.addEventListener('keyup', txt_onKeyUp )
+        lb.addEventListener('change', lb_onChange )
+        add_items()
+      }
+
+      window.addEventListener('DOMContentLoaded', init )
+  </script>
+</body>
+</html>

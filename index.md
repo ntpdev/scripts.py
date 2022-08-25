@@ -5,11 +5,12 @@
 - [Calculator](tgt.html)
 - [ES](https://www.barchart.com/futures/quotes/ES*0/technical-chart?plot=CANDLE&volume=contract&data=I:30&density=X&pricesOn=0&asPctChange=0&logscale=0&im=30&indicators=SMA(40);SMACD(3,10,16)&sym=ESU22&grid=1&height=375&studyheight=100&timeframe=4%20Months)
 - [FANGMAN+T](https://stockcharts.com/freecharts/candleglance.html?META,AAPL,NVDA,GOOG,MSFT,AMZN,NFLX,TSLA,XLK)
-- [Fool](bigcf.html)
+- [Fool bigc](bigcf.html)
 - [Fool smaller](bigcfs.html)
 - [SPY](https://schrts.co/RpjzJZVk)
 - [Fool](https://stockcharts.com/freecharts/candleglance.html?CFLT,DDOG,DOCN,SNOW,TEAM,TTD,TYL,VEEV)
 - [Crypto](https://stockcharts.com/freecharts/candleglance.html?ARBK,COIN,CORZ,MARA,MSTR,SQ,$BTCUSD,$ETHUSD,$ADAUSD)
+- [watch](watch.html)
 
 You can use the [editor on GitHub](https://github.com/ntpdev/scripts.py/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
 

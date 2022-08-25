@@ -8,7 +8,7 @@
 - [Fool](bigcf.html)
 - [Fool smaller](bigcfs.html)
 - [SPY](https://schrts.co/RpjzJZVk)
-- [Fool](https://stockcharts.com/freecharts/candleglance.html?ABNB,ASML,DOCS,NVDA,SHOP,SNOW,TEAM,TTD,UPST,VEEV,ZM,ZS)
+- [Fool](https://stockcharts.com/freecharts/candleglance.html?CFLT,DDOG,DOCN,SNOW,TEAM,TTD,TYL,VEEV)
 - [Crypto](https://stockcharts.com/freecharts/candleglance.html?ARBK,COIN,CORZ,MARA,MSTR,SQ,$BTCUSD,$ETHUSD,$ADAUSD)
 
 You can use the [editor on GitHub](https://github.com/ntpdev/scripts.py/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.

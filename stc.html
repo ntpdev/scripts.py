@@ -37,8 +37,8 @@
     <script>
       'use strict'
       const xs = ['qqq','aapl','abnb','docn','amzn','asml','cflt','nvda','shop','snow','team','ttd','tyl','upst','veev','zm','zs']
-      xs.map(e => e.toUpperCase())
-      const stocks = xs.sort()
+      const uxs = xs.map(e => e.toUpperCase())
+      const stocks = uxs.sort()
       const lb = document.getElementById("lb")
       const txt = document.getElementById("txtSymbol")
       const btn = document.getElementById("btnGo")
@@ -67,8 +67,8 @@
       function btn_onClick() {
           if (txt.value) {
               const url = "https://stockcharts.com/c-sc/sc?s=" + txt.value
-              chart1.src = url + '&p=D&b=3&g=0&i=t1464249264c&r=1661363443366'
-              chart2.src = url + '&p=D&b=3&g=0&i=t2259472301c&r=1661361822062'
+              chart1.src = 'https://stockcharts.com/c-sc/sc?s=DOCN&p=W&b=5&g=0&i=t1813062597c&r=1661422165652'
+//              chart2.src = url + '&p=D&b=3&g=0&i=t2259472301c&r=1661361822062'
           }
       }
 

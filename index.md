@@ -11,7 +11,7 @@
 - [Fool](https://stockcharts.com/freecharts/candleglance.html?CFLT,DDOG,DOCN,SNOW,TEAM,TTD,TYL,VEEV)
 - [Crypto](https://stockcharts.com/freecharts/candleglance.html?ARBK,COIN,CORZ,MARA,MSTR,SQ,$BTCUSD,$ETHUSD,$ADAUSD)
 - [watch](watch.html)
-- [finviz >100](https://finviz.com/screener.ashx?v=211&t=APPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,ASML,PYPL,NFLX,NOW,XLK&o=-low52w) [finviz 25-100](https://finviz.com/screener.ashx?v=211&t=team,snow,snps,meli,crwd,sq,shop,wday,ftnt,anet,ddog,dxcm,ilmn,veev,ttd,vrtx,abnb&o=-low52w) [finviz 10-25](https://finviz.com/screener.ashx?v=211&t=zm,zs,payc,spot,ttwo,hubs,tyl,pins,u,twlo,docu,path,roku,swav&o=-low52w) [finviz 10](https://finviz.com/screener.ashx?v=211&t=masi,cflt,cgnx,iivi,txrh,docn,appn,vrns,upst,lmnd,fvrr,mttr,sfix,brze&o=-low52w)
+- [finviz >100](https://finviz.com/screener.ashx?v=211&t=AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,ASML,PYPL,NFLX,NOW,XLK&o=-low52w) [finviz 25-100](https://finviz.com/screener.ashx?v=211&t=team,snow,snps,meli,crwd,sq,shop,wday,ftnt,anet,ddog,dxcm,ilmn,veev,ttd,vrtx,abnb&o=-low52w) [finviz 10-25](https://finviz.com/screener.ashx?v=211&t=zm,zs,payc,spot,ttwo,hubs,tyl,pins,u,twlo,docu,path,roku,swav&o=-low52w) [finviz 10](https://finviz.com/screener.ashx?v=211&t=masi,cflt,cgnx,iivi,txrh,docn,appn,vrns,upst,lmnd,fvrr,mttr,sfix,brze&o=-low52w)
 
 You can use the [editor on GitHub](https://github.com/ntpdev/scripts.py/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
 

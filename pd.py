@@ -5,13 +5,18 @@ import pandas as pd
 import sys
 from tsutils import make_filename, load_files, day_index, rth_index, aggregate_daily_bars, calc_vwap, calc_atr, LineBreak
 
+def export_daily(df, fname):
+    dt = df.index[-1]
+    s = make_filename('%s-%d%02d%02d.csv' % (fname,dt.year, dt.month, dt.day))
+    print(f'exporting daily to {s}')
+    df.to_csv(s)
+
 def exportNinja(df, outfile):  
     print(f'exporting in Ninja Trader format {outfile} {len(df)}')
     with open(outfile, 'w') as f:
         for i,r in df.iterrows():
             s = '%s;%4.2f;%4.2f;%4.2f;%4.2f;%d\n' % (i.strftime('%Y%m%d %H%M%S'),r['Open'],r['High'],r['Low'],r['Close'],r['Volume'])
             f.write(s)
-
 
 def exportMinVol(df, outfile):
     df2 = aggregateMinVolume(df, 2500)
@@ -171,16 +176,18 @@ def print_summary(df):
     dr = rth_index(di)
     print('--- Daily bars ---')
     df2 = aggregate_daily_bars(df, di)
+    export_daily(df2, 'es-daily')
     print(df2)
 
     print('--- RTH bars ---')
     df2 = aggregate_daily_bars(df, dr)
+    export_daily(df2, 'es-daily-rth')
     print(df2)
     export_3lb(df2, make_filename('es-rth-3lb.csv'))
 
 
-df = load_files(make_filename('esu2*.csv'))
+df = load_files(make_filename('esh3*.csv'))
 print_summary(df)
 df['VWAP'] = calc_vwap(df)
-exportNinja(df, make_filename('ES 09-22.Last.txt'))
+#exportNinja(df, make_filename('ES 09-22.Last.txt'))
 exportMinVol(df, make_filename('es-minvol.csv'))

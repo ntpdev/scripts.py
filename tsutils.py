@@ -68,6 +68,21 @@ def calc_vwap(df):
         xs.append(round(v, 2))
     return pd.Series(xs, df.index)
 
+# return a series of bar type 0 - inside, 1 up, 2 down, 3 outside
+def calc_strat(df):
+    xs = []
+    for i,r in df.iterrows():
+        if i > 1:
+            pr = df.iloc[i-1]
+            i = 0
+            if r['High'] > pr['High']:
+                i = 1
+            if r['Low'] < pr['Low']:
+                i = i + 2
+            xs.append(i)
+        else:
+            xs.append(0)
+    return pd.Series(xs, df.index)
 
 def calc_atr(df, n):
     rng = df.High.rolling(n).max() - df.Low.rolling(n).min()
@@ -86,7 +101,7 @@ def to_date(timestmp):
     return timestmp.to_pydatetime().date()
 
 def make_filename(fname):
-    p = '/media/niroo/ULTRA/' if platform.system() == 'Linux' else 'f:\\'
+    p = '/media/niroo/ULTRA/' if platform.system() == 'Linux' else 'c:\\temp\\ultra\\'
     return p + fname
 
 
@@ -117,7 +132,7 @@ class LineBreak:
             if x > high or x < low:
                 # if reversal add prior close to queue of lines
                 if (x > high and self.dirn == -1) or (x < low and self.dirn == 1):
-                    print(f'reversal adding {self.lines[-2]}')
+#                    print(f'reversal adding {self.lines[-2]}')
                     self.lines.append(self.lines[-2])
                 self._appendBlock(x, dt)
     

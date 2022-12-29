@@ -45,8 +45,6 @@ def plot_3lb(fname):
     fig.update_xaxes(type='category')
     fig.show()
 
-
-
 #        color="LightSeaGreen",
 def draw_daily_lines(df, fig, tms, idxs):
     for op, cl in idxs:
@@ -144,8 +142,9 @@ def plot(index):
 
     # create a string for X labels
     tm = df['Date'].dt.strftime('%d/%m %H:%M')
-    fig = go.Figure(data=[go.Candlestick(x=tm, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='ES'),
-                        go.Scatter(x=tm, y=df['VWAP'], line=dict(color='orange'), name='vwap') ])
+    fig = color_bars(df, tm, 'strat')
+#    fig = go.Figure(data=[go.Candlestick(x=tm, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='ES'),
+#                        go.Scatter(x=tm, y=df['VWAP'], line=dict(color='orange'), name='vwap') ])
     xs = make_day_index(df)
     rths = make_rth_index(df, xs)
     draw_daily_lines(df, fig, tm, rths)
@@ -156,6 +155,34 @@ def plot(index):
     l, h = make_yrange(df, op, cl, 4)
     fig.layout.yaxis.range = [l, h]
     fig.show()
+
+def color_bars(df, tm, opt):
+  if opt == 'strat':
+    df['tm'] = tm
+    df['btype'] = ts.calc_strat(df)
+    dfInside = df.loc[df['btype'] == 0]
+    dfUp = df.loc[df['btype'] == 1]
+    dfDown = df.loc[df['btype'] == 2]
+    dfOutside = df.loc[df['btype'] == 3]
+
+    fig = go.Figure(data=[go.Scatter(x=tm, y=df['VWAP'], line=dict(color='orange'), name='vwap') ])
+    fig.add_trace(go.Ohlc(x=dfInside['tm'], open=dfInside['Open'], high=dfInside['High'], low=dfInside['Low'], close=dfInside['Close'], name='ES inside'))
+    fig.add_trace(go.Ohlc(x=dfUp['tm'], open=dfUp['Open'], high=dfUp['High'], low=dfUp['Low'], close=dfUp['Close'], name='ES up'))
+    fig.add_trace(go.Ohlc(x=dfDown['tm'], open=dfDown['Open'], high=dfDown['High'], low=dfDown['Low'], close=dfDown['Close'], name='ES down'))
+    fig.add_trace(go.Ohlc(x=dfOutside['tm'], open=dfOutside['Open'], high=dfOutside['High'], low=dfOutside['Low'], close=dfOutside['Close'], name='ES outside'))
+                     
+    fig.data[1].increasing.line.color = 'yellow'
+    fig.data[1].decreasing.line.color = 'yellow'
+    fig.data[2].increasing.line.color = 'green'
+    fig.data[2].decreasing.line.color = 'green'
+    fig.data[3].increasing.line.color = 'red'
+    fig.data[3].decreasing.line.color = 'red'
+    fig.data[4].increasing.line.color = 'purple'
+    fig.data[4].decreasing.line.color = 'purple'
+    return fig
+  else:  
+    return go.Figure(data=[go.Candlestick(x=tm, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='ES'),
+                     go.Scatter(x=tm, y=df['VWAP'], line=dict(color='orange'), name='vwap') ])
 
 def plot_atr():
     df = ts.load_files(ts.make_filename('esh2*.csv'))

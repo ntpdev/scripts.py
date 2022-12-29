@@ -13,6 +13,7 @@ import time
 import os.path
 import sys
 import pandas as pd
+import tsutils as ts
 
 from ibapi import wrapper
 from ibapi import utils
@@ -280,7 +281,7 @@ class TestApp(TestWrapper, TestClient):
     def historicalDataOperations_req(self):
         # Requesting historical data
         # ! [reqHeadTimeStamp]
-        self.contract = contract('ES', '202209')
+        self.contract = contract('ES', '202303')
         self.reqHeadTimeStamp(self.nextOrderId(), self.contract, "TRADES", 0, 1)
         # ! [reqHeadTimeStamp]
 
@@ -337,11 +338,12 @@ class TestApp(TestWrapper, TestClient):
             '202212' : 'Z2',
             '202303' : 'H3'
         }
-        return f'f:\\{self.contract.symbol}{dict[self.contract.lastTradeDateOrContractMonth]} {dt}.csv'
+        s = f'{self.contract.symbol}{dict[self.contract.lastTradeDateOrContractMonth]} {dt}.csv'
+        return ts.make_filename(s)
 
     @printWhenExecuting
     def contractOperations(self):
-        self.reqContractDetails(self.nextOrderId(), contract('ES', '202209'))
+        self.reqContractDetails(self.nextOrderId(), contract('ES', '202303'))
 
     @iswrapper
     def contractDetails(self, reqId: int, contractDetails: ContractDetails):
@@ -358,7 +360,7 @@ def contract(symbol, month):
         contract = Contract()
         contract.symbol = symbol
         contract.secType = "FUT"
-        contract.exchange = "GLOBEX"
+        contract.exchange = "CME"
         contract.currency = "USD"
         contract.lastTradeDateOrContractMonth = month
         return contract

@@ -1,7 +1,12 @@
 from bs4 import BeautifulSoup
-import numpy as np
+from datetime import date
+import requests
 import pandas as pd
 import re
+
+# extract table of stocks from motley fool disclosure page
+# using requests http library https://requests.readthedocs.io/en/latest/
+# and BeautifulSoup html parsing library https://beautiful-soup-4.readthedocs.io/en/latest/index.html
 
 # parse string 'Apple - NASDAQ:AAPL\nAAPL'
 # 1 AAPL
@@ -10,7 +15,7 @@ import re
 pattern = re.compile('(.+).-.(.+)\\n(\w+)')
 
 # ['1', 'Apple - NASDAQ:AAPL\nAAPL', 'AAPL', '313']
-def parseRow(cols):
+def parse_fool_disclosure(cols):
     m = pattern.match(cols[1])
     d = {}
     d['rank'] = cols[0]
@@ -24,25 +29,31 @@ def parseRow(cols):
     d['held'] = cols[3]
     return d
 
-fn = 'c:\\users\\niroo\\downloads\\Motley Fool Disclosure.html'
+def extract_fool_stocks(soup):
+    table = soup.find('table')
+    table_body = table.find('tbody')
 
-with open(fn, 'r') as f:
-    html_doc = f.read()
+    data = []
+    rows = table_body.find_all('tr')
+    for row in rows:
+        cols = row.find_all('td')
+        cols = [ele.text.strip() for ele in cols]
+        data.append(parse_fool_disclosure(cols))
+#        data.append([ele for ele in cols if ele]) # Get rid of empty values
+    return pd.DataFrame(data)
 
-soup = BeautifulSoup(html_doc, 'html.parser')
+def download_fool_disclosure(url, fn):
+    print('loading ' + url)
+    r = requests.get(url)
+    if not r.ok:
+        print('http status ' + r.status_code)
+        raise Exception(f'failed to load page {url}')
+    soup = BeautifulSoup(r.text, 'html.parser')
+    df = extract_fool_stocks(soup)
+    print(df)
+    df.to_csv(fn, index=False)
+    print('saved ' + fn)
 
-#table = soup.find('table', attrs={'class':'lineItemsTable'})
-table = soup.find('table')
-table_body = table.find('tbody')
 
-data = []
-rows = table_body.find_all('tr')
-for row in rows:
-    cols = row.find_all('td')
-    cols = [ele.text.strip() for ele in cols]
-    data.append(parseRow(cols))
-#    data.append([ele for ele in cols if ele]) # Get rid of empty values
-
-df = pd.DataFrame(data)
-print(df)
-df.to_csv('c:\\users\\niroo\\downloads\\Motley Fool Disclosure.csv', index=False)
+fn = f'c:\\users\\niroo\\downloads\\Motley Fool Disclosure {date.today().isoformat()}.csv'
+df = download_fool_disclosure('https://www.fool.com/legal/fool-disclosure/', fn)

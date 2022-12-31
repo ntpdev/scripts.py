@@ -1,6 +1,7 @@
 import time
 import locale
 import pandas as pd
+import numpy as np
 from datetime import datetime
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -11,6 +12,28 @@ from selenium.webdriver.common.keys import Keys
 #
 #
 locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+
+def print_ranges(df):
+    i = np.argmax(df.close)
+    dt = df.index[i]
+    print(f'{dt} / {i} high {df.iloc[i].close}')
+    i = np.argmin(df.close)
+    dt = df.index[i]
+    print(f'{dt} / {i} low  {df.iloc[i].close}')
+
+# standardise but use *100 so +1 std is 100
+def normaliseAsPerc(v):
+    return np.rint(100 * (v - v.mean())/v.std())
+
+def percFromMin(a):
+    i = np.argmin(a)
+    v = a.iloc[i]
+    return np.around((a / v - 1) * 100, 2)
+
+def load_file(fname):
+    df = pd.read_csv(fname, parse_dates=['date'], index_col='date', engine='python')
+    print(f'loaded {fname} {df.shape[0]} {df.shape[1]}')
+    return df
 
 # ['Dec 28, 2022', '104.66', '104.89', '101.88', '103.51', '103.51', '418,500']
 def parse_yahoo_row(cols):
@@ -52,7 +75,7 @@ def parse_page(html, symbol):
     df.to_csv(fn, index=False)
     print('saved ' + fn)
 
-def download_ticker(symbol):
+def download_ticker(driver, symbol):
     driver.get(f'https://finance.yahoo.com/quote/{symbol}/history?p={symbol}')
     time.sleep(1)
     page_down(driver, 5)
@@ -64,19 +87,28 @@ def page_down(driver, n):
         e.send_keys(Keys.PAGE_DOWN)
         time.sleep(.1)
 
-driver = webdriver.Chrome()
+def run_yahoo():
+    driver = webdriver.Chrome()
 # need to click thru various popups
-driver.get('https://finance.yahoo.com/quote/CELH')
-time.sleep(2)
-buttons = driver.find_element(By.NAME, 'agree').click()
-time.sleep(2)
-driver.find_element(By.CSS_SELECTOR, '[aria-label=Close]').click()
-time.sleep(2)
-driver.find_element(By.LINK_TEXT, 'Historical Data').click()
-time.sleep(2)
-page_down(driver, 5)
+    driver.get('https://finance.yahoo.com/quote/CELH')
+    time.sleep(2)
+    buttons = driver.find_element(By.NAME, 'agree').click()
+    time.sleep(3)
+    driver.find_element(By.CSS_SELECTOR, '[aria-label=Close]').click()
+    time.sleep(2)
+    driver.find_element(By.LINK_TEXT, 'Historical Data').click()
+    time.sleep(2)
+    page_down(driver, 5)
 
-parse_page(driver.page_source, 'CELH')
+    parse_page(driver.page_source, 'CELH')
 
-download_ticker('SPY')
+    download_ticker(driver, 'SPY')
+    download_ticker(driver, 'QQQ')
+    download_ticker(driver, 'XLK')
 
+#run_yahoo()
+df = load_file('c:\\users\\niroo\\downloads\\XLK 2022-12-30.csv')
+df['voln'] = normaliseAsPerc(df.volume)
+df['perc'] = percFromMin(df.close)
+print(df[:19])
+print_ranges(df)

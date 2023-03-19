@@ -10,8 +10,8 @@
 - [Fool smaller](bigcfs.html)
 - [SPY](https://schrts.co/RpjzJZVk)
 - [SPY 15m 5d sma](https://www.barchart.com/etfs-funds/quotes/SPY/technical-chart?plot=CANDLE&volume=total&data=I:15&density=M60&pricesOn=0&asPctChange=0&logscale=0&im=15&indicators=SMA(130);DASH(381.81,wk)&sym=SPY&grid=1&height=375&studyheight=100)
-- [Fool](https://stockcharts.com/freecharts/candleglance.html?anet,meli,ttd,tyl,swav,veev,arry,abnb,snow,extr,stem,prct)
-- [Crypto](https://stockcharts.com/freecharts/candleglance.html?ARBK,COIN,CORZ,MARA,MSTR,RIOT,SQ,$BTCUSD,$ETHUSD,$ADAUSD,$SOLUSD,$DOTUSD) [zombie](https://stockcharts.com/freecharts/candleglance.html?uber,dash,rivn,chwy,snap,hood,pton,afrm,shak,tlry,cvna,bynd)
+- [Fool](https://stockcharts.com/freecharts/candleglance.html?anet,crwd,swav,ttd,meli,veev,abnb,extr,snow,prct,arry,stem)
+- [Crypto](https://stockcharts.com/freecharts/candleglance.html?ARBK,COIN,MARA,MSTR,RIOT,SQ,$BTCUSD,$ETHUSD,$ADAUSD,$SOLUSD,$DOTUSD) [zombie](https://stockcharts.com/freecharts/candleglance.html?dash,snap,shak,uber,tlry,cvna,hood,bynd,chwy,afrm,rivn,pton)
 - [watch](watch.html)
 - [finviz >100](https://finviz.com/screener.ashx?v=211&t=AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,ASML,PYPL,NFLX,NOW,XLK&o=-low52w) [finviz 25-100](https://finviz.com/screener.ashx?v=211&t=team,snow,snps,meli,crwd,sq,shop,wday,ftnt,anet,ddog,dxcm,ilmn,veev,ttd,vrtx,abnb&o=-low52w) [finviz 10-25](https://finviz.com/screener.ashx?v=211&t=zm,zs,payc,spot,ttwo,hubs,tyl,pins,u,twlo,docu,path,roku,swav,axon&o=-low52w) [finviz 10](https://finviz.com/screener.ashx?v=211&t=masi,cflt,cgnx,iivi,txrh,docn,appn,vrns,upst,lmnd,fvrr,mttr,sfix,brze,om&o=-low52w) [IPO](https://finviz.com/screener.ashx?v=211&t=ALGM,GFS,ASX,PWSC,VERX,RBLX,INMD,EXTR,ROIV,ARRY,MAXN,SHLS,NOVA,PACB,EXAS,STEM&o=-rsi)
 

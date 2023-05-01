@@ -9,7 +9,7 @@
 - [Fool bigc](bigcf.html)
 - [Fool smaller](bigcfs.html)
 - [SPY](https://schrts.co/RpjzJZVk)
-- [SPY 15m 5d sma](https://www.barchart.com/etfs-funds/quotes/SPY/technical-chart?plot=CANDLE&volume=total&data=I:15&density=M60&pricesOn=0&asPctChange=0&logscale=0&im=15&indicators=SMA(130);DASH(408.85,wk)&sym=SPY&grid=1&height=375&studyheight=100)
+- [SPY 15m 5d sma](https://www.barchart.com/etfs-funds/quotes/SPY/technical-chart?plot=CANDLE&volume=total&data=I:15&density=M60&pricesOn=0&asPctChange=0&logscale=0&im=15&indicators=SMA(130);DASH(415.47,wk)&sym=SPY&grid=1&height=375&studyheight=100)
 - [Fool](https://stockcharts.com/freecharts/candleglance.html?anet,crwd,swav,ttd,meli,veev,abnb,extr,snow,prct,arry,stem)
 - [Crypto](https://stockcharts.com/freecharts/candleglance.html?ARBK,COIN,MARA,MSTR,RIOT,SQ,$BTCUSD,$ETHUSD,$ADAUSD,$SOLUSD,$DOTUSD) [zombie](https://stockcharts.com/freecharts/candleglance.html?dash,snap,shak,uber,tlry,cvna,hood,bynd,chwy,afrm,rivn,pton)
 - [watch](watch.html)

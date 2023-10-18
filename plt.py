@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# python -m pip install pymongo
 import argparse
 from datetime import datetime, date, time, timedelta
 import numpy as np
@@ -9,6 +10,8 @@ import platform
 import sys
 import tsutils as ts
 from plotly.offline import init_notebook_mode
+from pymongo.mongo_client import MongoClient
+import pprint
 
 def samp():
     open_data = [33.0, 33.3, 33.5, 33.0, 34.1]
@@ -191,13 +194,48 @@ def plot_atr():
     fig.add_trace( go.Scatter(x=atr.index, y=atr, mode='lines', name='ATR5') )
     fig.show()
 
+def load_mongo(dt):
+    try:
+        print('load ' + dt)
+        client = MongoClient("localhost", 27017)
+        print(client.admin.command('ping'))
+        db = client["futures"]
+        collection = db.m1
+        c = collection.find(filter = {'symbol' : 'esz3', 'timestamp' : {'$gte': datetime(2023, 10, 15, 23, 0)}}, sort = ['timestamp'])
+        rows = []
+        for d in c:
+#            pprint.pprint(d)
+            r = {
+                 'Date': d['timestamp'],
+                 'Open': d['open'],
+                 'High': d['high'],
+                 'Low':  d['low'],
+                 'Close': d['close'],
+                 'Volume': d['volume'],
+                 'VWAP': d['vwap']
+                }
+            rows.append(r)
+        df = pd.DataFrame(rows)
+        df.set_index('Date', inplace=True)
+        dfMinVol = ts.aggregateMinVolume(df, 2500)
+        print(dfMinVol)
+        # create a string for X labels
+        tm = dfMinVol['Date'].dt.strftime('%d/%m %H:%M')
+        fig = color_bars(dfMinVol, tm, '')
+        fig.show()
+    except Exception as e:
+        print(e)
+
 parser = argparse.ArgumentParser(description='Plot daily chart')
 parser.add_argument('--index', type=int, default=-1, help='Index of day to plot e.g. -1 for last')
 parser.add_argument('--tlb', type=str, default='', help='Display three line break')
+parser.add_argument('--mdb', type=str, default='', help='Load from MongoDB [trade-date]')
 
 argv = parser.parse_args()
 if len(argv.tlb) > 0:
     plot_3lb(argv.tlb)
+elif len(argv.mdb) > 0:
+    load_mongo(argv.mdb)
 else:
     plot(argv.index)
 #plot_atr()

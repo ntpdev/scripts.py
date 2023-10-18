@@ -281,7 +281,7 @@ class TestApp(TestWrapper, TestClient):
     def historicalDataOperations_req(self):
         # Requesting historical data
         # ! [reqHeadTimeStamp]
-        self.contract = contract('ES', '202303')
+        self.contract = contract('ES', '202312')
         self.reqHeadTimeStamp(self.nextOrderId(), self.contract, "TRADES", 0, 1)
         # ! [reqHeadTimeStamp]
 
@@ -290,7 +290,7 @@ class TestApp(TestWrapper, TestClient):
         queryTime = dt.strftime("%Y%m%d %H:%M:%S")
 #        queryTime = "20210324 22:00:00"
         self.reqHistoricalData(self.nextOrderId(), self.contract, queryTime,
-                               "10 D", "1 min", "TRADES", 0, 1, False, [])
+                               "5 D", "1 min", "TRADES", 0, 1, False, [])
 
 
     @printWhenExecuting
@@ -333,17 +333,17 @@ class TestApp(TestWrapper, TestClient):
 
     def toFilename(self, dt):
         dict = {
-            '202206' : 'M2',
-            '202209' : 'U2',
-            '202212' : 'Z2',
-            '202303' : 'H3'
+            '202303' : 'H3',
+            '202306' : 'M3',
+            '202309' : 'U3',
+            '202312' : 'Z3'
         }
         s = f'{self.contract.symbol}{dict[self.contract.lastTradeDateOrContractMonth]} {dt}.csv'
         return ts.make_filename(s)
 
     @printWhenExecuting
     def contractOperations(self):
-        self.reqContractDetails(self.nextOrderId(), contract('ES', '202303'))
+        self.reqContractDetails(self.nextOrderId(), contract('ES', '202312'))
 
     @iswrapper
     def contractDetails(self, reqId: int, contractDetails: ContractDetails):

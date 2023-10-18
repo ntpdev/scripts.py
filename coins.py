@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 coins = [1,5,6,8]
-target = 51
 
 def cons(e, xs):
     ys = xs.copy()
@@ -10,8 +9,8 @@ def cons(e, xs):
 
 # DP solution find the least number of coins for a given total
 # minCoins[i] is list of coins needed to make i
-# O(c * y) compared to O(c ^ n)
-def search():
+# O(c * n) compared to O(c ^ n)
+def search(target):
     minCoins = [[]] * (target + 1)
     for i in range(1, target+1):
         for c in coins:
@@ -25,6 +24,5 @@ def search():
         # print(minCoins)
     return minCoins[target]
 
-soln = search()
-print(f'min coins {len(soln)}')
-print(soln)
+soln = search(51)
+print(f'min coins {len(soln)} using {soln} for total {sum(soln)}')

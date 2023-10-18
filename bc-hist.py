@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import argparse
+import re
 from datetime import date, time, timedelta, datetime
 from collections import deque
 import numpy as np
@@ -8,32 +9,6 @@ from glob import glob
 import platform
 import tsutils as ts
 
-def count_back(xs, i):
-    current = xs.iloc[i]
-    c = 0
-    for k in range(i-1, -1, -1):
-        prev = xs.iloc[k]
-        if c > 0:
-            if current >= prev:
-                c += 1
-            else:
-                break
-        elif c < 0:
-            if current <= prev:
-                c -= 1
-            else:
-                break
-        else:
-            c = 1 if current >= prev else -1
-
-    return c
-
-def calc_hilo(ser):
-    cs = []
-    cs.append(0)
-    for i in range(1, ser.size):
-        cs.append(count_back(ser, i))
-    return pd.Series(cs, ser.index)
 
 # calculate percentage change from initial value scaled to 100%
 def calc_pct(ser):
@@ -159,8 +134,15 @@ def export_file(df, outfile):
     print(f'saving file {outfile} {len(df)}')
     df.to_csv(outfile)
 
+# spy_price-history-12-30-2022.csv
+def parse_date(fn):
+    m = re.search('\d\d-\d\d-\d\d\d\d', fn)
+    return datetime.strptime(m.group(0), '%m-%d-%Y').date()
+
 def find_file(symbol):
     files = glob(f'/users/niroo/downloads/{symbol}_price*.csv')
+    files.sort(key = lambda e: parse_date(e))
+    print(files)
     return files[-1]
 
 parser = argparse.ArgumentParser(description='Barchart history')
@@ -168,7 +150,7 @@ parser.add_argument('fname', help='Input file')
 args = parser.parse_args()
 
 df = load_file( find_file(args.fname) if (len(args.fname) < 5) else args.fname )
-df['HiLo'] = calc_hilo(df['Last'])
+df['HiLo'] = ts.calc_hilo(df['Last'])
 df['PctChg'] = df['Last'].pct_change().round(4) * 100
 df['LastPct'] = calc_pct(df['Last'])
 find_swings(df['Last'], 5.0)

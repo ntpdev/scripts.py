@@ -11,6 +11,85 @@ import platform
 
 # Time series utility functions
 
+# inclusive end
+def aggregate(df):
+    acc = {}
+    for i,r in df.iterrows():
+        acc = combine(acc, i, r, 1) if acc else single(i,r,1) 
+    return acc
+
+def aggregateMinVolume(df, minvol):
+    rows = []
+    acc = {}
+#    selector = (df.index.minute == 0) & (df.index.to_series().diff() != timedelta(minutes=1))
+    selector = df.index.to_series().diff() != timedelta(minutes=1)
+    openbar = (df.index.minute == 0) & selector
+    lastbar = selector.shift(-1, fill_value=True)
+    eur_open = date(2021,1,1)
+    rth_open = date(2021,1,1)
+    for i,r in df.iterrows():
+        if openbar.loc[i]:
+            eur_open = i + timedelta(hours=8, minutes=59)
+            rth_open = i + timedelta(hours=15, minutes=29)
+        acc = combine(acc, i, r, 1) if acc else single(i,r,1)
+        if acc['Volume'] >= minvol or lastbar.loc[i] or i == eur_open or i == rth_open:
+            rows.append(acc)
+            acc = None
+    if acc:
+        rows.append(acc)
+    return pd.DataFrame(rows)
+
+def single(dt_fst, fst, period):
+    r = {}
+    r['Date'] = dt_fst
+    r['DateCl'] = dt_fst + timedelta(minutes=period)
+    r['Open'] = fst['Open']
+    r['High'] = fst['High']
+    r['Low'] = fst['Low']
+    r['Close'] = fst['Close']
+    r['Volume'] = fst['Volume']
+    r['VWAP'] = fst['VWAP']
+    return r
+
+def combine(acc, dt_snd, snd, period):
+    r = {}
+    r['Date'] = acc['Date']
+    r['DateCl'] = dt_snd + timedelta(minutes=period)
+    r['Open'] = acc['Open']
+    r['High'] = max(acc['High'], snd['High'])
+    r['Low'] = min(acc['Low'], snd['Low'])
+    r['Close'] = snd['Close']
+    r['Volume'] = acc['Volume'] + snd['Volume']
+    r['VWAP'] = snd['VWAP']
+    return r
+
+def count_back(xs, i):
+    current = xs.iloc[i]
+    c = 0
+    for k in range(i-1, -1, -1):
+        prev = xs.iloc[k]
+        if c > 0:
+            if current >= prev:
+                c += 1
+            else:
+                break
+        elif c < 0:
+            if current <= prev:
+                c -= 1
+            else:
+                break
+        else:
+            c = 1 if current >= prev else -1
+
+    return c
+
+def calc_hilo(ser):
+    cs = []
+    cs.append(0)
+    for i in range(1, ser.size):
+        cs.append(count_back(ser, i))
+    return pd.Series(cs, ser.index)
+
 # create a df [date, openTime, closeTime] for each trading day
 def day_index(df):
     selector = (df.index.minute == 0) & (df.index.to_series().diff() != timedelta(minutes=1))
@@ -106,7 +185,7 @@ def make_filename(fname):
 
 
 def load_files(fname):
-    dfs = [load_file(e) for e in gb.glob(fname) ]
+    dfs = [load_file(e) for e in gb.glob(fname)]
     return pd.concat(dfs)
 
 

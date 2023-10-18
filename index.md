@@ -10,7 +10,7 @@
 - [Fool smaller](bigcfs.html)
 - [SPY](https://schrts.co/RpjzJZVk)
 - [AAII bull bear](https://schrts.co/kfTVkXkg)
-- [SPY 15m 5d sma](https://www.barchart.com/etfs-funds/quotes/SPY/technical-chart?plot=CANDLE&volume=total&data=I:15&density=M60&pricesOn=0&asPctChange=0&logscale=0&im=15&indicators=SMA(130);DASH(453.37,wk)&sym=SPY&grid=1&height=375&studyheight=100)
+- [SPY 15m 5d sma](https://www.barchart.com/etfs-funds/quotes/SPY/technical-chart?plot=CANDLE&volume=total&data=I:15&density=M60&pricesOn=0&asPctChange=0&logscale=0&im=15&indicators=SMA(130);DASH(433.82,wk)&sym=SPY&grid=1&height=375&studyheight=100)
 - [Fool](https://stockcharts.com/freecharts/candleglance.html?crwd,anet,abnb,ttd,veev,extr,snow,prct,meli,arry,swav,stem)
 - [Crypto](https://stockcharts.com/freecharts/candleglance.html?ARBK,COIN,MARA,MSTR,RIOT,SQ,$BTCUSD,$ETHUSD,$ADAUSD,$SOLUSD,$DOTUSD) [zombie](https://stockcharts.com/freecharts/candleglance.html?dash,snap,shak,uber,tlry,cvna,hood,bynd,chwy,afrm,rivn,pton)
 - [watch](watch.html)

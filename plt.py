@@ -57,6 +57,7 @@ def draw_daily_lines(df, fig, tms, idxs):
         y = df.Open.iloc[op]
         fig.add_shape(type='line', x0=tms.iloc[op], y0=y, x1=tms.iloc[cl], y1=y, line=dict(color='LightSeaGreen', dash='dot'))
 
+# return a series of bar-index and text labels
 def highs(df, window):
     hs = df['High'].rolling(window, center=True).max()
     hsv = df['High'][np.equal(df['High'], hs)]
@@ -72,33 +73,22 @@ def lows(df, window):
     return df.Low[t[t.ne(0)].index]
     
 
-def peaks(df, tms, fig):
+def add_hilo_labels(df, tms, fig):
     hs = highs(df, 21)
     ls = lows(df, 21)
 
-#    fig = go.Figure()
-#    fig.add_trace(go.Scatter(x=tm, y=df['High'][:600], line=dict(color='orange')))
-#    fig.add_trace(go.Scatter(x=tm, y=df['Low'][:600], line=dict(color='cyan')))
-
-#    fig.add_trace(go.Scatter(
-#        x=[tm[i] for i in xs[0]],
-#        y=[df.High[j] for j in xs[0]],
-#        mode='markers',
-#        marker=dict(size=8, color='green', symbol='cross' ),
-#        name='Detected Peaks' ))
-
     fig.add_trace(go.Scatter(
-        x=[tms[i] for i in hs.index],
+        x=[tm for tm in df.loc[hs.index].tm],
         y=hs.add(1),
-        text=['%.2f' % y for y in hs],
+        text=['%.2f' % p for p in df.loc[hs.index].High],
         mode='text',
         textposition="top center",
         name='local high' ))
 
     fig.add_trace(go.Scatter(
-        x=[tms[i] for i in ls.index],
+        x=[tm for tm in df.loc[ls.index].tm],
         y=ls.sub(1),
-        text=['%.2f' % y for y in ls],
+        text=['%.2f' % p for p in df.loc[ls.index].Low],
         mode='text',
         textposition="bottom center",
         name='local low' ))
@@ -151,7 +141,7 @@ def plot(index):
     xs = make_day_index(df)
     rths = make_rth_index(df, xs)
     draw_daily_lines(df, fig, tm, rths)
-    peaks(df, tm, fig)
+    add_hilo_labels(df, tm, fig)
 
     op, cl = xs[index]
     fig.layout.xaxis.range = [op, cl]
@@ -188,20 +178,58 @@ def color_bars(df, tm, opt):
                      go.Scatter(x=tm, y=df['VWAP'], line=dict(color='orange'), name='vwap') ])
 
 def plot_atr():
-    df = ts.load_files(ts.make_filename('esh2*.csv'))
+    df = ts.load_files(ts.make_filename('esz3*.csv'))
     atr = ts.calc_atr(df, 2)
     fig = go.Figure()
     fig.add_trace( go.Scatter(x=atr.index, y=atr, mode='lines', name='ATR5') )
     fig.show()
 
-def load_mongo(dt):
+def plot_tick():
+    df = ts.load_files(ts.make_filename('zTICK-NYSE*.csv'))
+    hi = df['High'].quantile(0.95)
+    lo = df['Low'].quantile(0.05)
+    print(f'tick extremese {hi} and {lo}')
+    tm = df.index.strftime('%d/%m %H:%M')
+    fig = go.Figure()
+    fig.add_trace( go.Scatter(x=tm, y=df['High'], mode='lines', name='ATR5') )
+    fig.add_trace( go.Scatter(x=tm, y=df['Low'], mode='lines', name='ATR5') )
+    fig.add_hline(y=hi, line_width=1, line_dash="dash", line_color="blue")
+    fig.add_hline(y=lo, line_width=1, line_dash="dash", line_color='grey')
+    fig.show()
+
+def plot_mongo(symbol, d):
+    day = date.fromisoformat(d)
+    df = load_mongo(symbol, day)
+    dfMinVol = ts.aggregateMinVolume(df, 2500)
+    # create a string for X labels
+    tm = dfMinVol.index.strftime('%d/%m %H:%M')
+    fig = color_bars(dfMinVol, tm, 'strat')
+    add_hilo_labels(dfMinVol, tm, fig)
+    rthStart = datetime.combine(day, time(14,30))
+    rthStartBar = dfMinVol.index.searchsorted(rthStart, side='right') - 1
+    rthEnd = datetime.combine(day, time(21, 0))
+    rthEndBar = dfMinVol.index.searchsorted(rthEnd, side='right') - 1
+
+    fig.add_vline(x=tm[rthStartBar], line_width=1, line_dash="dash", line_color="blue")
+    fig.add_vline(x=tm[rthEndBar], line_width=1, line_dash="dash", line_color="blue")
+    y = df.Open[rthStart]
+    fig.add_shape(type='line', x0=tm[rthStartBar], y0=y, x1=tm[rthEndBar], y1=y, line=dict(color='LightSeaGreen', dash='dot'))
+    y = dfMinVol.High[:rthStart].max()
+    fig.add_shape(type='line', x0=tm[rthStartBar], y0=y, x1=tm[rthEndBar], y1=y, line=dict(color='Gray', dash='dot'))
+    y = dfMinVol.Low[:rthStart].min()
+    fig.add_shape(type='line', x0=tm[rthStartBar], y0=y, x1=tm[rthEndBar], y1=y, line=dict(color='Gray', dash='dot'))
+
+    fig.show()
+
+def load_mongo(symbol, day):
     try:
-        print('load ' + dt)
+        tmStart = datetime.combine(day - timedelta(days=1), time(23,0))
+        tmEnd = datetime.combine(day, time(22,0,0))
+        print(f'loading {symbol} {tmStart} to {tmEnd}')
         client = MongoClient("localhost", 27017)
-        print(client.admin.command('ping'))
-        db = client["futures"]
-        collection = db.m1
-        c = collection.find(filter = {'symbol' : 'esz3', 'timestamp' : {'$gte': datetime(2023, 10, 15, 23, 0)}}, sort = ['timestamp'])
+        # print(client.admin.command('ping'))
+        collection = client["futures"].m1
+        c = collection.find(filter = {'symbol' : symbol, 'timestamp' : {'$gte': tmStart, '$lt': tmEnd}}, sort = ['timestamp'])
         rows = []
         for d in c:
 #            pprint.pprint(d)
@@ -217,25 +245,35 @@ def load_mongo(dt):
             rows.append(r)
         df = pd.DataFrame(rows)
         df.set_index('Date', inplace=True)
-        dfMinVol = ts.aggregateMinVolume(df, 2500)
-        print(dfMinVol)
-        # create a string for X labels
-        tm = dfMinVol['Date'].dt.strftime('%d/%m %H:%M')
-        fig = color_bars(dfMinVol, tm, '')
-        fig.show()
+        return df
     except Exception as e:
         print(e)
 
+# df.index.indexer_at_time(datetime(2023,10,19,7,15,0))
+# df.iloc[495]
+# df.loc[datetime(2023,10,19,7,15,0)]
+# find exact match
+# dfMinVol.loc[datetime(2023,10,18,23,54,0)]
+# index of time imm before
+# dfMinVol.index.searchsorted(datetime(2023,10,18,23,54,0), side='right') - 1 
+
 parser = argparse.ArgumentParser(description='Plot daily chart')
 parser.add_argument('--index', type=int, default=-1, help='Index of day to plot e.g. -1 for last')
-parser.add_argument('--tlb', type=str, default='', help='Display three line break')
+parser.add_argument('--tlb', type=str, default='', help='Display three line break [fname]')
 parser.add_argument('--mdb', type=str, default='', help='Load from MongoDB [trade-date]')
+parser.add_argument('--atr', action='store_true', help='Display ATR')
+parser.add_argument('--tick', action='store_true', help='Display tick')
 
 argv = parser.parse_args()
+print(argv)
 if len(argv.tlb) > 0:
     plot_3lb(argv.tlb)
 elif len(argv.mdb) > 0:
-    load_mongo(argv.mdb)
+    plot_mongo('esz3', argv.mdb)
+elif argv.atr:
+    plot_atr()
+elif argv.tick:
+    plot_tick()
 else:
     plot(argv.index)
 #plot_atr()

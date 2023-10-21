@@ -37,7 +37,9 @@ def aggregateMinVolume(df, minvol):
             acc = None
     if acc:
         rows.append(acc)
-    return pd.DataFrame(rows)
+    df2 = pd.DataFrame(rows)
+    df2.set_index('Date', inplace=True)
+    return df2
 
 def single(dt_fst, fst, period):
     r = {}
@@ -150,17 +152,17 @@ def calc_vwap(df):
 # return a series of bar type 0 - inside, 1 up, 2 down, 3 outside
 def calc_strat(df):
     xs = []
-    for i,r in df.iterrows():
-        if i > 1:
-            pr = df.iloc[i-1]
-            i = 0
-            if r['High'] > pr['High']:
-                i = 1
-            if r['Low'] < pr['Low']:
+    prev = None
+    for tm,r in df.iterrows():
+        if isinstance(prev, pd.Series):
+#            breakpoint()
+            i = 1 if r['High'] > prev['High'] else 0
+            if r['Low'] < prev['Low']:
                 i = i + 2
             xs.append(i)
         else:
             xs.append(0)
+        prev = r
     return pd.Series(xs, df.index)
 
 def calc_atr(df, n):

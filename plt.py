@@ -5,6 +5,7 @@ from datetime import datetime, date, time, timedelta
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.express as px
 import plotly.offline as pyo 
 import platform
 import sys
@@ -159,19 +160,21 @@ def color_bars(df, tm, opt):
     dfOutside = df.loc[df['btype'] == 3]
 
     fig = go.Figure(data=[go.Scatter(x=tm, y=df['VWAP'], line=dict(color='orange'), name='vwap') ])
+    if 'EMA' in df:
+        fig.add_trace(go.Scatter(x=tm, y=df['EMA'], line=dict(color='yellow'), name='ema'))
     fig.add_trace(go.Ohlc(x=dfInside['tm'], open=dfInside['Open'], high=dfInside['High'], low=dfInside['Low'], close=dfInside['Close'], name='ES inside'))
     fig.add_trace(go.Ohlc(x=dfUp['tm'], open=dfUp['Open'], high=dfUp['High'], low=dfUp['Low'], close=dfUp['Close'], name='ES up'))
     fig.add_trace(go.Ohlc(x=dfDown['tm'], open=dfDown['Open'], high=dfDown['High'], low=dfDown['Low'], close=dfDown['Close'], name='ES down'))
     fig.add_trace(go.Ohlc(x=dfOutside['tm'], open=dfOutside['Open'], high=dfOutside['High'], low=dfOutside['Low'], close=dfOutside['Close'], name='ES outside'))
                      
-    fig.data[1].increasing.line.color = 'yellow'
-    fig.data[1].decreasing.line.color = 'yellow'
-    fig.data[2].increasing.line.color = 'green'
-    fig.data[2].decreasing.line.color = 'green'
-    fig.data[3].increasing.line.color = 'red'
-    fig.data[3].decreasing.line.color = 'red'
-    fig.data[4].increasing.line.color = 'purple'
-    fig.data[4].decreasing.line.color = 'purple'
+    fig.data[2].increasing.line.color = 'yellow'
+    fig.data[2].decreasing.line.color = 'yellow'
+    fig.data[3].increasing.line.color = 'green'
+    fig.data[3].decreasing.line.color = 'green'
+    fig.data[4].increasing.line.color = 'red'
+    fig.data[4].decreasing.line.color = 'red'
+    fig.data[5].increasing.line.color = 'purple'
+    fig.data[5].decreasing.line.color = 'purple'
     return fig
   else:  
     return go.Figure(data=[go.Candlestick(x=tm, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='ES'),
@@ -185,50 +188,70 @@ def plot_atr():
     fig.show()
 
 def plot_tick():
-    df = ts.load_files(ts.make_filename('zTICK-NYSE*.csv'))
+    df = ts.load_files(ts.make_filename('TICK-NYSE*.csv'))
     hi = df['High'].quantile(0.95)
     lo = df['Low'].quantile(0.05)
-    print(f'tick extremese {hi} and {lo}')
+    print(f'tick percentiles 5,95  {lo} and {hi}')
     tm = df.index.strftime('%d/%m %H:%M')
-    fig = go.Figure()
-    fig.add_trace( go.Scatter(x=tm, y=df['High'], mode='lines', name='ATR5') )
-    fig.add_trace( go.Scatter(x=tm, y=df['Low'], mode='lines', name='ATR5') )
-    fig.add_hline(y=hi, line_width=1, line_dash="dash", line_color="blue")
+    fig = px.bar(x=tm, y=df.High, base=df.Low)
+    # fig = go.Figure()
+    # fig.add_trace(go.Scatter(x=tm, y=df['High'], mode='lines', name='high') )
+    # fig.add_trace(go.Scatter(x=tm, y=df['Low'], mode='lines', name='low') )
+    fig.add_hline(y=hi, line_width=1, line_dash="dash", line_color="grey")
     fig.add_hline(y=lo, line_width=1, line_dash="dash", line_color='grey')
     fig.show()
 
 def plot_mongo(symbol, d):
     day = date.fromisoformat(d)
     df = load_mongo(symbol, day)
+    # first bar will either be at 23:00 most of the time but 22:00 when US/UK clocks change at different dates
+    startTm = df.index[0]
     dfMinVol = ts.aggregateMinVolume(df, 2500)
+
     # create a string for X labels
     tm = dfMinVol.index.strftime('%d/%m %H:%M')
     fig = color_bars(dfMinVol, tm, 'strat')
     add_hilo_labels(dfMinVol, tm, fig)
-    rthStart = datetime.combine(day, time(14,30))
-    rthStartBar = dfMinVol.index.searchsorted(rthStart, side='right') - 1
-    rthEnd = datetime.combine(day, time(21, 0))
-    rthEndBar = dfMinVol.index.searchsorted(rthEnd, side='right') - 1
+    if dfMinVol.index[-1].time() > time(14, 30):
+        rthStart = startTm + timedelta(minutes=930)
+        rthStartBar = floor_index(dfMinVol, rthStart)
+        rthEnd = startTm + timedelta(minutes=1320)
+        rthEndBar = floor_index(dfMinVol, rthEnd)
 
-    fig.add_vline(x=tm[rthStartBar], line_width=1, line_dash="dash", line_color="blue")
-    fig.add_vline(x=tm[rthEndBar], line_width=1, line_dash="dash", line_color="blue")
-    y = df.Open[rthStart]
-    fig.add_shape(type='line', x0=tm[rthStartBar], y0=y, x1=tm[rthEndBar], y1=y, line=dict(color='LightSeaGreen', dash='dot'))
-    y = dfMinVol.High[:rthStart].max()
-    fig.add_shape(type='line', x0=tm[rthStartBar], y0=y, x1=tm[rthEndBar], y1=y, line=dict(color='Gray', dash='dot'))
-    y = dfMinVol.Low[:rthStart].min()
-    fig.add_shape(type='line', x0=tm[rthStartBar], y0=y, x1=tm[rthEndBar], y1=y, line=dict(color='Gray', dash='dot'))
+        fig.add_vline(x=tm[rthStartBar], line_width=1, line_dash="dash", line_color="blue")
+        if (rthEndBar < dfMinVol.shape[0] - 1):
+            fig.add_vline(x=tm[rthEndBar], line_width=1, line_dash="dash", line_color="blue")
+        y = dfMinVol.at[rthStart, 'Open']
+        fig.add_shape(type='line', x0=tm[rthStartBar], y0=y, x1=tm[rthEndBar], y1=y, line=dict(color='LightSeaGreen', dash='dot'))
+        y = dfMinVol.High[:rthStart].max()
+        fig.add_shape(type='line', x0=tm[rthStartBar], y0=y, x1=tm[rthEndBar], y1=y, line=dict(color='Gray', dash='dot'))
+        y = dfMinVol.Low[:rthStart].min()
+        fig.add_shape(type='line', x0=tm[rthStartBar], y0=y, x1=tm[rthEndBar], y1=y, line=dict(color='Gray', dash='dot'))
+
+    euStart = startTm + timedelta(minutes=600)
+    euStartBar = floor_index(dfMinVol, euStart)
+    euEnd = startTm + timedelta(minutes=929)
+    euEndBar = floor_index(dfMinVol, euEnd)
+    y = dfMinVol.Open.iloc[euStartBar]
+    fig.add_shape(type='line', x0=tm[euStartBar], y0=y, x1=tm[euEndBar], y1=y, line=dict(color='LightSeaGreen', dash='dot'))
 
     fig.show()
 
+def floor_index(df, tm):
+    """return index of inverval that includes tm"""
+    return df.index.searchsorted(tm, side='right') - 1
+
 def load_mongo(symbol, day):
     try:
-        tmStart = datetime.combine(day - timedelta(days=1), time(23,0))
-        tmEnd = datetime.combine(day, time(22,0,0))
+        # tz difference changes normal 23:00 but can be 22:00
+        tmStart = datetime.combine(day - timedelta(days=1), time(22,0))
+        tmEnd = datetime.combine(day, time(23,0,0))
         print(f'loading {symbol} {tmStart} to {tmEnd}')
-        client = MongoClient("localhost", 27017)
+        client = MongoClient('localhost', 27017)
         # print(client.admin.command('ping'))
-        collection = client["futures"].m1
+        collection = client['futures'].m1
+        #dfDays = load_trading_days(collection, 'esz3', 500000)
+        #plot_normvol(dfDays)
         c = collection.find(filter = {'symbol' : symbol, 'timestamp' : {'$gte': tmStart, '$lt': tmEnd}}, sort = ['timestamp'])
         rows = []
         for d in c:
@@ -245,9 +268,47 @@ def load_mongo(symbol, day):
             rows.append(r)
         df = pd.DataFrame(rows)
         df.set_index('Date', inplace=True)
+        df['EMA'] = df.Close.ewm(span=90, adjust=False).mean()
         return df
     except Exception as e:
         print(e)
+
+def load_trading_days(collection, symbol, minVol):
+    """return dataframe of complete trading days [date, bar-count, volume, normalised-volume]"""
+    cursor = collection.aggregate(
+        [{'$match': {'symbol': symbol}},
+         {'$group': {
+            '_id'   : {'$dateTrunc': {'date': '$timestamp', 'unit': 'day'}}, 
+            'count' : {'$sum': 1},
+            'volume': {'$sum': '$volume'} } },
+         {'$match': {'volume': {'$gte': minVol}}},
+         {'$sort': {'_id': 1}}] )
+    df = pd.DataFrame(list(cursor))
+    v = df.volume
+    df['normv'] = (v - v.mean()) / v.std()
+    df.set_index('_id', inplace=True)
+    df.index.rename('date', inplace=True)
+    print(df)
+    return df
+
+def plot_normvol(df):
+    fig = px.bar(df, x=df.index, y='normv')
+    fig.show()
+
+def compare_emas():
+    """compare 19 ema on M5 to emas on M1. Nearest is around 90-92"""
+    df = ts.load_file('c:\\temp\\ultra\\ESZ3 20231002.csv')
+    a = df.Close.resample('5T').first()
+    # adjust=False is needed to match usual ema calc
+    b = a.ewm(span=19, adjust=False).mean()
+    dfm5 = pd.DataFrame({'Close_m5':a, 'ema_m5':b})
+
+    for i in range(79, 99):
+        df['ema'] = df.Close.ewm(span=i, adjust=False).mean()
+        df2 = df.merge(dfm5, how='inner', left_index=True, right_index=True)
+        rmse = ((df2.ema - df2.ema_m5) ** 2).mean() ** 0.5
+        print(f'i = {i} rmse={rmse}')
+
 
 # df.index.indexer_at_time(datetime(2023,10,19,7,15,0))
 # df.iloc[495]

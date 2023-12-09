@@ -51,6 +51,8 @@ def single(dt_fst, fst, period):
     r['Close'] = fst['Close']
     r['Volume'] = fst['Volume']
     r['VWAP'] = fst['VWAP']
+    if 'EMA' in fst:
+        r['EMA'] = fst['EMA']
     return r
 
 def combine(acc, dt_snd, snd, period):
@@ -63,6 +65,8 @@ def combine(acc, dt_snd, snd, period):
     r['Close'] = snd['Close']
     r['Volume'] = acc['Volume'] + snd['Volume']
     r['VWAP'] = snd['VWAP']
+    if 'EMA' in snd:
+        r['EMA'] = snd['EMA']
     return r
 
 def count_back(xs, i):
@@ -115,25 +119,23 @@ def aggregate_daily_bars(df, daily_index):
         rows.append(aggregate(df, r['openTime'], r['closeTime']))
 
     daily = pd.DataFrame(rows, index=daily_index.index)
-    daily['Change'] = daily['Close'].sub(daily['Close'].shift())
-    daily['Gap'] = daily['Open'].sub(daily['Close'].shift())
-    daily['DayChg'] = daily['Close'].sub(daily['Open'])
-    daily['Range'] = daily['High'].sub(daily['Low'])
-    return daily
+    daily['Change'] = daily.Close.diff()
+    daily['Gap'] = daily.Open - daily.Close.shift()
+    daily['DayChg'] = daily.Close - daily.Open
+    daily['Range'] = daily.High - daily.Low
+    return daily[daily.Volume > 500000]
 
 
 # return a row which aggregates bars between inclusive indexes
 def aggregate(df, s, e):
     r = {}
-    r['Open'] = df.Open[s]
+    r['Open'] = df.at[s, 'Open']
     r['High'] = df.High[s:e].max()
     r['Low'] = df.Low[s:e].min()
-    r['Close'] = df.Close[e]
+    r['Close'] = df.at[e, 'Close']
     r['Volume'] = df.Volume[s:e].sum()
-    vwap = 0
     # contract expiry is opening price of day so day has no volume
-    if r['Volume'] > 0:
-        vwap = np.average( df.WAP[s:e], weights=df.Volume[s:e] )
+    vwap = 0 if r['Volume'] <= 0 else np.average( df.WAP[s:e], weights=df.Volume[s:e] )
     r['VWAP'] = round(vwap, 2)
     return r
 
@@ -149,21 +151,11 @@ def calc_vwap(df):
         xs.append(round(v, 2))
     return pd.Series(xs, df.index)
 
-# return a series of bar type 0 - inside, 1 up, 2 down, 3 outside
 def calc_strat(df):
-    xs = []
-    prev = None
-    for tm,r in df.iterrows():
-        if isinstance(prev, pd.Series):
-#            breakpoint()
-            i = 1 if r['High'] > prev['High'] else 0
-            if r['Low'] < prev['Low']:
-                i = i + 2
-            xs.append(i)
-        else:
-            xs.append(0)
-        prev = r
-    return pd.Series(xs, df.index)
+    """return a series categorising bar by its strat bar type 0 - inside, 1 up, 2 down, 3 outside"""
+    hs = df.High.diff().gt(0)
+    ls = df.Low.diff().lt(0)
+    return hs.astype(int) + ls * 2
 
 def calc_atr(df, n):
     rng = df.High.rolling(n).max() - df.Low.rolling(n).min()
@@ -185,11 +177,9 @@ def make_filename(fname):
     p = '/media/niroo/ULTRA/' if platform.system() == 'Linux' else 'c:\\temp\\ultra\\'
     return p + fname
 
-
 def load_files(fname):
     dfs = [load_file(e) for e in gb.glob(fname)]
     return pd.concat(dfs)
-
 
 def load_file(fname):
     df = pd.read_csv(fname, parse_dates=['Date'], index_col='Date')

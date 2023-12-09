@@ -67,6 +67,3 @@ assert n == 2
 
 n = kindsOfCandie(range(-5,5))
 assert n == 5
-
-# a list comprehension is a generator -> filter -> map
-[x * x for x in range(10) if x % 2 == 0]

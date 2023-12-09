@@ -1,4 +1,9 @@
+#!/usr/bin/python3
 import unittest
+import math
+import numpy as np
+import pandas as pd
+import itertools as it
 from collections import deque
 
 class Solution:
@@ -233,6 +238,35 @@ class Solution:
                 else:
                     r -= 1
         return []
+    
+    def numberCombinationsGt(self, xs, ys, bound):
+        '''return number of combinations which sum to greater than bound'''
+        # use list comp with nested generators and a condition
+        zs = [(x,y) for x in xs for y in ys if (x+y) > bound]
+        # alternatively using itertools
+        # [e for e in itertools.product(xs, ys) if sum(e) > 9]
+        print(f'{len(zs)}/{len(xs) * len(ys)} {zs}')
+        return len(zs)
+
+    def numberCombinationsGtEx(self, xs, ys, bound):
+        '''return number of combinations which sum to greater than bound'''
+        # Use itertools.product to create cartesian product then * starred expression to unpack the tuples
+        x2, y2 = zip(*(it.product(xs, ys)))
+        df = pd.DataFrame({'x':x2, 'y':y2})
+        df['c'] = df.x + df.y
+        r = df[df.c > bound]
+        print(f'{r}')
+        return len(r)
+    
+    def primesUpTo(self, n):
+        '''return a np array containing all primes up to n'''
+        sieve = np.arange(n)
+        sieve[:2] = 0
+        for i in range(2, math.isqrt(n) + 1):
+            if sieve[i]:
+                sieve[i*i::i] = 0
+        return sieve.nonzero()[0]
+
 
 # python has a Counter class which is a specialised dict for counting
 class LetterFreqency():
@@ -380,6 +414,20 @@ class TestMethods(unittest.TestCase):
         self.assertFalse(x == y)
         y.add('eholl')
         self.assertTrue(x == y)
+
+    def test_numberCombinationsGt(self):
+        xs = [1,1,2,3,4,5]
+        ys = [2,3,4,5,6,6]
+        r = Solution().numberCombinationsGt(xs, ys, 9)
+        self.assertTrue(r == 5)
+        r = Solution().numberCombinationsGtEx(xs, ys, 9)
+        self.assertTrue(r == 5)
+    
+    def test_primesUpTo(self):
+        # 104729 is 10,000th prime
+        r = Solution().primesUpTo(104730)
+        self.assertEqual(len(r), 10000)
+        self.assertEqual(r[-1], 104729)
 
 if __name__ == '__main__':
     unittest.main()

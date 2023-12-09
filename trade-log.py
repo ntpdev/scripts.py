@@ -11,7 +11,7 @@ class Blotter:
 
     def __init__(self):
         self.openPositions = []
-        self.seqNo = 0
+        self.nextSeqNo = 0
         self.seqDict = {}
         self.trades = []
 
@@ -28,8 +28,8 @@ class Blotter:
         found = self.find_matching(sym, r['Action'])
         if found == -1:
             if sym not in self.seqDict:
-                self.seqDict[sym] = self.seqNo
-                self.seqNo += 1
+                self.seqDict[sym] = self.nextSeqNo
+                self.nextSeqNo += 1
             self.openPositions.append(r)
         else:
             op = self.openPositions.pop(found)

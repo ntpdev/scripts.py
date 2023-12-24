@@ -58,5 +58,5 @@ def chat(local=True):
 
 
 if __name__ == '__main__':
-    chat(False)
+    chat()
     # xs = load(FNAME)

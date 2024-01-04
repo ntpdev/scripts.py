@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from twelvedata import TDClient
 import requests as req
 import numpy as np
@@ -7,6 +7,9 @@ import plotly.graph_objects as go
 import plotly.express as px
 import plotly.subplots as subp
 import tsutils
+from pathlib import Path
+import os
+from fnmatch import fnmatch
 
 # pip install twelvedata
 
@@ -14,8 +17,24 @@ APIKEY = 'dc33458b019d4bf59513212a49f3907d'
 
 td = TDClient(apikey=APIKEY)
 
+def make_fullpath(fn: str) -> Path:
+    return Path.home() / 'Downloads' / fn
+
+
+def make_filename(symbol: str, dt: date) -> Path:
+    return make_fullpath(f'{symbol} {dt.isoformat()}.csv')
+
+
+def list_cached_files(symbol: str):
+    p = Path.home() / 'Downloads'
+    spec = symbol + '*.csv'
+    xs = [f for f in os.listdir(p) if fnmatch(f, spec)]
+    xs.sort(reverse=True)
+    return xs
+
+
 def load_file(fname: str):
-    df = pd.read_csv(fname, parse_dates=['datetime'], index_col='datetime', engine='python')
+    df = pd.read_csv(make_fullpath(fname), parse_dates=['datetime'], index_col='datetime', engine='python')
     print(f'loaded {fname} {df.shape[0]} {df.shape[1]}')
     return df
 
@@ -99,30 +118,30 @@ def load_earliest_date(symbol):
         print(objs)
 
 
-def load_twelve_data(symbol, path):
+def load_twelve_data(symbol, days=250):
     print(f'loading {symbol}')
-    ts = td.time_series(symbol=symbol, interval='1day', outputsize=5000, dp=2, order='ASC')
+    ts = td.time_series(symbol=symbol, interval='1day', outputsize=days, dp=2, order='ASC')
     df = ts.with_ma(ma_type='SMA', time_period=150).with_ma(ma_type='SMA', time_period=50).with_ma(ma_type='EMA', time_period=19).as_pandas()
 
     df.rename(columns={'ma1':'sma150', 'ma2':'sma50', 'ma3':'ema19'}, inplace=True)
     print(df.tail())
-    fname = path + symbol + ' ' + df.index[-1].date().isoformat() + '.csv'
-    print(f'saved {symbol} {df.index[0].date()} to {df.index[-1].date()} shape={df.shape}')
+    fname = make_filename(symbol, df.index[-1].date())
     df['change'] = pd.Series.diff(df.close).round(2)
     df['pct_chg'] = (pd.Series.pct_change(df.close) * 100).round(2)
     df['voln'] = normaliseAsPerc(df.volume)
     # df['perc'] = percFromMin(df.close)
     df['hilo'] = tsutils.calc_hilo(df.close)
     df.to_csv(fname)
+    print(f'saved {symbol} {df.index[0].date()} to {df.index[-1].date()} shape={df.shape}')
     print(fname)
     return df
 
 
 def load_twelve_data_raw(symbols):
     dt = (datetime.today().date() - timedelta(days=365)).isoformat()
-    s = f'https://api.twelvedata.com/time_series?apikey={APIKEY}&interval=1day&start_date={dt}&symbol={symbols}&type=etf&format=JSON&dp=2&order=ASC'
-    print(s)
-    response = req.get(url=s)
+    url = f'https://api.twelvedata.com/time_series?apikey={APIKEY}&interval=1day&start_date={dt}&symbol={symbols}&type=etf&format=JSON&dp=2&order=ASC'
+    print(url)
+    response = req.get(url=url)
     if response.status_code == 200:
         objs = response.json()
         df = json_to_df(objs)
@@ -182,19 +201,39 @@ def scan(df, entryHi, exitLo, stopPerc):
             }
 
 
+def plot_swings(df):
+    #        fig = px.line(x=swings.index, y=swings['close'])
+    fig = px.bar(x=swings.index, y=swings['change'])
+    fig.update_layout(xaxis_type='category') # treat datetime as category
+    fig.show()
+
 
 if __name__ == '__main__':
-    # df = load_twelve_data('spy', 'c:\\users\\niroo\\downloads\\')
+#    df = load_twelve_data('qqq')
+    xs = list_cached_files('spy')
+    if len(xs) > 0:
+        df = load_file(xs[0])
+        #df = load_file('c:\\users\\niroo\\downloads\\spy 2023-12-15.csv')
+        swings = tsutils.find_swings(df['close'], 5.0)
+        print(df[-20:])
+        print('-- swings')
+        print(swings)
+        # print drawdowns if in upswing
+        r = swings.iloc[-1]
+        if r.change > 0:
+            print(f'high {r.close}')
+            print(f'5%   {r.close * .95:.2f}')
+            print(f'10%  {r.close * .9:.2f}')
+
     #load_earliest_date('spy')
-    df = load_file('c:\\users\\niroo\\downloads\\spy 2023-12-15.csv')
+    #df = load_file('c:\\users\\niroo\\downloads\\spy 2023-12-15.csv')
     #plot('spy', df)
     #scan(df, 19, -35, .975)
-    xs = []
-    for x in range(10, 25):
-        for y in range(19,50):
-            d = scan(df, x, -y, .975)
-            xs.append(d)
-    df2 = pd.DataFrame(xs)
-    print(df2)
-    plot_heatmap(df2)
-
+    # xs = []
+    # for x in range(10, 25):
+    #     for y in range(19,50):
+    #         d = scan(df, x, -y, .975)
+    #         xs.append(d)
+    # df2 = pd.DataFrame(xs)
+    # print(df2)
+    # plot_heatmap(df2)

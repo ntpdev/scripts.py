@@ -11,6 +11,70 @@ import platform
 
 # Time series utility functions
 
+def find_initial_swing(s, perc_rev):
+    '''return direction and start index and end index of the first incomplete swing.'''
+    hw = s.iloc[0]
+    hwi = 0
+    lw = s.iloc[0]
+    lwi = 0
+    for i in range(s.size):
+        x = s.iat[i]
+        if x > hw:
+            hw = x
+            hwi = i
+        elif x < lw:
+            lw = x
+            lwi = i
+        if pdiff(lw, hw, perc_rev):
+            if lwi < hwi:
+                return (1, lwi, hwi)
+            else:
+                return (-1, hwi, lwi)
+    return (0, 0, 0)
+
+def find_swings(s, perc_rev):
+    dirn, start_index, end_index = find_initial_swing(s, perc_rev)
+    xs = []
+    if dirn == 0:
+        return xs
+    xs.append(start_index)
+    extm = s.iloc[end_index]
+    extm_index = end_index
+    for i in range(end_index+1, s.size):
+        x = s.iat[i]
+        if dirn == 1:
+            if x > extm:
+                extm = x
+                extm_index = i
+#                print(f'new hi {extm_index} {extm}')
+            elif pdiff(extm, x, perc_rev):
+#                    print(f'reversal {x}')
+                    xs.append(extm_index)
+                    dirn = -1
+                    extm = x
+                    extm_index = i
+        else:
+            if x < extm:
+                extm = x
+                extm_index = i
+#                print(f'new lo {extm_index} {extm}')
+            elif pdiff(extm, x, perc_rev):
+#                    print(f'reversal {x}')
+                    xs.append(extm_index)
+                    dirn = 1
+                    extm = x
+                    extm_index = i
+    xs.append(extm_index)
+    print(xs)
+    swing = s.iloc[xs]
+    chg = swing.pct_change() * 100.
+    duration = pd.Series(xs, swing.index).diff() # trading days not calendar days
+    return pd.DataFrame({'close': swing, 'change': chg, 'duration': duration})
+
+# return true if perc diff gt
+def pdiff(s, e, p):
+    return 100 * abs(e / s - 1) >= p
+
 # inclusive end
 def aggregate(df):
     acc = {}

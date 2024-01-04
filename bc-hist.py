@@ -6,7 +6,6 @@ from collections import deque
 import numpy as np
 import pandas as pd
 from glob import glob
-import platform
 import tsutils as ts
 
 

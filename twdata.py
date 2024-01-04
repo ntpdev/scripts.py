@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# Note chmod +x *.py
+# ensure Unix style line endings
+
 from datetime import date, datetime, timedelta
 from twelvedata import TDClient
 import requests as req
@@ -209,7 +213,7 @@ def plot_swings(df):
 
 
 if __name__ == '__main__':
-#    df = load_twelve_data('qqq')
+    df = load_twelve_data('spy', 504)
     xs = list_cached_files('spy')
     if len(xs) > 0:
         df = load_file(xs[0])
@@ -224,6 +228,7 @@ if __name__ == '__main__':
             print(f'high {r.close}')
             print(f'5%   {r.close * .95:.2f}')
             print(f'10%  {r.close * .9:.2f}')
+        plot_swings(swings)
 
     #load_earliest_date('spy')
     #df = load_file('c:\\users\\niroo\\downloads\\spy 2023-12-15.csv')

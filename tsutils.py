@@ -33,6 +33,7 @@ def find_initial_swing(s, perc_rev):
     return (0, 0, 0)
 
 def find_swings(s, perc_rev):
+    '''return df of swings. The final row is the current extreme of the in-progress swing'''
     dirn, start_index, end_index = find_initial_swing(s, perc_rev)
     xs = []
     if dirn == 0:
@@ -64,12 +65,29 @@ def find_swings(s, perc_rev):
                     dirn = 1
                     extm = x
                     extm_index = i
-    xs.append(extm_index)
+    xs.append(extm_index) # store the last unconfirmed extreme
     print(xs)
     swing = s.iloc[xs]
     chg = swing.pct_change() * 100.
-    duration = pd.Series(xs, swing.index).diff() # trading days not calendar days
-    return pd.DataFrame({'close': swing, 'change': chg, 'duration': duration})
+    chg = chg.shift(-1)
+    duration = np.diff(np.array(xs), append=np.NaN) + 1
+    durX = pd.Series(duration, swing.index)
+    maes = [calculate_mae(s[x:y+1]) for x,y in zip(xs, xs[1:])]
+    maes.append(float('nan'))
+    maxEx = pd.Series(maes, swing.index) 
+    return pd.DataFrame({'start': swing, 'change': chg, 'duration': durX, 'mae': maxEx})
+
+
+def calculate_mae(s):
+    '''calculate the mae for the series'''
+    if s.iloc[0] < s.iloc[-1]: # uptrend
+        mx = s.expanding().max()
+        excursion = (s - mx) / mx
+        return excursion.min()
+    mx = s.expanding().min()
+    excursion = (s - mx) / mx
+    return excursion.max()
+
 
 # return true if perc diff gt
 def pdiff(s, e, p):

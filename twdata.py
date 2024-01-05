@@ -207,13 +207,13 @@ def scan(df, entryHi, exitLo, stopPerc):
 
 def plot_swings(df):
     #        fig = px.line(x=swings.index, y=swings['close'])
-    fig = px.bar(x=swings.index, y=swings['change'])
+    fig = px.bar(x=df.index, y=df['mae'])
     fig.update_layout(xaxis_type='category') # treat datetime as category
     fig.show()
 
 
-if __name__ == '__main__':
-    df = load_twelve_data('spy', 504)
+def main():
+#    df = load_twelve_data('spy', 504)
     xs = list_cached_files('spy')
     if len(xs) > 0:
         df = load_file(xs[0])
@@ -225,11 +225,14 @@ if __name__ == '__main__':
         # print drawdowns if in upswing
         r = swings.iloc[-1]
         if r.change > 0:
-            print(f'high {r.close}')
-            print(f'5%   {r.close * .95:.2f}')
-            print(f'10%  {r.close * .9:.2f}')
+            print(f'high {r.start}')
+            print(f'5%   {r.start * .95:.2f}')
+            print(f'10%  {r.start * .9:.2f}')
         plot_swings(swings)
 
+
+if __name__ == '__main__':
+    main()
     #load_earliest_date('spy')
     #df = load_file('c:\\users\\niroo\\downloads\\spy 2023-12-15.csv')
     #plot('spy', df)

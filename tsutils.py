@@ -66,16 +66,13 @@ def find_swings(s, perc_rev):
                     extm = x
                     extm_index = i
     xs.append(extm_index) # store the last unconfirmed extreme
-    print(xs)
-    swing = s.iloc[xs]
-    chg = swing.pct_change() * 100.
-    chg = chg.shift(-1)
-    duration = np.diff(np.array(xs), append=np.NaN) + 1
-    durX = pd.Series(duration, swing.index)
-    maes = [calculate_mae(s[x:y+1]) for x,y in zip(xs, xs[1:])]
-    maes.append(float('nan'))
-    maxEx = pd.Series(maes, swing.index) 
-    return pd.DataFrame({'start': swing, 'change': chg, 'duration': durX, 'mae': maxEx})
+    day_index = np.array(xs)
+    swing = s.iloc[day_index[:-1]]
+    ends = s.iloc[day_index[1:]]
+    df = pd.DataFrame({'start': swing, 'end': ends.to_numpy(), 'dtend': ends.index, 'days': np.diff(day_index) + 1})
+    df['change'] = ((df['end'] / df['start'] -1.) * 100.).round(2)
+    df['mae'] = [round(calculate_mae(s[x:y+1]), 2) for x,y in zip(xs, xs[1:])]
+    return df
 
 
 def calculate_mae(s):
@@ -83,10 +80,10 @@ def calculate_mae(s):
     if s.iloc[0] < s.iloc[-1]: # uptrend
         mx = s.expanding().max()
         excursion = (s - mx) / mx
-        return excursion.min()
+        return excursion.min() * 100.
     mx = s.expanding().min()
     excursion = (s - mx) / mx
-    return excursion.max()
+    return excursion.max() * 100.
 
 
 # return true if perc diff gt
@@ -99,6 +96,7 @@ def aggregate(df):
     for i,r in df.iterrows():
         acc = combine(acc, i, r, 1) if acc else single(i,r,1) 
     return acc
+
 
 def aggregateMinVolume(df, minvol):
     rows = []

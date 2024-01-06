@@ -207,28 +207,38 @@ def scan(df, entryHi, exitLo, stopPerc):
 
 def plot_swings(df):
     #        fig = px.line(x=swings.index, y=swings['close'])
-    fig = px.bar(x=df.index, y=df['mae'])
+    fig = px.bar(x=df.index, y=df['change'])
     fig.update_layout(xaxis_type='category') # treat datetime as category
     fig.show()
 
 
 def main():
-#    df = load_twelve_data('spy', 504)
-    xs = list_cached_files('spy')
+    df = load_twelve_data('tlt', 510)
+    xs = list_cached_files('tlt')
     if len(xs) > 0:
         df = load_file(xs[0])
-        #df = load_file('c:\\users\\niroo\\downloads\\spy 2023-12-15.csv')
+        #df = load_file('c:\\users\\niroo\\downloads\\spy-lt.csv')
         swings = tsutils.find_swings(df['close'], 5.0)
         print(df[-20:])
-        print('-- swings')
+        print('\n-- swings')
         print(swings)
         # print drawdowns if in upswing
         r = swings.iloc[-1]
         if r.change > 0:
-            print(f'high {r.start}')
-            print(f'5%   {r.start * .95:.2f}')
-            print(f'10%  {r.start * .9:.2f}')
-        plot_swings(swings)
+            print(f'\n--- p/b limits\nhigh {r.end}\n2%   {r.end * .98:.2f}')
+            print(f'5%   {r.end * .95:.2f}\n10%  {r.end * .9:.2f}')
+        #plot_swings(swings)
+        print(swings[swings.change < 0].change.describe())
+
+def main_concat():
+    xs = list_cached_files('spy')
+    if len(xs) > 0:
+        df = load_file('c:\\users\\niroo\\downloads\\spy 2023-12-15.csv')
+        df2 = load_file(xs[0])
+        df_updated = pd.concat([df, df2[-30:]])
+        df_updated.drop_duplicates(inplace=True)
+        df_updated.to_csv(make_fullpath('spy-lt.csv'))
+        print(df_updated)
 
 
 if __name__ == '__main__':

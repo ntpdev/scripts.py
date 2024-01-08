@@ -8,7 +8,7 @@
 - [Index ETF](https://stockcharts.com/freecharts/candleglance.html?SPY,QQQ,DIA,IWM,TLT,JNK,GLD,XLK,XLY,XLF,$GBPUSD,$EURUSD)
 - [Fool bigc](bigcf.html)
 - [Fool smaller](bigcfs.html)
-- [SPY](https://schrts.co/RpjzJZVk)
+- [SPY](https://schrts.co/vmqqNvAC)
 - [AAII bull bear](https://schrts.co/kfTVkXkg)
 - [SPY 15m 5d sma](https://www.barchart.com/etfs-funds/quotes/SPY/technical-chart?plot=CANDLE&volume=total&data=I:15&density=M60&pricesOn=0&asPctChange=0&logscale=0&im=15&indicators=SMA(130);DASH(472.16,wk)&sym=SPY&grid=1&height=375&studyheight=100)
 - [Fool](https://stockcharts.com/freecharts/candleglance.html?prct,swav,anet,crwd,veev,extr,stem,snow,arry,abnb,ttd,meli)

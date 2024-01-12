@@ -13,6 +13,7 @@ import plotly.subplots as subp
 import tsutils
 from pathlib import Path
 import os
+import argparse
 from fnmatch import fnmatch
 
 # pip install twelvedata
@@ -31,7 +32,7 @@ def make_filename(symbol: str, dt: date) -> Path:
 
 def list_cached_files(symbol: str):
     p = Path.home() / 'Downloads'
-    spec = symbol + '*.csv'
+    spec = symbol + ' 202*.csv'
     xs = [f for f in os.listdir(p) if fnmatch(f, spec)]
     xs.sort(reverse=True)
     return xs
@@ -212,23 +213,37 @@ def plot_swings(df):
     fig.show()
 
 
-def main():
-    df = load_twelve_data('tlt', 510)
-    xs = list_cached_files('tlt')
+def process(df):
+    swings = tsutils.find_swings(df['close'], 5.0)
+    print(df[-20:])
+    print('\n-- swings')
+    print(swings)
+    # print drawdowns if in upswing
+    r = swings.iloc[-1]
+    if r.change > 0:
+        print(f'\n--- p/b limits\nhigh {r.end}\n2%   {r.end * .98:.2f}')
+        print(f'5%   {r.end * .95:.2f}\n10%  {r.end * .9:.2f}')
+    #plot_swings(swings)
+    plot('spy', df)
+
+
+def view(symbol: str):
+    xs = list_cached_files(symbol)
     if len(xs) > 0:
         df = load_file(xs[0])
-        #df = load_file('c:\\users\\niroo\\downloads\\spy-lt.csv')
-        swings = tsutils.find_swings(df['close'], 5.0)
-        print(df[-20:])
-        print('\n-- swings')
-        print(swings)
-        # print drawdowns if in upswing
-        r = swings.iloc[-1]
-        if r.change > 0:
-            print(f'\n--- p/b limits\nhigh {r.end}\n2%   {r.end * .98:.2f}')
-            print(f'5%   {r.end * .95:.2f}\n10%  {r.end * .9:.2f}')
-        #plot_swings(swings)
-        print(swings[swings.change < 0].change.describe())
+        process(df)
+
+
+def load(symbol: str):
+    df = load_twelve_data(symbol, 510)
+    view(symbol)
+
+
+def list_cached(symbol: str):
+    print(f'cached files for symbol {symbol}')
+    for p in list_cached_files(symbol):
+        print(str(p))
+
 
 def main_concat():
     xs = list_cached_files('spy')
@@ -242,7 +257,16 @@ def main_concat():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description='Load EoD data from twelvedata.com')
+    parser.add_argument('action', type=str, help='The action to perform [load|view|list]')
+    parser.add_argument('symbol', type=str, help='The symbol to use in the action')
+    args = parser.parse_args()
+    if args.action == 'load':
+        load(args.symbol)
+    elif args.action == 'view':
+        view(args.symbol)
+    elif args.action == 'list':
+        list_cached(args.symbol)
     #load_earliest_date('spy')
     #df = load_file('c:\\users\\niroo\\downloads\\spy 2023-12-15.csv')
     #plot('spy', df)

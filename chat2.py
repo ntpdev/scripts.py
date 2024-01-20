@@ -6,6 +6,9 @@ from dataclasses_json import dataclass_json
 from openai import OpenAI
 from pathlib import Path
 from termcolor import colored
+import requests
+import json
+
 
 # pip install dataclasses-json
 
@@ -66,6 +69,26 @@ def chat(local=True, model='gpt-3.5-turbo'):
     save(messages, make_fullpath(FNAME))
 
 
+def chat_ollama():
+    url = "http://localhost:11434/api/generate"
+    data = {
+        "model": "magicoder:7b-s-cl-q6_K",
+        "prompt":"Write a Python function to tell me what the date is today"
+    }
+    print('call endpoint')
+    response = requests.post(url, data=json.dumps(data))
+    resp = ''
+    for s in response.text.split('\n'):
+        r = json.loads(s)
+        resp += r.get('response')
+    return resp
+
+
+def x():
+    '''extract response field'''
+    s = '{"model":"magicoder:7b-s-cl-q6_K","created_at":"2024-01-01T22:28:32.629495852Z","response":".","done":false}'
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Chat with LLMs')
     parser.add_argument('llm', type=str, help='The action to perform [local|gpt35|gpt4]')
@@ -76,4 +99,6 @@ if __name__ == '__main__':
         chat(False, model='gpt-4-1106-preview')
     else:
         chat()
+    # s = chat_ollama()
+    # print(s)
     # xs = load(FNAME)

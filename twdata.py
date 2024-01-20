@@ -3,18 +3,18 @@
 # ensure Unix style line endings
 
 from datetime import date, datetime, timedelta
-from twelvedata import TDClient
-import requests as req
-import numpy as np
-import pandas as pd
-import plotly.graph_objects as go
-import plotly.express as px
-import plotly.subplots as subp
-import tsutils
-from pathlib import Path
-import os
-import argparse
 from fnmatch import fnmatch
+from pathlib import Path
+from twelvedata import TDClient
+import argparse
+import numpy as np
+import os
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import plotly.subplots as subp
+import requests as req
+import tsutils
 
 # pip install twelvedata
 
@@ -110,8 +110,25 @@ def plot_heatmap(df):
 
 
 # standardise but use *100 so +1 std is 100
-def normaliseAsPerc(v):
-    return np.rint(100 * (v - v.mean())/v.std())
+def normaliseAsPerc(v, n=20):
+    return (100 * (v - v.rolling(window=n).mean())/v.rolling(window=n).std()).fillna(0).round(0).astype(int)
+
+
+def strat(hs, ls):
+    """return a series categorising bar by its strat bar type 0 - inside, 1 up, 2 down, 3 outside"""
+    x = hs.diff().gt(0)
+    y = ls.diff().lt(0)
+    return x.astype(int) + y * 2
+
+
+def calc_range(df, xs):
+    last = df['close'].iloc[-1]
+    print('\n--- ranges')
+    for n in xs:
+        mx = df['high'].iloc[-n:].max()
+        mn = df['low'].iloc[-n].min()
+        rng = 100. * (last - mn) / (mx - mn)
+        print(f'range {n:2d} {mx} {mn} {last} {rng:.1f}')
 
 
 # returns {'datetime': '1993-01-29', 'unix_time': 728317800} for SPY
@@ -125,7 +142,8 @@ def load_earliest_date(symbol):
 
 def load_twelve_data(symbol, days=250):
     print(f'loading {symbol}')
-    ts = td.time_series(symbol=symbol, interval='1day', outputsize=days, dp=2, order='ASC')
+    ts = td.time_series(symbol=symbol, interval='1day', start_date='2010-01-01', outputsize=5000, dp=2, order='ASC')
+    # ts = td.time_series(symbol=symbol, interval='1day', outputsize=days, dp=2, order='ASC')
     df = ts.with_ma(ma_type='SMA', time_period=150).with_ma(ma_type='SMA', time_period=50).with_ma(ma_type='EMA', time_period=19).as_pandas()
 
     df.rename(columns={'ma1':'sma150', 'ma2':'sma50', 'ma3':'ema19'}, inplace=True)
@@ -136,6 +154,7 @@ def load_twelve_data(symbol, days=250):
     df['voln'] = normaliseAsPerc(df.volume)
     # df['perc'] = percFromMin(df.close)
     df['hilo'] = tsutils.calc_hilo(df.close)
+    df['strat'] = strat(df['high'], df['low'])
     df.to_csv(fname)
     print(f'saved {symbol} {df.index[0].date()} to {df.index[-1].date()} shape={df.shape}')
     print(fname)
@@ -187,10 +206,6 @@ def scan(df, entryHi, exitLo, stopPerc):
     df2['perc'] = (df2['points'] / df2['open']) * 100.
     df2['cumulative'] = (df2['close'] / df2['open']).cumprod()
     df2['drawdown'] = df2['cumulative'] - df2['cumulative'].expanding().max() 
-    # print(df2)
-
-    # if entryHi == 15 and exitLo == -30:
-    #     plot_cumulative(df2)
 
     pts = df2['points']
     wins = pts > 0
@@ -224,7 +239,8 @@ def process(df):
         print(f'\n--- p/b limits\nhigh {r.end}\n2%   {r.end * .98:.2f}')
         print(f'5%   {r.end * .95:.2f}\n10%  {r.end * .9:.2f}')
     #plot_swings(swings)
-    plot('spy', df)
+    # plot('spy', df)
+    calc_range(df, [5,20,50])
 
 
 def view(symbol: str):
@@ -235,7 +251,7 @@ def view(symbol: str):
 
 
 def load(symbol: str):
-    df = load_twelve_data(symbol, 510)
+    df = load_twelve_data(symbol, days=255 * 20)
     view(symbol)
 
 
@@ -256,15 +272,26 @@ def main_concat():
         print(df_updated)
 
 
+def concat(filename1, filename2, output_name):
+    with open(filename1, 'r') as f1, open(filename2, 'r') as f2, open(output_name, 'w') as f3:
+        for line in f1:
+            f3.write(line)
+        for line in f2:
+            if not line.startswith('datetime'):
+                f3.write(line)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Load EoD data from twelvedata.com')
-    parser.add_argument('action', type=str, help='The action to perform [load|view|list]')
+    parser.add_argument('action', type=str, help='The action to perform [load|view|list|earliest]')
     parser.add_argument('symbol', type=str, help='The symbol to use in the action')
     args = parser.parse_args()
     if args.action == 'load':
         load(args.symbol)
     elif args.action == 'view':
         view(args.symbol)
+    elif args.action == 'earliest':
+        load_earliest_date(args.symbol)
     elif args.action == 'list':
         list_cached(args.symbol)
     #load_earliest_date('spy')

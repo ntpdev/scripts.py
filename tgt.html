@@ -35,28 +35,34 @@
                 <tr>
                   <th scope="col">#</th>
                   <th scope="col">Price</th>
+                  <th scope="col">Price 2</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <th scope="row">Target</th>
                   <td id="tgt"></td>
+                  <td id="tgt2"></td>
                 </tr>
                 <tr>
                   <th scope="row">Scale</th>
                   <td id="scl"></td>
+                  <td id="scl2"></td>
                 </tr>
                 <tr>
                   <th scope="row">Entry</th>
                   <td id="ent"></td>
+                  <td id="ent2"></td>
                 </tr>
                 <tr>
                   <th scope="row">Stop</th>
                   <td id="stp"></td>
+                  <td id="stp2"></td>
                 </tr>
                 <tr>
                   <th scope="row">Risk</th>
                   <td id="rsk"></td>
+                  <td id="rsk2"></td>
                 </tr>
               </tbody>
             </table>
@@ -75,6 +81,11 @@
       const clEnt = document.getElementById("ent")
       const clStp = document.getElementById("stp")
       const clRsk = document.getElementById("rsk")
+      const clTgt2 = document.getElementById("tgt2")
+      const clScl2 = document.getElementById("scl2")
+      const clEnt2 = document.getElementById("ent2")
+      const clStp2 = document.getElementById("stp2")
+      const clRsk2 = document.getElementById("rsk2")
       const rdLong = document.getElementById("rdDirnL")
 
       function txt_onKeyUp(event) {
@@ -87,6 +98,7 @@
             var stp = parseFloat(txtStop.value)
             var dirn = target > stp ? 1 : -1
             var d = dirn * Math.floor( ( Math.abs(target - stp) * 4) / 3)
+            var d2 = dirn * Math.floor( ( Math.abs(target - stp) * 4) / 3 - 4)
             //alert(`${d} ${dirn}`)
             var tgt = stp + d * 0.75
             var scl = stp + d * 0.5
@@ -95,7 +107,15 @@
             clScl.innerHTML = scl.toFixed(2)
             clEnt.innerHTML = ent.toFixed(2)
             clRsk.innerHTML = (dirn * d/4).toFixed(2)
-            clStp.innerHTML = stp.toFixed(2)            
+            clStp.innerHTML = stp.toFixed(2)      
+            var scl2 = stp + d2 * 0.5
+            var ent2 = stp + d2 * 0.25
+            // reduced risk by 1 point maintain tgt stop
+            clTgt2.innerHTML = tgt.toFixed(2)
+            clScl2.innerHTML = scl2.toFixed(2)
+            clEnt2.innerHTML = ent2.toFixed(2)
+            clRsk2.innerHTML = (dirn * d2/4).toFixed(2)
+            clStp2.innerHTML = stp.toFixed(2)      
           }
       }
 

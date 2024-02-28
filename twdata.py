@@ -140,10 +140,10 @@ def load_earliest_date(symbol):
         print(objs)
 
 
-def load_twelve_data(symbol, days=250):
+def load_twelve_data(symbol, days=255):
     print(f'loading {symbol}')
-    ts = td.time_series(symbol=symbol, interval='1day', start_date='2010-01-01', outputsize=5000, dp=2, order='ASC')
-    # ts = td.time_series(symbol=symbol, interval='1day', outputsize=days, dp=2, order='ASC')
+    # ts = td.time_series(symbol=symbol, interval='1day', start_date='2010-01-01', outputsize=5000, dp=2, order='ASC')
+    ts = td.time_series(symbol=symbol, interval='1day', outputsize=days, dp=2, order='ASC')
     df = ts.with_ma(ma_type='SMA', time_period=150).with_ma(ma_type='SMA', time_period=50).with_ma(ma_type='EMA', time_period=19).as_pandas()
 
     df.rename(columns={'ma1':'sma150', 'ma2':'sma50', 'ma3':'ema19'}, inplace=True)
@@ -154,7 +154,8 @@ def load_twelve_data(symbol, days=250):
     df['voln'] = normaliseAsPerc(df.volume)
     # df['perc'] = percFromMin(df.close)
     df['hilo'] = tsutils.calc_hilo(df.close)
-    df['strat'] = strat(df['high'], df['low'])
+    df['strat'] = strat(df.high, df.low)
+    df['tlb'] = three_line_break(df.close)
     df.to_csv(fname)
     print(f'saved {symbol} {df.index[0].date()} to {df.index[-1].date()} shape={df.shape}')
     print(fname)
@@ -175,11 +176,10 @@ def load_twelve_data_raw(symbols):
         print('saved ' + fn)
 
 
-def scan(df, entryHi, exitLo, stopPerc):
+def scan(df, entryHi, exitLo, stopPerc, targetPerc):
     xs = []
     state = 0
     stop = None
-    targetPerc = 1.1
     for i, row in df.iterrows():
         if state == 0 and row['hilo'] > entryHi:
             entry = i
@@ -206,11 +206,11 @@ def scan(df, entryHi, exitLo, stopPerc):
     df2['perc'] = (df2['points'] / df2['open']) * 100.
     df2['cumulative'] = (df2['close'] / df2['open']).cumprod()
     df2['drawdown'] = df2['cumulative'] - df2['cumulative'].expanding().max() 
-
+    print(df2)
     pts = df2['points']
     wins = pts > 0
     losses = pts < 0
-    return {'system': f'{entryHi},{exitLo},{stopPerc}',
+    return {'system': f'{entryHi},{exitLo},{stopPerc},{targetPerc}',
             'pts': pts.sum(),
             'cumulative': df2['cumulative'].iat[-1],
             'maxdd': round(df2['drawdown'].min() * 100.,2),
@@ -228,10 +228,26 @@ def plot_swings(df):
     fig.show()
 
 
+def three_line_break(xs):
+    '''input a series of closes. return a series with the 3LB value after the current close.'''
+    tlb, rev = tsutils.calc_tlb(xs, 3)
+    ys = (tlb.close - tlb.open).apply(lambda e: 1 if e > 0 else -1)
+    ys.rename('tlb', inplace=True)
+    df2 = pd.merge(xs, ys, how='left', left_index=True, right_index=True)
+    # df2.tlb.ffill(inplace=True)
+    # df2.tlb.fillna(0, inplace=True)
+    # forward fill missing values, replace initial nan with 0
+    return df2.tlb.ffill().fillna(0).astype("int32")
+
+
 def process(df):
-    swings = tsutils.find_swings(df['close'], 5.0)
     print(df[-20:])
-    print('\n-- swings')
+    print('\n-- 3 line break')
+    tlb, rev = tsutils.calc_tlb(df.close, 3)
+    print(tlb[-5:])
+    sw_perc = 5.0
+    print(f'\n-- swings {sw_perc}')
+    swings = tsutils.find_swings(df.close, sw_perc)
     print(swings)
     # print drawdowns if in upswing
     r = swings.iloc[-1]
@@ -248,11 +264,13 @@ def view(symbol: str):
     if len(xs) > 0:
         df = load_file(xs[0])
         process(df)
+        return df
+    return None
 
 
 def load(symbol: str):
-    df = load_twelve_data(symbol, days=255 * 20)
-    view(symbol)
+    df = load_twelve_data(symbol, 520)
+    return view(symbol)
 
 
 def list_cached(symbol: str):
@@ -289,7 +307,9 @@ if __name__ == '__main__':
     if args.action == 'load':
         load(args.symbol)
     elif args.action == 'view':
-        view(args.symbol)
+        df = view(args.symbol)
+        xs = scan(df, 19, -39, .95, 1.4)
+        print(xs)
     elif args.action == 'earliest':
         load_earliest_date(args.symbol)
     elif args.action == 'list':

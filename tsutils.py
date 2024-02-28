@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from datetime import date, time, timedelta, datetime
 from collections import deque
+from dataclasses import dataclass, asdict
 import numpy as np
 import pandas as pd
 import glob as gb
@@ -176,9 +177,10 @@ def calc_hilo(ser):
         cs.append(count_back(ser, i))
     return pd.Series(cs, ser.index)
 
-# create a df [date, openTime, closeTime] for each trading day
+
 def day_index(df):
-    selector = (df.index.minute == 0) & (df.index.to_series().diff() != timedelta(minutes=1))
+    '''create a df [date, openTime, closeTime] for each trading day based on gaps in index'''
+    selector = (df.index.to_series().diff() != timedelta(minutes=1))
     idx = df[selector].index.array
     idx_close = df[selector.shift(periods=-1, fill_value=True)].index.array
     return pd.DataFrame({'openTime':idx, 'closeTime':idx_close}, index=idx_close.date)
@@ -265,6 +267,44 @@ def load_file(fname):
     df = pd.read_csv(fname, parse_dates=['Date'], index_col='Date')
     print(f'loaded {fname} {df.shape[0]} {df.shape[1]}')
     return df
+
+@dataclass
+class Block:
+    dt: datetime # close dt of bar
+    open: float
+    close: float
+
+def blocks_toDF(blks):
+    df = pd.DataFrame(map(asdict, blks))
+    df.set_index('dt', inplace=True)
+    return df
+
+def calc_tlb(xs, n):
+    '''takes a series and a number of blocks for a reversal and returns a DF and the reversal price.'''
+    if len(xs) < 2:
+        return []
+    blks = [Block(xs.index[1], xs.iloc[0], xs.iloc[1])]
+    # queue of last n+1 closes
+    q = deque(xs[0:2], maxlen=n+1)
+    dirn = 1 if xs.iloc[1] > xs.iloc[0] else -1
+    for dt,x in xs[2:].items():
+        last_cl = q[-1]
+        rev = q[0]
+        if (dirn == 1 and x > last_cl) or (dirn == -1 and x < last_cl):
+            blks.append(Block(dt, last_cl, x))
+            q.append(x)
+        elif (dirn == 1 and x < rev) or (dirn == -1 and x > rev):
+            #print(f'rev {x} {q}')
+            prev_cl = q[-2]
+            blks.append(Block(dt, prev_cl , x))
+            q.clear()
+            q.append(prev_cl)
+            q.append(x)
+            dirn *= -1
+    print(f'{"uptrend" if dirn == 1 else "downtrend"} reversal price {q[0]}')
+
+    return blocks_toDF(blks), q[0]
+
 
 class LineBreak:
 

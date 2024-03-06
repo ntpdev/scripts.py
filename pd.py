@@ -110,7 +110,7 @@ def hilo(df, rev):
 # https://firstratedata.com/i/futures/ES
 def fn1():
     column_names = ["TimeStamp", "open", "high", "low", "close", "volume"]
-    df = pd.read_csv("d:\esz19.txt",
+    df = pd.read_csv("d:\\esz19.txt",
         names=column_names,
         parse_dates=["TimeStamp"],
         index_col=["TimeStamp"] )

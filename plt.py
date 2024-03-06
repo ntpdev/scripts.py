@@ -11,6 +11,7 @@ import plotly.offline as pyo
 import platform
 import sys
 import tsutils as ts
+import re
 from plotly.offline import init_notebook_mode
 from pymongo.mongo_client import MongoClient
 import math
@@ -171,6 +172,12 @@ def color_bars(df, tm, opt):
     dfUp = df.loc[df['btype'] == 1]
     dfDown = df.loc[df['btype'] == 2]
     dfOutside = df.loc[df['btype'] == 3]
+    # find conseq 1 x3 followed by either 2 or 3
+    # s = ''.join(str(i) for i in df['btype'].tolist())
+    # ms = re.finditer('[01]{3,}[23]+1', s)
+    # for m in ms:
+    #     print(f'{df['tm'].iloc[m.span()[0]]} {m.group()}')
+    # breakpoint()
 
     fig = go.Figure(data=[go.Scatter(x=tm, y=df['VWAP'], line=dict(color='orange'), name='vwap') ])
     if 'EMA' in df:

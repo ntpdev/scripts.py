@@ -19,9 +19,8 @@ import tsutils
 
 # pip install twelvedata
 
-APIKEY = 'dc33458b019d4bf59513212a49f3907d'
 
-td = TDClient(apikey=APIKEY)
+tdClient = TDClient(apikey=os.environ['TW_API_KEY'])
 
 def make_fullpath(fn: str) -> Path:
     return Path.home() / 'Downloads' / fn

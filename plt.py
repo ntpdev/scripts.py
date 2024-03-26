@@ -72,7 +72,6 @@ def draw_daily_lines(df, fig, tms, idxs):
         y = df.Open.iloc[op]
         fig.add_shape(type='line', x0=tms.iloc[op], y0=y, x1=tms.iloc[cl], y1=y, line=dict(color='LightSeaGreen', dash='dot'))
 
-# return a series of bar-index and text labels
 def highs(df, window):
     hs = df['High'].rolling(window, center=True).max()
     hsv = df['High'][np.equal(df['High'], hs)]
@@ -80,13 +79,14 @@ def highs(df, window):
     # remove 0 elements
     return df.High[t[t.ne(0)].index]
 
+
 def lows(df, window):
     hs = df['Low'].rolling(window, center=True).min()
     hsv = df['Low'][np.equal(df['Low'], hs)]
     # remove adjacent values which are the same by differencing and removing 0
     t = pd.Series.diff(hsv)
-    return df.Low[t[t.ne(0)].index]
-    
+    return df.Low[t[t.ne(0)].index]  
+
 
 def add_hilo_labels(df, tms, fig):
     hs = highs(df, 21)
@@ -235,8 +235,8 @@ def create_minVol_index(dfMinVol, day_index):
     xs = []
     for startTm in day_index.openTime:
         startBar = floor_index(dfMinVol, startTm)
-        print(startBar)
-        euStart = startTm + timedelta(minutes=600)
+        print(startTm, startBar)
+        euStart = startTm + timedelta(minutes=540)
         euStartBar = floor_index(dfMinVol, euStart)
         euEndBar, rthStartBar, rthEndBar = -1, -1, -1
         if euStartBar < last:
@@ -303,16 +303,14 @@ def load_mongo(symbol, day, n=1):
     rows = []
     for d in c:
 #            pprint.pprint(d)
-        r = {
+        rows.append( {
                 'Date': d['timestamp'],
                 'Open': d['open'],
                 'High': d['high'],
                 'Low':  d['low'],
                 'Close': d['close'],
                 'Volume': d['volume'],
-                'VWAP': d['vwap']
-            }
-        rows.append(r)
+                'VWAP': d['vwap'] } )
     df = pd.DataFrame(rows)
     df.set_index('Date', inplace=True)
     df['EMA'] = df.Close.ewm(span=90, adjust=False).mean()
@@ -402,7 +400,7 @@ print(argv)
 if len(argv.tlb) > 0:
     plot_3lb(argv.tlb)
 elif len(argv.mdb) > 0:
-    plot_mongo('esh4', parse_isodate(argv.mdb), argv.days)
+    plot_mongo('esm4', parse_isodate(argv.mdb), argv.days)
 elif argv.atr:
     plot_atr()
 elif argv.tick:

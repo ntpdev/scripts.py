@@ -14,6 +14,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import plotly.subplots as subp
 import requests as req
+from xlsxwriter.utility import xl_range
 import tsutils
 
 # pip install twelvedata
@@ -61,7 +62,7 @@ def plot(symbol, df):
     x = df[pts:]
     x = x[x['hilo'] < -19]
     fig.add_trace(go.Scatter(x=x.index, y=x['close'], mode='markers', name='20d low', marker=dict(color='red')))
-    # fig2 = px.scatter(x, x=x.index, y='close', color="green")
+    # fig2 = px.scatter(x, x=x.index, y='close', color='green')
 
     # fig3 = px.Figure(data=fig1.data + fig2.data)
     # fig3.show()
@@ -70,7 +71,7 @@ def plot(symbol, df):
 
 def plot_cumulative(df):
     # Create a barchart using the 'perc' column from the same dataframe
-    fig = subp.make_subplots(specs=[[{"secondary_y": True}]])
+    fig = subp.make_subplots(specs=[[{'secondary_y': True}]])
     fig.add_trace(go.Bar(x=df['dtOpen'], y=df['perc'], name='perc'))
     fig.add_trace(go.Scatter(x=df['dtOpen'], y=df['cumulative'], mode='lines'), secondary_y=True)
     # Show the final figure
@@ -115,7 +116,7 @@ def normaliseAsPerc(v, n=20):
 
 
 def strat(hs, ls):
-    """return a series categorising bar by its strat bar type 0 - inside, 1 up, 2 down, 3 outside"""
+    '''return a series categorising bar by its strat bar type 0 - inside, 1 up, 2 down, 3 outside'''
     x = hs.diff().gt(0)
     y = ls.diff().lt(0)
     return x.astype(int) + y * 2
@@ -237,7 +238,7 @@ def three_line_break(xs):
     # df2.tlb.ffill(inplace=True)
     # df2.tlb.fillna(0, inplace=True)
     # forward fill missing values, replace initial nan with 0
-    return df2.tlb.ffill().fillna(0).astype("int32")
+    return df2.tlb.ffill().fillna(0).astype('int32')
 
 
 def process(df):
@@ -264,6 +265,7 @@ def view(symbol: str):
     if len(xs) > 0:
         df = load_file(xs[0])
         process(df)
+        save_excel(symbol, df)
         return df
     return None
 
@@ -277,6 +279,33 @@ def list_cached(symbol: str):
     print(f'cached files for symbol {symbol}')
     for p in list_cached_files(symbol):
         print(str(p))
+
+
+def save_excel(symbol: str, df: pd.DataFrame):
+    fn = make_fullpath(symbol + '.xlsx')
+    writer = pd.ExcelWriter(fn, engine='xlsxwriter')
+    df.to_excel(writer, sheet_name=symbol)
+    workbook = writer.book
+    worksheet = writer.sheets[symbol]
+    hilo = df.columns.get_loc('hilo') + 1 # index of col
+    rng = xl_range(1, hilo, df.shape[0], hilo) # 0 indexed
+
+    fmt_decimal = workbook.add_format({'num_format': '#,##0.00'})
+    fmt_date = workbook.add_format({'num_format': 'dd/mm/yy', 'align': 'left'})
+    # Add a format. Light red fill with dark red text.
+    fmt_red = workbook.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'})
+    # Add a format. Green fill with dark green text.
+    fmt_green = workbook.add_format({'bg_color': '#C6EFCE', 'font_color': '#006100'})
+
+    fmt_cond_gt = worksheet.conditional_format(rng, {'type': 'cell', 'criteria': '>', 'value': 19, 'format': fmt_green}) 
+    fmt_cond_lt = worksheet.conditional_format(rng, {'type': 'cell', 'criteria': '<', 'value': -19, 'format': fmt_red}) 
+    worksheet.set_column('A:A', None, fmt_date)
+    worksheet.set_column('B:E', None, fmt_decimal)
+    worksheet.set_column('G:K', None, fmt_decimal)
+    #worksheet.conditional_format('B2:B65', {'type': '3_color_scale'})
+
+    writer.close()
+    print(f'saved {fn}')
 
 
 def main_concat():

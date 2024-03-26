@@ -118,7 +118,6 @@ def fn1():
     dfd = dfd[dfd.volume > 1000]
     print(dfd.tail(19))
 
-
 def print_summary(df):
     di = day_index(df)
     dr = rth_index(di)

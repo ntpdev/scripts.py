@@ -143,7 +143,7 @@ def load_earliest_date(symbol):
 def load_twelve_data(symbol, days=255):
     print(f'loading {symbol}')
     # ts = td.time_series(symbol=symbol, interval='1day', start_date='2010-01-01', outputsize=5000, dp=2, order='ASC')
-    ts = td.time_series(symbol=symbol, interval='1day', outputsize=days, dp=2, order='ASC')
+    ts = tdClient.time_series(symbol=symbol, interval='1day', outputsize=days, dp=2, order='ASC')
     df = ts.with_ma(ma_type='SMA', time_period=150).with_ma(ma_type='SMA', time_period=50).with_ma(ma_type='EMA', time_period=19).as_pandas()
 
     df.rename(columns={'ma1':'sma150', 'ma2':'sma50', 'ma3':'ema19'}, inplace=True)

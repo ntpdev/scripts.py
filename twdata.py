@@ -18,12 +18,12 @@ from xlsxwriter.utility import xl_range
 import tsutils
 
 # pip install twelvedata
-
+BASEDIR = 'Downloads'
 
 tdClient = TDClient(apikey=os.environ['TW_API_KEY'])
 
 def make_fullpath(fn: str) -> Path:
-    return Path.home() / 'Downloads' / fn
+    return Path.home() / BASEDIR / fn
 
 
 def make_filename(symbol: str, dt: date) -> Path:
@@ -31,11 +31,9 @@ def make_filename(symbol: str, dt: date) -> Path:
 
 
 def list_cached_files(symbol: str):
-    p = Path.home() / 'Downloads'
-    spec = symbol + ' 202*.csv'
-    xs = [f for f in os.listdir(p) if fnmatch(f, spec)]
-    xs.sort(reverse=True)
-    return xs
+    """list files most recent first"""
+    p = Path.home() / BASEDIR
+    return sorted(p.glob(symbol + ' 202*.csv'), reverse=True)
 
 
 def load_file(fname: str):
@@ -259,6 +257,15 @@ def process(df):
     calc_range(df, [5,20,50])
 
 
+def plot_latest(symbol: str):
+    xs = list_cached_files(symbol)
+    if len(xs) > 0:
+        df = load_file(xs[0])
+        plot(symbol, df)
+        return df
+    return None
+
+
 def view(symbol: str):
     xs = list_cached_files(symbol)
     if len(xs) > 0:
@@ -329,7 +336,7 @@ def concat(filename1, filename2, output_name):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Load EoD data from twelvedata.com')
-    parser.add_argument('action', type=str, help='The action to perform [load|view|list|earliest]')
+    parser.add_argument('action', type=str, help='The action to perform [load|view|list|earliest|plot]')
     parser.add_argument('symbol', type=str, help='The symbol to use in the action')
     args = parser.parse_args()
     if args.action == 'load':
@@ -342,6 +349,9 @@ if __name__ == '__main__':
         load_earliest_date(args.symbol)
     elif args.action == 'list':
         list_cached(args.symbol)
+    elif args.action == 'plot':
+        plot_latest(args.symbol)
+
     #load_earliest_date('spy')
     #df = load_file('c:\\users\\niroo\\downloads\\spy 2023-12-15.csv')
     #plot('spy', df)

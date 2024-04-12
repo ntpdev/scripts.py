@@ -92,7 +92,7 @@ def save_and_execute_python(s: str):
     output = result.stdout.decode("utf-8")
     err = result.stderr.decode("utf-8")
     if len(output) > 0:
-        rprint(Markdown(output))
+        console.print(Markdown(output), style='yellow')
     else:
         console.print(err, style='red')
 #    console.print(output, style='green')
@@ -177,11 +177,17 @@ def extract_code_block(contents: str, sep: str) -> str:
 
 def execute_script(x):
     output = None
+    err = None
+    msg = None
     if x.startswith('python\n'):
         output, err = save_and_execute_python(x[7:])
+        if err:
+            msg = err
+        else:
+            msg = output
     else:
         console.print('code block found but not python ' + x)
-    return output
+    return msg
 
 
 def chat(local=True, model=None):
@@ -190,7 +196,7 @@ def chat(local=True, model=None):
     if local:
         client.base_url = 'http://localhost:1234/v1'
 #    systemMessage = ChatMessage('system', FNCALL_SYSMSG)
-    systemMessage = ChatMessage('system', f'You are Marvin a super intelligent AI chatbot trained by OpenAI. The current datetime is {datetime.datetime.now().isoformat()}. If you write python code in a markdown code block the output of the code will be given back to you.')
+    systemMessage = ChatMessage('system', f'You are Marvin a super intelligent AI chatbot trained by OpenAI. The current datetime is {datetime.datetime.now().isoformat()}. You can write python code in a markdown code block if you need to.')
     # systemMessage = ChatMessage('system', 'You are a loyal and dedicated member of the Koopa Troop, serving as an assistant to the infamous Bowser. You are committed to carrying out Bowsers commands with unwavering dedication and devotion. Lets work this out in a step by step way to make sure we have the right answer.')
     messages = [systemMessage]
     print(f'model={model} . Enter x to exit.')
@@ -215,7 +221,7 @@ def chat(local=True, model=None):
                 if r:
                     xs = [asdict(m) for m in messages]
                     xs.append(r)
-                    response = client.chat.completions.create(model=model, messages=xs, tools=TOOL_FN, tool_choice="auto", temperature=0.2)
+                    response = client.chat.completions.create(model=model, messages=xs, tools=TOOL_FN, tool_choice="none", temperature=0.2)
 #                    messages.append(ChatMessage('tool', str(r)))
                     m = response.choices[0].message
 #            breakpoint()
@@ -227,7 +233,7 @@ def chat(local=True, model=None):
                 prt(msg)
                 output = execute_script(code)
                 if output:
-                    msg2 = ChatMessage('user', '## output\n```' + output + '\n```\n')
+                    msg2 = ChatMessage('user', '## output from running script\n' + output + '\n')
                     messages.append(msg2)
                     prt(msg2)
                     response = client.chat.completions.create(model=model, messages=[asdict(m) for m in messages], tools=TOOL_FN, tool_choice="auto", temperature=0.2)

@@ -58,9 +58,16 @@ print(sqrt(x ** 2 + y ** 2))
 
 @dataclass_json
 @dataclass(frozen=True)
+# add validation to check that role and content are not empty   
 class ChatMessage:
     role: str
     content: str
+
+    def __post_init__(self):
+        if not self.role:
+            raise ValueError("Role cannot be empty")
+        if not self.content:
+            raise ValueError("Content cannot be empty")
 
 
 def make_fullpath(fn: str) -> Path:
@@ -238,9 +245,11 @@ def chat(local=True, model=None):
                     prt(msg2)
                     response = client.chat.completions.create(model=model, messages=[asdict(m) for m in messages], tools=TOOL_FN, tool_choice="auto", temperature=0.2)
                     m = response.choices[0].message
-            msg = ChatMessage(m.role, m.content)
-            messages.append(msg)
-            prt(msg)
+            # store original message from gpt
+            if m.content:
+                msg = ChatMessage(m.role, m.content)
+                messages.append(msg)
+                prt(msg)
             x = response.usage.completion_tokens
             y = response.usage.prompt_tokens
             print(f'Completion tokens: {x}, prompt tokens: {y}, total tokens: {response.usage.total_tokens} cost: {(x * .2 + y * .1)/1000}')

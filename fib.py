@@ -5,15 +5,14 @@ import plotly.express as px
 from io import StringIO
 import graphviz
 from scipy.optimize import brentq
+from functools import cache
 from datetime import date, timedelta
 import math
 # import plotly.graph_objs as go
 # import plotly.offline as py
 
 def fib(n):
-    if n < 2:
-        return n
-    return fib(n-1) + fib(n-2)
+    return n if n < 2 else fib(n-1) + fib(n-2)
 
 def fibm(maxN):
     memo = [-1] * maxN
@@ -34,6 +33,11 @@ def fibIter(n):
     for _ in range(n):
         yield a
         a,b = b, a+b
+
+# use functools cache decorator
+@cache
+def fib2(n):
+   return n if n < 2 else fib2(n-1) + fib2(n-2)
 
 def collatzIter(n):
     while n > 1:

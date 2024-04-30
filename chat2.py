@@ -6,6 +6,7 @@ from dataclasses_json import dataclass_json
 import datetime
 #from datetime import datetime, date, time
 from openai import OpenAI
+import os
 from pathlib import Path
 from rich.console import Console
 from rich.markdown import Markdown
@@ -17,6 +18,7 @@ from math import sqrt
 
 # pip install dataclasses-json
 
+model_name = {'gpt35':'gpt-3.5-turbo', 'gpt4':'gpt-4-turbo', 'llama3':'meta-llama/Llama-3-70b-chat-hf', 'ollama':'llama3'}
 FNAME = 'chat-log.json'
 console = Console()
 FNCALL_SYSMSG = """
@@ -70,6 +72,12 @@ class ChatMessage:
             raise ValueError("Content cannot be empty")
 
 
+@dataclass
+class CodeBlock:
+    language: str
+    lines: list[str]
+
+
 def make_fullpath(fn: str) -> Path:
     return Path.home() / 'Documents' / fn
 
@@ -89,11 +97,11 @@ def is_toolcall(s: str) -> str:
     return None
 
 
-def save_and_execute_python(s: str):
+def save_and_execute_python(code: list[str]):
     console.print('executing code...', style='red')
     full_path = make_fullpath('temp.py')
     with open(full_path, 'w') as f:
-        f.write(s)
+        f.write('\n'.join(code.lines))
     
     result = subprocess.run(["python", full_path], capture_output=True)
     output = result.stdout.decode("utf-8")
@@ -102,7 +110,23 @@ def save_and_execute_python(s: str):
         console.print(Markdown(output), style='yellow')
     else:
         console.print(err, style='red')
-#    console.print(output, style='green')
+    return output, err
+
+
+def save_and_execute_bash(code: list[str]):
+    console.print('executing code...', style='red')
+    full_path = make_fullpath('temp')
+    with open(full_path, 'w') as f:
+        f.write('\n'.join(code.lines))
+    
+    os.chmod(full_path, 0o755)  # Set executable permissions
+    result = subprocess.run(["bash", full_path], capture_output=True)
+    output = result.stdout.decode("utf-8")
+    err = result.stderr.decode("utf-8")
+    if len(output) > 0:
+        console.print(Markdown(output), style='yellow')
+    else:
+        console.print(err, style='red')
     return output, err
 
 
@@ -115,24 +139,6 @@ def prt(msg : ChatMessage):
     console.print(f'{msg.role}:\n', style=role_to_color[msg.role])
     md = Markdown(msg.content)
     console.print(md, style=role_to_color[msg.role])
-    # TODO add back in automatic calling of python scripts - formatting of markdown
-#    console.print(msg.content, style=s)
-#    is_toolcall(msg.content)
-# #    print(msg.content)
-#     if msg.content.find('```') >= 0:
-#         md = Markdown(msg.content)
-#         console.print(md)
-#         xs = msg.content.split('```')
-#         if len(xs) > 0:
-#             x = xs[1]
-#             if x.startswith('python\n'):
-#                 save_and_execute_python(x[7:])
-#             else:
-#                 console.print('code block found but not python ' + x)
-#     else:
-#         console.print(msg.content, style=s)
-    # print(colored(msg.role + ': ', c))
-    # print(colored(msg.content, c))
 
 
 def save(xs, filename):
@@ -172,41 +178,78 @@ def process_tool_call(tool_call):
 
 
 def extract_code_block(contents: str, sep: str) -> str:
-    '''extracts the string between a pair of separtors. If there is no seperator return None'''
-    y = len(sep)
-    start_index = contents.find(sep)
-    if start_index >= 0:
-        end_index = contents.find(sep, start_index + y)
-        if end_index >= 0:
-            return contents[start_index + y:end_index]
-    return None
+    '''extracts the first code block'''
+    xs = contents.splitlines()
+    inside = False
+    code = None
+    for x in xs:
+        if x.startswith(sep):
+            inside = not inside
+            if inside:
+               code = CodeBlock(x[len(sep):], [])
+            else:
+                # if haven't found a language look in the contents
+                s = contents.lower()
+                if len(code.language) == 0:
+                    if 'python' in s or 'print(' in s:
+                        code.language = 'python'
+                    elif 'bash' in s:
+                        code.language = 'bash'
+                return code
+        else:
+            if inside:
+                if len(code.language) == 0 and (x == 'python' or x == 'bash'):
+                    code.language = x
+                else:
+                    code.lines.append(x)
+
+    return code
 
 
-def execute_script(x):
+def execute_script(code):
     output = None
     err = None
     msg = None
-    if x.startswith('python\n'):
-        output, err = save_and_execute_python(x[7:])
+    for i,x in enumerate(code.lines):
+        k = i + 1
+        console.print(f'{k:02d} {x}', style='red')
+    # breakpoint()
+    if code.language.lower() == 'python':
+        output, err = save_and_execute_python(code)
+        if err:
+            msg = err
+        else:
+            msg = output
+    elif code.language.lower() == 'bash':
+        output, err = save_and_execute_bash(code)
         if err:
             msg = err
         else:
             msg = output
     else:
-        console.print('code block found but not python ' + x)
+        console.print('unrecognised code block found')
     return msg
 
 
-def chat(local=True, model=None):
-    client = OpenAI(api_key="dummy") if local else OpenAI()
-#    client = OpenAI()
-    if local:
-        client.base_url = 'http://localhost:1234/v1'
+def create_client(llm_name):
+    if llm_name == 'llama3':
+        return OpenAI(api_key=os.environ['TOGETHERAI_API_KEY'], base_url='https://api.together.xyz/v1')
+    elif llm_name == 'gpt35' or llm_name == 'gpt4':
+        return OpenAI()
+    elif llm_name == 'ollama':
+        return OpenAI(api_key='dummy',  base_url="http://localhost:11434/v1")
+    else: # lmstudio port
+        return OpenAI(api_key='dummy', base_url='http://localhost:1234/v1')
+
+
+def chat(llm_name):
+    client = create_client(llm_name)
 #    systemMessage = ChatMessage('system', FNCALL_SYSMSG)
-    systemMessage = ChatMessage('system', f'You are Marvin a super intelligent AI chatbot trained by OpenAI. The current datetime is {datetime.datetime.now().isoformat()}. You can write python code in a markdown code block if you need to.')
+    systemMessage = ChatMessage('system', f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You are a logical thinker who answers concisely and accurately. The current datetime is {datetime.datetime.now().isoformat()}. you can write code in markdown code blocks.')
+#    systemMessage = ChatMessage('system', f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You are a logical thinker. The current datetime is {datetime.datetime.now().isoformat()}. You should use python to calculate mathematical expressions. Do not guess the output.')
     # systemMessage = ChatMessage('system', 'You are a loyal and dedicated member of the Koopa Troop, serving as an assistant to the infamous Bowser. You are committed to carrying out Bowsers commands with unwavering dedication and devotion. Lets work this out in a step by step way to make sure we have the right answer.')
     messages = [systemMessage]
-    print(f'model={model} . Enter x to exit.')
+    print(f'model={model_name.get(llm_name, "local")} . Enter x to exit.')
     inp = ''
     while (inp != 'x'):
         inp = input()
@@ -216,11 +259,16 @@ def chat(local=True, model=None):
                 msg = ChatMessage('user', load_msg(inp))
             elif inp.startswith('%resp'):
                 msg = ChatMessage('user', tool_response(inp))
+            elif inp.startswith('%reset'):
+                messages.clear()
+                messages.append(systemMessage)
+                continue
             else:              
                 msg = ChatMessage('user', inp)
             messages.append(msg)
             prt(msg)
-            response = client.chat.completions.create(model=model, messages=[asdict(m) for m in messages], tools=TOOL_FN, tool_choice="none", temperature=0.2)
+            response = client.chat.completions.create(model=model_name.get(llm_name, 'local'), messages=[asdict(m) for m in messages], temperature=0.2)
+            # response = client.chat.completions.create(model=model, messages=[asdict(m) for m in messages], tools=TOOL_FN, tool_choice="none", temperature=0.2)
             m = response.choices[0].message
             # if it is a tool call automatically reply and get the next reponse
             if m.tool_calls:
@@ -228,23 +276,26 @@ def chat(local=True, model=None):
                 if r:
                     xs = [asdict(m) for m in messages]
                     xs.append(r)
-                    response = client.chat.completions.create(model=model, messages=xs, tools=TOOL_FN, tool_choice="none", temperature=0.2)
+                    response = client.chat.completions.create(model=model_name.get(llm_name, 'local'), messages=xs, tools=TOOL_FN, tool_choice="none", temperature=0.2)
 #                    messages.append(ChatMessage('tool', str(r)))
                     m = response.choices[0].message
 #            breakpoint()
             code = extract_code_block(m.content, '```')
-            if code:
+            while code and len(code.language) > 0:
                 # store original message from gpt
                 msg = ChatMessage(m.role, m.content)
                 messages.append(msg)
                 prt(msg)
                 output = execute_script(code)
+                code = None
                 if output:
                     msg2 = ChatMessage('user', '## output from running script\n' + output + '\n')
                     messages.append(msg2)
                     prt(msg2)
-                    response = client.chat.completions.create(model=model, messages=[asdict(m) for m in messages], tools=TOOL_FN, tool_choice="auto", temperature=0.2)
+                    response = client.chat.completions.create(model=model_name.get(llm_name, ''), messages=[asdict(m) for m in messages], temperature=0.2)
+#                    response = client.chat.completions.create(model=model_name.get(llm_name, ''), messages=[asdict(m) for m in messages], tools=TOOL_FN, tool_choice="auto", temperature=0.2)
                     m = response.choices[0].message
+                    code = extract_code_block(m.content, '```')
             # store original message from gpt
             if m.content:
                 msg = ChatMessage(m.role, m.content)
@@ -279,14 +330,9 @@ def x():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Chat with LLMs')
-    parser.add_argument('llm', type=str, help='The action to perform [local|gpt35|gpt4]')
+    parser.add_argument('llm', type=str, help='The action to perform [local|gpt35|gpt4|llama3]')
     args = parser.parse_args()
-    if args.llm == 'gpt35':
-        chat(False, model='gpt-3.5-turbo')
-    elif args.llm == 'gpt4':
-        chat(False, model='gpt-4-turbo-preview')
-    else:
-        chat()
+    chat(args.llm)
     # s = chat_ollama()
     # print(s)
     # xs = load(FNAME)

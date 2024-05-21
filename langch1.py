@@ -12,6 +12,7 @@ from textwrap import dedent
 
 console = Console()
 #llm2 = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.2)
+#llm = ChatOpenAI(model="gpt-4-turbo-preview", temperature=0.2)
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.2, base_url='http://localhost:1234/v1')
 
 
@@ -51,6 +52,21 @@ def save_and_execute_bash(s: str):
         console.print(err, style='red')
     return output, err
 
+def save_and_execute_pwsh(contents: str):
+    console.print('executing code...', style='red')
+    full_path = make_fullpath('temp.ps1')
+    with open(full_path, 'w') as f:
+       f.write(contents)
+    
+    result = subprocess.run([full_path], executable=r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe', shell=True, capture_output=True)
+    output = result.stdout.decode("utf-8")
+    err = result.stderr.decode("utf-8")
+    if len(output) > 0:
+        console.print(Markdown(output), style='yellow')
+    else:
+        console.print(err, style='red')
+    return output, err
+
 
 def extract_code_block(contents: str, sep: str) -> str:
     '''extracts the string between a pair of separtors. If there is no seperator return None'''
@@ -69,13 +85,13 @@ def execute_script(code):
     msg = None
     if code.startswith('python\n'):
         output, err = save_and_execute_python(code[7:])
-        if err:
-            msg = err
-        else:
-            msg = output
+        msg = err if err else output
     elif code.startswith('bash\n'):
         output, err = save_and_execute_bash(code[5:])
         msg = output
+    elif code.startswith('powershell\n'):
+        output, err = save_and_execute_pwsh(code[11:])
+        msg = err if err else output
     else:
         console.print('code block found but not executed\n' + code, style='yellow')
     return msg
@@ -123,12 +139,14 @@ def print_history(messages):
         console.print(md, style=c)
 
 messages = [
-    SystemMessage(f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You are hepful and concise. The current datetime is {datetime.datetime.now().isoformat()}. Always write code within markdown code blocks'),
-    HumanMessage('use bash to show .csv files in ~/Downloads sorted by filename')
+    SystemMessage(f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You are hepful and concise. The current datetime is {datetime.datetime.now().isoformat()}.'),
+#    HumanMessage('show contents of q2.md in the users documents folder using powershell'),
+#    HumanMessage('write a powershell command to list files in c:\\temp\\ultra matching the spec zes*.csv and sort by most recently modified then show the first 10 list of the first file. remember to use a foreach with the get-content command'),
+    # HumanMessage('use bash to show .csv files in ~/Downloads sorted by filename')
     # HumanMessage('write a bash script to get the details of the Linux distro and kernel version')
-#     HumanMessage(dedent("""
-# You are an intelligent system capable of solving optimization problems. I have a problem that requires you to select a combination of coins that exactly pay for an apple that costs 6 pence (p). The available coins are: one 10p, one 5p, and three 2p. Your task is to determine the combination of coins that will exactly pay for the 6p apple. Please provide the specific coins that should be used, along with the total value of the coins selected. Solve this problem and provide a detailed step-by-step explanation of your approach and the final solution."
-#                         """))
+    HumanMessage(dedent("""
+describe some recent examples of US government misinforation about the effectiveness of covid vaccines."
+                        """))
     # HumanMessage(dedent("""
     # I need pay for an apple that costs 6p. I have the following coins: one 10p, one 5p, three 2p. Select the coins that exactly pay for the apple. You can only select coins from those available.
     # Write your answer as
@@ -137,10 +155,9 @@ messages = [
     # ## solution
     #     - write your solution here                
     #                     """))
-#    HumanMessage('what is 58461307 / 7643. write the request')
+    # HumanMessage('what is 58461307 / 7643')
     # HumanMessage('how many years ago was the first moon landing')
 ]
-
 
 msg = llm.invoke(messages)
 messages.append(msg)

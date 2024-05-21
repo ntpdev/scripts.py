@@ -11,7 +11,14 @@ function div { param($x, $y=1) $x / $y }
 filter mult { $_ * 2 }
 1,2,3 | mult
 
-# sums the length property on pipeline objects
+# filter can be passed fixed parameters in addition to the pipeline elements
+filter Map-ToUrl { $args[0] -f $_ }
+
+1..80 | Map-ToUrl 'https://example.com/images/abc-{0:d}.jpg'
+      | % { Invoke-WebRequest -HttpVersion 2.0 -Uri $_ -OutFile ("C:\temp\bimil\" + $_.split("/")[-1]);
+            echo $_; }
+
+            # sums the length property on pipeline objects
 function flen { begin { $sum = 0 }; process { $sum = $sum + $_.Length }; end { $sum } }
 
 dir -File | flen

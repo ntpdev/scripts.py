@@ -205,7 +205,7 @@ def aggregate_daily_bars(df, daily_index):
     daily['Gap'] = daily.Open - daily.Close.shift()
     daily['DayChg'] = daily.Close - daily.Open
     daily['Range'] = daily.High - daily.Low
-    return daily[daily.Volume > 500000]
+    return daily[daily.Volume > 125000]
 
 
 # return a row which aggregates bars between inclusive indexes
@@ -267,6 +267,21 @@ def load_file(fname):
     df = pd.read_csv(fname, parse_dates=['Date'], index_col='Date')
     print(f'loaded {fname} {df.shape[0]} {df.shape[1]}')
     return df
+
+
+def save_df(df, symbol):
+    '''save dataframe to csv in original format'''
+    idx = day_index(df)
+    print(idx)
+    fout = make_filename(f'{symbol} {idx.index[0].strftime("%Y%m%d")}.csv')
+    print(f'saving {fout}')
+    # reverse the parsing operations so the saved csv is the same format
+    # drop the first col which is 0,1,2 then make the index date time a standard col
+    df2 = df.drop(df.columns[0], axis=1)
+    df2.reset_index(names='Date', inplace=True)
+    df2['Date'] = df2['Date'].dt.strftime("%Y%m%d %H:%M:%S")
+    df2.to_csv(fout)
+
 
 @dataclass
 class Block:

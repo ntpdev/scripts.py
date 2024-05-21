@@ -332,7 +332,7 @@ def load_trading_days(collection, symbol, minVol):
     df['normv'] = (v - v.mean()) / v.std()
     df.set_index('_id', inplace=True)
     df.index.rename('date', inplace=True)
-    # print(df)
+#    print(df)
     return df
 
 

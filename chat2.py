@@ -7,6 +7,7 @@ import datetime
 #from datetime import datetime, date, time
 from openai import OpenAI
 import os
+import platform
 from pathlib import Path
 from rich.console import Console
 from rich.markdown import Markdown
@@ -14,14 +15,21 @@ from rich import print as rprint
 import requests
 import json
 import subprocess
-from math import sqrt
+import yaml
+import math
 
 # pip install dataclasses-json
 
-model_name = {'gpt35':'gpt-3.5-turbo', 'gpt4':'gpt-4-turbo', 'llama3':'meta-llama/Llama-3-70b-chat-hf', 'ollama':'llama3'}
+model_name = {'gpt35':'gpt-3.5-turbo', 'gpt4':'gpt-4o', 'groq':'llama3-70b-8192', 'llama3':'meta-llama/Llama-3-70b-chat-hf', 'ollama':'llama3'}
 FNAME = 'chat-log.json'
 console = Console()
+role_to_color = {
+    "system": "red",
+    "user": "green",
+    "assistant": "cyan",
+    "function": "yellow" }
 FNCALL_SYSMSG = """
+
 You are Marvin, an AI chatbot trained by OpenAI. You are a function calling AI model. You are provided with function signatures within <tools></tools> XML tags. You may call one or more functions to assist with the user query. Don't make assumptions about what values to plug into functions. Here are the available tools: 
 <tools>{"type": "function", "function": {"name": "eval", "description": "evaluates a mathematical expression and returns the result example 5 * 4 + 3 .\n\n    Args:\n    code (str): a mathematical expression.\n\n    Returns:\n    str: a number.", "parameters": {"type": "object", "properties": {"code": {"type": "string"}}, "required": ["code"]}}}</tools>
 You call a tool by outputting json within <tool_call> tags. The result will be provided to you within <tool_return> tags.
@@ -33,22 +41,6 @@ tool_ex = """
 </tool_call>
 """
 
-TOOL_FN = [ {
-  "type": "function",
-  "function": {
-    "name": "evaluate",
-    "description": "Evaluate a one line mathematical expression and return the result as a string",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "expression": {
-          "type": "string",
-          "description": "The mathematical expression to be evaluated. The expression can contain numbers, operators (+, -, *, /), parentheses and functions from python math module."
-        }
-      },
-      "required": ["expression"]
-    } } }]
-
 
 q = """```python
 from math import sqrt
@@ -59,8 +51,7 @@ print(sqrt(x ** 2 + y ** 2))
 """
 
 @dataclass_json
-@dataclass(frozen=True)
-# add validation to check that role and content are not empty   
+@dataclass 
 class ChatMessage:
     role: str
     content: str
@@ -72,10 +63,67 @@ class ChatMessage:
             raise ValueError("Content cannot be empty")
 
 
+@dataclass_json
+@dataclass
+# add validation to check that role and content are not empty   
+class ChatToolMessage(ChatMessage):
+    name: str
+    tool_call_id: str
+
+    def __init__(self, name, tool_call_id, content):
+        super().__init__('function', content)
+        self.name = name
+        self.tool_call_id = tool_call_id
+
 @dataclass
 class CodeBlock:
     language: str
     lines: list[str]
+
+
+class LLM:
+    tool_fns = [ {
+    "type": "function",
+    "function": {
+    "name": "eval",
+    "description": "Evaluate a mathematical expression and return the result as a string",
+    "parameters": {
+        "type": "object",
+        "properties": {
+        "expression": {
+            "type": "string",
+            "description": "The mathematical expression to be evaluated. You can use python class math, datetime, date, time without import"
+        }
+        },
+        "required": ["expression"]
+    } } }]
+
+    def __init__(self, llm_name: str):
+        self.llm_name = llm_name
+        self.model = model_name.get(llm_name, 'local')
+        self.client = self.create_client(llm_name)
+        self.useTool = llm_name.startswith('gpt')
+
+    def __str__(self):
+        return f'{self.model} {self.llm_name}'
+
+    def create_client(self, llm_name):
+        if llm_name == 'llama3':
+            return OpenAI(api_key=os.environ['TOGETHERAI_API_KEY'], base_url='https://api.together.xyz/v1')
+        elif llm_name == 'gpt35' or llm_name == 'gpt4':
+            return OpenAI()
+        elif llm_name == 'groq':
+            return OpenAI(api_key=os.environ['GROQ_API_KEY'], base_url='https://api.groq.com/openai/v1')
+        elif llm_name == 'ollama':
+            return OpenAI(api_key='dummy',  base_url="http://localhost:11434/v1")
+        else: # lmstudio port
+            return OpenAI(api_key='dummy', base_url='http://localhost:1234/v1')
+
+    def chat(self, messages):
+        if self.useTool:
+            return self.client.chat.completions.create(model=self.model, messages=[asdict(m) for m in messages], tools=self.tool_fns, temperature=0.2)
+        else:
+            return self.client.chat.completions.create(model=self.model, messages=[asdict(m) for m in messages], temperature=0.7)
 
 
 def make_fullpath(fn: str) -> Path:
@@ -96,49 +144,58 @@ def is_toolcall(s: str) -> str:
         return x
     return None
 
-
-def save_and_execute_python(code: list[str]):
+def save_code(fn : str, code: list[str]) -> Path:
     console.print('executing code...', style='red')
-    full_path = make_fullpath('temp.py')
+    full_path = make_fullpath(fn)
     with open(full_path, 'w') as f:
         f.write('\n'.join(code.lines))
-    
-    result = subprocess.run(["python", full_path], capture_output=True)
-    output = result.stdout.decode("utf-8")
-    err = result.stderr.decode("utf-8")
-    if len(output) > 0:
-        console.print(Markdown(output), style='yellow')
+    return full_path
+
+def save_and_execute_python(code: list[str]):
+    script_path = save_code('temp.py', code)
+
+    result = subprocess.run(["python", script_path], capture_output=True, text=True)
+#    output = result.stdout.decode("utf-8")
+#    err = result.stderr.decode("utf-8")
+    if len(result.stdout) > 0:
+        console.print(result.stdout, style='yellow')
     else:
-        console.print(err, style='red')
-    return output, err
+        console.print(result.stderr, style='red')
+    return result.stdout, result.stderr
 
 
 def save_and_execute_bash(code: list[str]):
-    console.print('executing code...', style='red')
-    full_path = make_fullpath('temp')
-    with open(full_path, 'w') as f:
-        f.write('\n'.join(code.lines))
+    script_path = save_code('temp', code)
     
-    os.chmod(full_path, 0o755)  # Set executable permissions
-    result = subprocess.run(["bash", full_path], capture_output=True)
-    output = result.stdout.decode("utf-8")
-    err = result.stderr.decode("utf-8")
-    if len(output) > 0:
-        console.print(Markdown(output), style='yellow')
+    os.chmod(script_path, 0o755)  # Set executable permissions
+    result = subprocess.run(["bash", script_path], capture_output=True, text=True)
+#    output = result.stdout.decode("utf-8")
+#    err = result.stderr.decode("utf-8")
+    if len(result.stdout) > 0:
+        console.print(result.stdout, style='yellow')
     else:
-        console.print(err, style='red')
-    return output, err
+        console.print(result.stderr, style='red')
+    return result.stdout, result.stderr
+
+
+def save_and_execute_powershell(code: list[str]):
+    script_path = save_code('temp.ps1', code)
+
+    result = subprocess.run(["powershell", "-ExecutionPolicy", "Bypass", "-File", script_path], capture_output=True, text=True)
+    # output = result.stdout.decode("utf-8")
+    # err = result.stderr.decode("utf-8")
+    if len(result.stdout) > 0:
+        console.print(result.stdout, style='yellow')
+    else:
+        console.print(result.stderr, style='red')
+    return result.stdout, result.stderr
 
 
 def prt(msg : ChatMessage):
-    role_to_color = {
-        "system": "red",
-        "user": "green",
-        "assistant": "cyan",
-        "function": "yellow" }
-    console.print(f'{msg.role}:\n', style=role_to_color[msg.role])
+    c = role_to_color[msg.role]
+    console.print(f'{msg.role}:\n', style=c)
     md = Markdown(msg.content)
-    console.print(md, style=role_to_color[msg.role])
+    console.print(md, style=c)
 
 
 def save(xs, filename):
@@ -146,11 +203,59 @@ def save(xs, filename):
         f.write(ChatMessage.schema().dumps(xs, many=True))
 
 
-def load_msg(s: str) -> str:
+def save_content(msg):
+    filename = make_fullpath('temp.txt')
+    with open(filename, 'w') as f:
+        f.write(msg.content)
+    s = f'saved {msg.content if len(msg.content) < 70 else msg.content[:70] + ' ...'}'
+    console.print(s, style='red')
+
+
+def load_msg(s: str) -> ChatMessage:
     xs = s.split()
-    with open(make_fullpath(xs[1]), 'r') as f:
-        return f.read()
-    
+    fname = make_fullpath(xs[1])
+    role = 'assistant' if len(xs) > 2 else 'user'
+
+    try:
+        with open(fname, 'r') as f:
+            return ChatMessage(role,  f.read())
+    except FileNotFoundError:
+        console.print(f'{fname} FileNotFoundError', style='red')
+#       raise FileNotFoundError(f"Chat message file not found: {filename}")
+    return None
+
+
+def load_log(s: str) -> list[ChatMessage]:
+    xs = s.split()
+    fname = make_fullpath(xs[1])
+
+    try:
+        with open(fname, 'r') as f:
+            data = json.load(f)
+            all_msgs = ChatMessage.schema().load(data, many=True)
+            console.print(f'loaded from log {len(xs)} messages {len(all_msgs)}', style='red')
+#            save_content(all_msgs[-1])
+            xs =  all_msgs if len(all_msgs) < 20 else all_msgs[:3] + all_msgs[-20:]
+            prt_summary(xs)
+            return xs
+    except FileNotFoundError:
+        console.print(f'{fname} FileNotFoundError', style='red')
+#       raise FileNotFoundError(f"Chat message file not found: {filename}")
+    except json.JSONDecodeError:
+        console.print(f'{fname} JSONDecodeError', style='red')
+#        raise JSONDecodeError(f"Error parsing JSON data in {filename}")
+    return None   
+
+
+def prt_summary(msgs : list[ChatMessage]):
+    cs = [(len(msg.content)) for msg in msgs]
+    ws = [(len(msg.content.split())) for msg in msgs]
+
+    console.print(f'loaded from log {len(msgs)} words {sum(ws)} chars {sum(cs)}', style='red')
+    for i,m in enumerate(msgs):  # msgs:
+        s = f'{i:2} {m.role:<10} {m.content if len(m.content) < 70 else m.content[:70] + ' ...'}'
+        console.print(s, style=role_to_color[m.role])
+
 
 def tool_response(s: str) -> str:
     xs = s[6:].strip()
@@ -166,18 +271,69 @@ def process_tool_call(tool_call):
     fnname = tool_call.function.name 
     args = json.loads(tool_call.function.arguments)
     console.print(f'tool call {fnname} {args}', style='yellow')
-    if fnname == 'evaluate':
-        r = eval(args['expression'])
+    if fnname == 'eval':
+        r = ""
+        try:
+            r = eval(args['expression'])
+        except Exception as e:
+            console.print(f'ERROR: {r}', style='red')
         console.print(f'result = {str(r)}', style='yellow')
-        d = {"role": "function",
-             "name": fnname,
-             "tool_call_id": tool_call.id,   
-             "content": str(r)}
-        return d
-    return None
+        # d = {"role": "function",
+        #      "name": fnname,
+        #      "tool_call_id": tool_call.id,   
+        #      "content": str(r)}
+        return ChatToolMessage(fnname, tool_call.id, str(r))
+
+    s = 'Unknown function name ' + fnname
+    console.print(s, style='red')
+    return ChatToolMessage(fnname, tool_call.id, 'ERROR: ' + s)
 
 
-def extract_code_block(contents: str, sep: str) -> str:
+def check_and_process_tool_call(client, messages, response):
+    '''check for a tool call and process. If there is no tool call then the original response is returned'''
+    choice = response.choices[0]
+    while choice.finish_reason == 'tool_calls':
+        for tc in choice.message.tool_calls:
+            tcm = ChatToolMessage(tc.function.name, tc.id, tc.function.arguments)
+            # messages.append(tcm) don't add the tool call to message history
+            prt(tcm)
+            tool_response = process_tool_call(tc)
+            messages.append(tool_response)
+        # reply to llm with tool responses
+        response = client.chat(messages)
+        choice = response.choices[0]
+
+    return response
+
+
+def check_and_process_code_block(client, messages, response):
+    '''check for a code block, execute it and pass output back to LLM. This can happen several times if there are errors. If there is no code block then the original response is returned'''
+    code = extract_code_block_from_response(response)
+    n = 0
+    while code and len(code.language) > 0 and n < 5:
+        # store original message from llm
+        m = response.choices[0].message
+        msg = ChatMessage(m.role, m.content)
+        messages.append(msg)
+        prt(msg)
+        output = execute_script(code)
+        n += 1
+        code = None
+        if output:
+            msg2 = ChatMessage('user', '## output from running script\n' + output + '\n')
+            messages.append(msg2)
+            prt(msg2)
+            response = client.chat(messages)
+            code = extract_code_block_from_response(response)
+
+    return response
+
+
+def extract_code_block_from_response(response) -> CodeBlock:
+    return extract_code_block(response.choices[0].message.content, '```')
+
+
+def extract_code_block(contents: str, sep: str) -> CodeBlock:
     '''extracts the first code block'''
     xs = contents.splitlines()
     inside = False
@@ -186,19 +342,21 @@ def extract_code_block(contents: str, sep: str) -> str:
         if x.startswith(sep):
             inside = not inside
             if inside:
-               code = CodeBlock(x[len(sep):], [])
+               code = CodeBlock(x[len(sep):].lower(), [])
             else:
                 # if haven't found a language look in the contents
-                s = contents.lower()
                 if len(code.language) == 0:
-                    if 'python' in s or 'print(' in s:
+                    s = contents.lower()
+                    if 'python' in s:
                         code.language = 'python'
                     elif 'bash' in s:
                         code.language = 'bash'
+                    elif 'powershell' in s:
+                        code.language = 'powershell'
                 return code
         else:
             if inside:
-                if len(code.language) == 0 and (x == 'python' or x == 'bash'):
+                if len(code.language) == 0 and (x == 'python' or x == 'bash' or x == 'powershell'):
                     code.language = x
                 else:
                     code.lines.append(x)
@@ -206,22 +364,27 @@ def extract_code_block(contents: str, sep: str) -> str:
     return code
 
 
-def execute_script(code):
+def execute_script(code: CodeBlock):
     output = None
     err = None
     msg = None
-    for i,x in enumerate(code.lines):
+    for i,s in enumerate(code.lines):
         k = i + 1
-        console.print(f'{k:02d} {x}', style='red')
-    # breakpoint()
-    if code.language.lower() == 'python':
+        console.print(f'{k:02d} {s}', style='red')
+    if code.language == 'python':
         output, err = save_and_execute_python(code)
         if err:
             msg = err
         else:
             msg = output
-    elif code.language.lower() == 'bash':
+    elif code.language == 'bash':
         output, err = save_and_execute_bash(code)
+        if err:
+            msg = err
+        else:
+            msg = output
+    elif code.language == 'powershell':
+        output, err = save_and_execute_powershell(code)
         if err:
             msg = err
         else:
@@ -231,81 +394,73 @@ def execute_script(code):
     return msg
 
 
-def create_client(llm_name):
-    if llm_name == 'llama3':
-        return OpenAI(api_key=os.environ['TOGETHERAI_API_KEY'], base_url='https://api.together.xyz/v1')
-    elif llm_name == 'gpt35' or llm_name == 'gpt4':
-        return OpenAI()
-    elif llm_name == 'ollama':
-        return OpenAI(api_key='dummy',  base_url="http://localhost:11434/v1")
-    else: # lmstudio port
-        return OpenAI(api_key='dummy', base_url='http://localhost:1234/v1')
+def system_message():
+    tm = datetime.datetime.now().isoformat()
+    scripting_lang, plat = ('bash','Ubuntu') if platform.system() == 'Linux' else ('powershell','Windows 11')
+#    return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You use deductive reasoning to answer questions. You make dry, witty, mocking comments and often despair.  You are logical and pay attention to detail. You can access local computer running {plat} by writing python or {scripting_lang}. Scripts should always be in markdown code blocks with the language. current datetime is {tm}'
+    return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You use deductive reasoning to answer questions. You can access local computer running {plat} by writing python or {scripting_lang}. Scripts should always be in markdown code blocks with the language. current datetime is {tm}'
 
 
 def chat(llm_name):
-    client = create_client(llm_name)
+    client = LLM(llm_name)
 #    systemMessage = ChatMessage('system', FNCALL_SYSMSG)
-    systemMessage = ChatMessage('system', f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You are a logical thinker who answers concisely and accurately. The current datetime is {datetime.datetime.now().isoformat()}. you can write code in markdown code blocks.')
-#    systemMessage = ChatMessage('system', f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You are a logical thinker. The current datetime is {datetime.datetime.now().isoformat()}. You should use python to calculate mathematical expressions. Do not guess the output.')
+    systemMessage = ChatMessage('system', system_message())
+#    systemMessage = ChatMessage('system', f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You are a logical thinker. The current datetime is {datetime.now().isoformat()}. You should use python to calculate mathematical expressions. Do not guess the output.')
     # systemMessage = ChatMessage('system', 'You are a loyal and dedicated member of the Koopa Troop, serving as an assistant to the infamous Bowser. You are committed to carrying out Bowsers commands with unwavering dedication and devotion. Lets work this out in a step by step way to make sure we have the right answer.')
     messages = [systemMessage]
-    print(f'model={model_name.get(llm_name, "local")} . Enter x to exit.')
+    print(f'chat with {client}. Enter x to exit.')
     inp = ''
     while (inp != 'x'):
         inp = input()
         if len(inp) > 3:
             msg = None
             if inp.startswith('%load'):
-                msg = ChatMessage('user', load_msg(inp))
+                msg = load_msg(inp)
+                if (msg is None):
+                    continue
+                if (msg.role != 'user'):
+                    messages.append(msg)
+                    prt(msg)
+                    continue
             elif inp.startswith('%resp'):
                 msg = ChatMessage('user', tool_response(inp))
             elif inp.startswith('%reset'):
                 messages.clear()
-                messages.append(systemMessage)
+                messages.append(ChatMessage('system', system_message()))
+                continue
+            elif inp.startswith('%drop'):
+                # remove last response for LLM and user msg that triggered
+                if len(messages) > 2:
+                    messages.pop()
+                    messages.pop()
+                continue
+            elif inp.startswith('%log'):
+                messages = load_log(inp)
+                continue
+            elif inp.startswith('%save'):
+                save_content(messages[-1])
                 continue
             else:              
                 msg = ChatMessage('user', inp)
             messages.append(msg)
             prt(msg)
-            response = client.chat.completions.create(model=model_name.get(llm_name, 'local'), messages=[asdict(m) for m in messages], temperature=0.2)
-            # response = client.chat.completions.create(model=model, messages=[asdict(m) for m in messages], tools=TOOL_FN, tool_choice="none", temperature=0.2)
-            m = response.choices[0].message
-            # if it is a tool call automatically reply and get the next reponse
-            if m.tool_calls:
-                r = process_tool_call(m.tool_calls[0])
-                if r:
-                    xs = [asdict(m) for m in messages]
-                    xs.append(r)
-                    response = client.chat.completions.create(model=model_name.get(llm_name, 'local'), messages=xs, tools=TOOL_FN, tool_choice="none", temperature=0.2)
-#                    messages.append(ChatMessage('tool', str(r)))
-                    m = response.choices[0].message
-#            breakpoint()
-            code = extract_code_block(m.content, '```')
-            while code and len(code.language) > 0:
-                # store original message from gpt
-                msg = ChatMessage(m.role, m.content)
-                messages.append(msg)
-                prt(msg)
-                output = execute_script(code)
-                code = None
-                if output:
-                    msg2 = ChatMessage('user', '## output from running script\n' + output + '\n')
-                    messages.append(msg2)
-                    prt(msg2)
-                    response = client.chat.completions.create(model=model_name.get(llm_name, ''), messages=[asdict(m) for m in messages], temperature=0.2)
-#                    response = client.chat.completions.create(model=model_name.get(llm_name, ''), messages=[asdict(m) for m in messages], tools=TOOL_FN, tool_choice="auto", temperature=0.2)
-                    m = response.choices[0].message
-                    code = extract_code_block(m.content, '```')
+            response = client.chat(messages)
+            response = check_and_process_tool_call(client, messages, response)
+            response = check_and_process_code_block(client, messages, response)
             # store original message from gpt
+            m = response.choices[0].message
             if m.content:
                 msg = ChatMessage(m.role, m.content)
                 messages.append(msg)
                 prt(msg)
-            x = response.usage.completion_tokens
-            y = response.usage.prompt_tokens
-            print(f'Completion tokens: {x}, prompt tokens: {y}, total tokens: {response.usage.total_tokens} cost: {(x * .2 + y * .1)/1000}')
             
-    save(messages, make_fullpath(FNAME))
+            ru = response.usage
+            c = (ru.prompt_tokens * 5 + ru.completion_tokens * 15)/10000
+            print(f'prompt tokens: {ru.prompt_tokens}, completion tokens: {ru.completion_tokens}, total tokens: {ru.total_tokens} cost: {c:.4f}')
+            
+    if len(messages) > 2:
+        save(messages, make_fullpath(FNAME))
+        yaml.dump(messages, open(make_fullpath('chat-log.yaml'), 'w'))
 
 
 def chat_ollama():
@@ -324,15 +479,26 @@ def chat_ollama():
 
 
 def x():
-    '''extract response field'''
-    s = '{"model":"magicoder:7b-s-cl-q6_K","created_at":"2024-01-01T22:28:32.629495852Z","response":".","done":false}'
+    print(system_message())
+    s = """
+here is some python code
+```
+dir $HOME/documents/*.txt
+echo "hello world"
+```
+text after
+"""
+    c = extract_code_block(s, '```')
+    console.print(yaml.dump(c), style='green')
+    # execute_script(CodeBlock('powershell', s.split('\n')))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Chat with LLMs')
-    parser.add_argument('llm', type=str, help='The action to perform [local|gpt35|gpt4|llama3]')
+    parser.add_argument('llm', type=str, help='LLM to use [local|gpt35|gpt4|llama3|groq]')
     args = parser.parse_args()
     chat(args.llm)
+    # x()
     # s = chat_ollama()
     # print(s)
     # xs = load(FNAME)

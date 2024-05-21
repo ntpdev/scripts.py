@@ -47,7 +47,7 @@ def json_to_df(objs):
 
 
 def plot(symbol, df):
-    pts = -500
+    pts = -250
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df.index[pts:], y=df[pts:]['close'], mode='lines', name=symbol))
     fig.add_trace(go.Scatter(x=df.index[pts:], y=df[pts:]['ema19'], mode='lines', name='ema19'))
@@ -63,6 +63,27 @@ def plot(symbol, df):
 
     # fig3 = px.Figure(data=fig1.data + fig2.data)
     # fig3.show()
+    fig.show()
+
+
+def plot_3LB(symbol, df):
+    tlb, rev = tsutils.calc_tlb(df.close, 3)
+    tlb['height'] = tlb['close']-tlb['open']
+    tlb['dirn'] = np.sign(tlb['height'])
+    colours = tlb['dirn'].map({-1: "red", 1: "green"})
+    xs = tlb.index.strftime('%Y-%m-%d')
+    fig = subp.make_subplots(rows=1, cols=2, subplot_titles=([symbol + ' 3LB', symbol + ' close']))
+    f1 = go.Bar(x = xs.values, y = tlb['height'], base = tlb['open'], name=symbol, marker=dict(color = colours))
+    f2 = go.Scatter(x = df.index[-100:], y = df[-100:]['close'], mode='lines', name=symbol, marker=dict(color = 'blue'))
+
+    fig.add_trace(f1, row=1, col=1)
+    fig.add_trace(f2, row=1, col=2)
+    c = 'green' if df.loc[df.index[-1], 'close'] < rev else 'red'
+    fig.add_hline(y=rev, line_width=1, line_color=c, line_dash="dash", row=1, col=2)
+    fig.add_annotation(text=f"reversal {rev:.2f}", x=df.index[-100], y=rev * 1.01,
+                     font=dict(size=12, color=c),
+                     showarrow=False, row=1, col=2)
+    fig.update_layout(xaxis_type='category')
     fig.show()
 
 
@@ -266,6 +287,15 @@ def plot_latest(symbol: str):
     return None
 
 
+def plot_latest_3LB(symbol: str):
+    xs = list_cached_files(symbol)
+    if len(xs) > 0:
+        df = load_file(xs[0])
+        plot_3LB(symbol, df)
+        return df
+    return None
+
+
 def view(symbol: str):
     xs = list_cached_files(symbol)
     if len(xs) > 0:
@@ -351,6 +381,8 @@ if __name__ == '__main__':
         list_cached(args.symbol)
     elif args.action == 'plot':
         plot_latest(args.symbol)
+    elif args.action == 'plot3lb':
+        plot_latest_3LB(args.symbol)
 
     #load_earliest_date('spy')
     #df = load_file('c:\\users\\niroo\\downloads\\spy 2023-12-15.csv')

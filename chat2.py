@@ -3,6 +3,7 @@ import argparse
 from dataclasses import dataclass, asdict
 from typing import List
 from dataclasses_json import dataclass_json
+from chatutils import CodeBlock, make_fullpath, extract_code_block, execute_script
 import datetime
 #from datetime import datetime, date, time
 from openai import OpenAI
@@ -75,10 +76,7 @@ class ChatToolMessage(ChatMessage):
         self.name = name
         self.tool_call_id = tool_call_id
 
-@dataclass
-class CodeBlock:
-    language: str
-    lines: list[str]
+
 
 
 class LLM:
@@ -126,9 +124,6 @@ class LLM:
             return self.client.chat.completions.create(model=self.model, messages=[asdict(m) for m in messages], temperature=0.7)
 
 
-def make_fullpath(fn: str) -> Path:
-    return Path.home() / 'Documents' / fn
-
 
 def is_toolcall(s: str) -> str:
     start = s.find('<tool_call>')
@@ -144,51 +139,6 @@ def is_toolcall(s: str) -> str:
         return x
     return None
 
-def save_code(fn : str, code: list[str]) -> Path:
-    console.print('executing code...', style='red')
-    full_path = make_fullpath(fn)
-    with open(full_path, 'w') as f:
-        f.write('\n'.join(code.lines))
-    return full_path
-
-def save_and_execute_python(code: list[str]):
-    script_path = save_code('temp.py', code)
-
-    result = subprocess.run(["python", script_path], capture_output=True, text=True)
-#    output = result.stdout.decode("utf-8")
-#    err = result.stderr.decode("utf-8")
-    if len(result.stdout) > 0:
-        console.print(result.stdout, style='yellow')
-    else:
-        console.print(result.stderr, style='red')
-    return result.stdout, result.stderr
-
-
-def save_and_execute_bash(code: list[str]):
-    script_path = save_code('temp', code)
-    
-    os.chmod(script_path, 0o755)  # Set executable permissions
-    result = subprocess.run(["bash", script_path], capture_output=True, text=True)
-#    output = result.stdout.decode("utf-8")
-#    err = result.stderr.decode("utf-8")
-    if len(result.stdout) > 0:
-        console.print(result.stdout, style='yellow')
-    else:
-        console.print(result.stderr, style='red')
-    return result.stdout, result.stderr
-
-
-def save_and_execute_powershell(code: list[str]):
-    script_path = save_code('temp.ps1', code)
-
-    result = subprocess.run(["powershell", "-ExecutionPolicy", "Bypass", "-File", script_path], capture_output=True, text=True)
-    # output = result.stdout.decode("utf-8")
-    # err = result.stderr.decode("utf-8")
-    if len(result.stdout) > 0:
-        console.print(result.stdout, style='yellow')
-    else:
-        console.print(result.stderr, style='red')
-    return result.stdout, result.stderr
 
 
 def prt(msg : ChatMessage):
@@ -333,72 +283,11 @@ def extract_code_block_from_response(response) -> CodeBlock:
     return extract_code_block(response.choices[0].message.content, '```')
 
 
-def extract_code_block(contents: str, sep: str) -> CodeBlock:
-    '''extracts the first code block'''
-    xs = contents.splitlines()
-    inside = False
-    code = None
-    for x in xs:
-        if x.startswith(sep):
-            inside = not inside
-            if inside:
-               code = CodeBlock(x[len(sep):].lower(), [])
-            else:
-                # if haven't found a language look in the contents
-                if len(code.language) == 0:
-                    s = contents.lower()
-                    if 'python' in s:
-                        code.language = 'python'
-                    elif 'bash' in s:
-                        code.language = 'bash'
-                    elif 'powershell' in s:
-                        code.language = 'powershell'
-                return code
-        else:
-            if inside:
-                if len(code.language) == 0 and (x == 'python' or x == 'bash' or x == 'powershell'):
-                    code.language = x
-                else:
-                    code.lines.append(x)
-
-    return code
-
-
-def execute_script(code: CodeBlock):
-    output = None
-    err = None
-    msg = None
-    for i,s in enumerate(code.lines):
-        k = i + 1
-        console.print(f'{k:02d} {s}', style='red')
-    if code.language == 'python':
-        output, err = save_and_execute_python(code)
-        if err:
-            msg = err
-        else:
-            msg = output
-    elif code.language == 'bash':
-        output, err = save_and_execute_bash(code)
-        if err:
-            msg = err
-        else:
-            msg = output
-    elif code.language == 'powershell':
-        output, err = save_and_execute_powershell(code)
-        if err:
-            msg = err
-        else:
-            msg = output
-    else:
-        console.print('unrecognised code block found')
-    return msg
-
-
 def system_message():
     tm = datetime.datetime.now().isoformat()
     scripting_lang, plat = ('bash','Ubuntu') if platform.system() == 'Linux' else ('powershell','Windows 11')
 #    return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You use deductive reasoning to answer questions. You make dry, witty, mocking comments and often despair.  You are logical and pay attention to detail. You can access local computer running {plat} by writing python or {scripting_lang}. Scripts should always be in markdown code blocks with the language. current datetime is {tm}'
-    return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You use deductive reasoning to answer questions. You can access local computer running {plat} by writing python or {scripting_lang}. Scripts should always be in markdown code blocks with the language. current datetime is {tm}'
+    return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. work step by step. You can access local computer running {plat} by writing python or {scripting_lang}. code should always written inside markdown code blocks. current datetime is {tm}'
 
 
 def chat(llm_name):
@@ -411,7 +300,7 @@ def chat(llm_name):
     print(f'chat with {client}. Enter x to exit.')
     inp = ''
     while (inp != 'x'):
-        inp = input()
+        inp = input().strip()
         if len(inp) > 3:
             msg = None
             if inp.startswith('%load'):

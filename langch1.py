@@ -1,181 +1,177 @@
-from langchain_core.messages import HumanMessage, SystemMessage
+import argparse
+from dataclasses import dataclass
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
-import datetime
+# from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_vertexai import ChatVertexAI, HarmBlockThreshold, HarmCategory
+from langchain_google_vertexai.model_garden import ChatAnthropicVertex
+from datetime import datetime, date, time
 from rich.console import Console
 from rich.markdown import Markdown
 from rich import print as rprint
+from chatutils import CodeBlock, make_fullpath, extract_code_block, execute_script
 import subprocess
 import os
 from pathlib import Path
 from textwrap import dedent
 
+# https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-attributes
+safety_settings = {
+    HarmCategory.HARM_CATEGORY_UNSPECIFIED: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+}
+
+# tool_fns = [{
+#     "type": "function",
+#     "function": {
+#         "name": "eval",
+#         "description": "Evaluate a mathematical expression and return the result as a string",
+#         "parameters": {
+#             "type": "object",
+#             "properties": {
+#                 "expression": {
+#                     "type": "string",
+#                     "description": "The mathematical expression to be evaluated. You can use python class math, datetime, date, time without import"
+#                     }
+#                 },
+#             "required": ["expression"]
+#             }
+#         }
+#     }]
+
 console = Console()
 #llm2 = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.2)
 #llm = ChatOpenAI(model="gpt-4-turbo-preview", temperature=0.2)
-llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.2, base_url='http://localhost:1234/v1')
+#llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.2, base_url='http://localhost:1234/v1')
 
 
-def make_fullpath(fn: str) -> Path:
-    return Path.home() / 'Documents' / fn
+@tool
+def tool_eval(expression: str) -> str:
+    """Evaluate a mathematical expression. The expression can include use python class math, datetime"""
+    console.print('eval: ' + expression, style='yellow')
+    r = ""
+    try:
+        r = eval(expression)
+        console.print('result: ' + str(r), style='yellow')
+    except Exception as e:
+        r = 'ERROR: ' + str(e)
+        console.print(r, style='red')
+    return r
 
 
-def save_and_execute_python(s: str):
-    console.print('executing code...', style='red')
-    full_path = make_fullpath('temp.py')
-    with open(full_path, 'w') as f:
-        f.write(s)
-    
-    result = subprocess.run(["python", full_path], capture_output=True)
-    output = result.stdout.decode("utf-8")
-    err = result.stderr.decode("utf-8")
-    if len(output) > 0:
-        console.print(Markdown(output), style='yellow')
-    else:
-        console.print(err, style='red')
-    return output, err
-
-
-def save_and_execute_bash(s: str):
-    console.print('executing code...', style='red')
-    full_path = make_fullpath('temp')
-    with open(full_path, 'w') as f:
-        f.write(s)
-    
-    os.system(f'chmod +x {full_path}')
-    result = subprocess.run([full_path], shell=True, executable='/bin/bash', capture_output=True)
-    output = result.stdout.decode("utf-8")
-    err = result.stderr.decode("utf-8")
-    if len(output) > 0:
-        console.print(Markdown(output), style='yellow')
-    else:
-        console.print(err, style='red')
-    return output, err
-
-def save_and_execute_pwsh(contents: str):
-    console.print('executing code...', style='red')
-    full_path = make_fullpath('temp.ps1')
-    with open(full_path, 'w') as f:
-       f.write(contents)
-    
-    result = subprocess.run([full_path], executable=r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe', shell=True, capture_output=True)
-    output = result.stdout.decode("utf-8")
-    err = result.stderr.decode("utf-8")
-    if len(output) > 0:
-        console.print(Markdown(output), style='yellow')
-    else:
-        console.print(err, style='red')
-    return output, err
-
-
-def extract_code_block(contents: str, sep: str) -> str:
-    '''extracts the string between a pair of separtors. If there is no seperator return None'''
-    y = len(sep)
-    start_index = contents.find(sep)
-    if start_index >= 0:
-        end_index = contents.find(sep, start_index + y)
-        if end_index >= 0:
-            return contents[start_index + y:end_index]
-    return None
-
-
-def execute_script(code):
-    output = None
-    err = None
-    msg = None
-    if code.startswith('python\n'):
-        output, err = save_and_execute_python(code[7:])
-        msg = err if err else output
-    elif code.startswith('bash\n'):
-        output, err = save_and_execute_bash(code[5:])
-        msg = output
-    elif code.startswith('powershell\n'):
-        output, err = save_and_execute_pwsh(code[11:])
-        msg = err if err else output
-    else:
-        console.print('code block found but not executed\n' + code, style='yellow')
-    return msg
-
-
-def strip_content_after_block(s: str, sep: str) -> str:
-    '''strip content after code block because the LLM often guesses the output of the script which confuses the LLM when it sees it in the chat history'''
-    x = s.find(sep)
-    y = s.find(sep, x+1)
-    console.print('ignoring content\n' + s[y+3:], style='yellow')
-    return s[:y]
-
-
-def execute_code_reply(messages, retries: int):
-    '''check if last message has a code block and automatically execute it and pass the results back to the llm'''
-    msg = messages[-1]
-    code = extract_code_block(msg.content, '```')
-    executions = 0
-    while code and executions < retries:
-        msg.content = strip_content_after_block(msg.content, '```')
-        executions += 1
-        output = execute_script(code)
-        if output:
-            messages.append(HumanMessage(f'script output:\n```\n{output}\n```\n'))
-            msg = llm.invoke(messages)
-            messages.append(msg)
-            code = extract_code_block(msg.content, '```')
+def process_tool_calls(messages):
+    '''process tool calls and add results to message history'''
+    for call in messages[-1].tool_calls:
+        if call['name'].lower() == 'tool_eval':
+            r = tool_eval(call['args']['expression'])
+            messages.append(ToolMessage(r, tool_call_id = call['id']))
         else:
-            code = None
+            messages.append(ToolMessage('unknown tool: ' + call['name'], tool_call_id = call['id']))
+
+
+def check_and_process_code_block(llm, messages, max_executions):
+    '''check for a code block, execute it and pass output back to LLM. This can happen several times if there are errors. If there is no code block then the original response is returned'''
+    aimsg = messages[-1]
+    code = extract_code_block(aimsg.content, '```')
+    n = 0
+    while code and len(code.language) > 0 and n < max_executions:
+        # print original message from llm
+        output = execute_script(code)
+        n += 1
+        code = None
+        if output:
+            msg = HumanMessage('## output from running script\n' + output + '\n')
+            messages.append(msg)
+            print_message(msg)
+            aimsg = llm.invoke(messages)
+            messages.append(aimsg)
+            print_message(aimsg)
+            code = extract_code_block(aimsg.content,  '```')
+
+
+def print_message(m):
+    c = 'cyan'
+    role = 'assistant'
+    if isinstance(m, SystemMessage):
+        c = 'red'
+        role = 'system'
+    elif isinstance(m, HumanMessage):
+        c = 'green'
+        role = 'user'
+    elif isinstance(m, ToolMessage):
+        c = 'yellow'
+        role = 'tool'
+    
+    console.print(f'\n{role}:', style=c)
+    if m.content:
+        md = Markdown(m.content)
+        console.print(md, style=c)
+    elif len(m.tool_calls) > 0:
+        console.print(m.tool_calls[0], style=c)
 
 
 def print_history(messages):
     for m in messages:
-        c = 'cyan'
-        role = 'assistant'
-        if isinstance(m, SystemMessage):
-            c = 'red'
-            role = 'system'
-        elif isinstance(m, HumanMessage):
-            c = 'green'
-            role = 'user'
-            
-        md = Markdown(m.content)
-        console.print(f'\n{role}:', style=c)
-        console.print(md, style=c)
+        print_message(m)
+
 
 messages = [
-    SystemMessage(f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You are hepful and concise. The current datetime is {datetime.datetime.now().isoformat()}.'),
-#    HumanMessage('show contents of q2.md in the users documents folder using powershell'),
-#    HumanMessage('write a powershell command to list files in c:\\temp\\ultra matching the spec zes*.csv and sort by most recently modified then show the first 10 list of the first file. remember to use a foreach with the get-content command'),
-    # HumanMessage('use bash to show .csv files in ~/Downloads sorted by filename')
-    # HumanMessage('write a bash script to get the details of the Linux distro and kernel version')
+    SystemMessage(f'The current datetime is {datetime.now().isoformat()}.'),
     HumanMessage(dedent("""
-describe some recent examples of US government misinforation about the effectiveness of covid vaccines."
+use python to print the contents of ~\\Documents\\q2.md               
                         """))
-    # HumanMessage(dedent("""
-    # I need pay for an apple that costs 6p. I have the following coins: one 10p, one 5p, three 2p. Select the coins that exactly pay for the apple. You can only select coins from those available.
-    # Write your answer as
-    # ## thinking
-    #     - review the problem and how to approach it
-    # ## solution
-    #     - write your solution here                
-    #                     """))
-    # HumanMessage('what is 58461307 / 7643')
-    # HumanMessage('how many years ago was the first moon landing')
 ]
 
-msg = llm.invoke(messages)
-messages.append(msg)
+def create_llm(llm_name, toolUse):
+    if llm_name == 'pro':
+        llm = ChatVertexAI(model='gemini-1.5-pro-preview-0514',  safety_settings=safety_settings)
+    elif llm_name == 'haiku':
+        llm = ChatAnthropicVertex(model_name='claude-3-haiku')
+    else:
+        llm = ChatVertexAI(model='gemini-1.5-flash-preview-0514',  safety_settings=safety_settings)
+    if toolUse and llm_name != 'haiku':
+        llm = llm.bind_tools([tool_eval])
+    return llm
 
-execute_code_reply(messages, 3)
 
-print_history(messages)
+def chat(llm_name):
+    llm = create_llm(llm_name, False)
+    console.print('chat with model: ' + llm.model_name, style='yellow')
+    msg = llm.invoke(messages)
 
-# messages.append(HumanMessage('<tool_response>7649<tool_response>'))
+    while len(msg.tool_calls) > 0:
+        messages.append(msg)
+        print_message(msg)
+        process_tool_calls(messages)
+        breakpoint()
+        msg = llm.invoke(messages)
 
-# msg = llm.invoke(messages)
-# messages.append(msg)
+    messages.append(msg)
+    print_history(messages)
 
-# print_history(messages)
+    check_and_process_code_block(llm, messages, 3)
 
-# messages.append(HumanMessage('your solution is not correct. please fix.'))
+    inp = ''
+    while (inp != 'x'):
+        inp = input()
+        if len(inp) > 3:
+            messages.append(HumanMessage(inp))
+            msg = llm.invoke(messages)
+            messages.append(msg)
+            print_message(msg)
+            
 
-# msg = llm.invoke(messages)
-# messages.append(msg)
+    # execute_code_reply(messages, 3)
 
-# print_history(messages)
+#    print_history(messages)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Chat with LLMs')
+    parser.add_argument('llm', type=str, help='LLM to use [flash|pro|haiku]')
+    args = parser.parse_args()
+    chat(args.llm)

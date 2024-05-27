@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from dataclasses import dataclass, asdict
 from typing import List
 from dataclasses_json import dataclass_json
@@ -25,12 +26,21 @@ def make_fullpath(fn: str) -> Path:
     return Path.home() / 'Documents' / fn
 
 
+def save_content(msg):
+    filename = make_fullpath('temp.txt')
+    with open(filename, 'w') as f:
+        f.write(msg.content)
+    s = f'saved {msg.content if len(msg.content) < 70 else msg.content[:70] + ' ...'}'
+    console.print(s, style='red')
+
+
 def save_code(fn : str, code: CodeBlock) -> Path:
     console.print('executing code...', style='red')
     full_path = make_fullpath(fn)
     with open(full_path, 'w') as f:
         f.write('\n'.join(code.lines))
     return full_path
+
 
 def save_and_execute_python(code: CodeBlock):
     script_path = save_code('temp.py', code)
@@ -74,6 +84,13 @@ def search_for_language(s: str) -> str:
     return xs[0] if len(xs) > 0 else ''
 
 
+def search_for_exact_language(s: str) -> str:
+    for e in ['python', 'bash', 'powershell']:
+        if s == e:
+            return s
+    return ''
+        
+
 def extract_code_block(contents: str, sep: str) -> CodeBlock:
     '''extracts the first code block'''
     xs = contents.splitlines()
@@ -91,9 +108,13 @@ def extract_code_block(contents: str, sep: str) -> CodeBlock:
         else:
             if inside:
                 # infer language based on content
-                if len(code.language) == 0 and ('print(' in x or 'import' in x):
+                if (len(code.language) == 0) and ('print(' in x or 'import' in x):
                     code.language = 'python'
-                if x != 'powershell':   # hack in case mentioned in first line
+                # check for line with name of language
+                em = search_for_exact_language(x)
+                if (len(em) > 0):
+                    code.language = em
+                else:
                     code.lines.append(x)
 
     return code
@@ -185,9 +206,17 @@ ls ~/Documents/*.txt
 
 
     def test_execute_script2(self):
-        c = CodeBlock('powershell', ['Write-Output "hello from powershell"'])
-        out = execute_script(c)
-        self.assertEqual(out, 'hello from powershell\n')
+        if platform.system() == 'Windows':
+            c = CodeBlock('powershell', ['Write-Output "hello from powershell"'])
+            out = execute_script(c)
+            self.assertTrue(out.startswith('hello from powershell'))
+
+
+    def test_execute_script3(self):
+        if platform.system() == 'Linux':
+            c = CodeBlock('bash', ['echo hello from bash $(date +"%Y-%m-%d")'])
+            out = execute_script(c)
+            self.assertTrue(out.startswith('hello from bash'))
 
 
     def test_extract_code_block(self):

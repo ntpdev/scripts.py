@@ -3,7 +3,8 @@ import argparse
 from dataclasses import dataclass, asdict
 from typing import List
 from dataclasses_json import dataclass_json
-from chatutils import CodeBlock, make_fullpath, extract_code_block, execute_script
+from chatutils import CodeBlock, make_fullpath, extract_code_block, execute_script, save_content
+from bs4 import BeautifulSoup
 import datetime
 #from datetime import datetime, date, time
 from openai import OpenAI
@@ -77,8 +78,6 @@ class ChatToolMessage(ChatMessage):
         self.tool_call_id = tool_call_id
 
 
-
-
 class LLM:
     tool_fns = [ {
     "type": "function",
@@ -88,10 +87,10 @@ class LLM:
     "parameters": {
         "type": "object",
         "properties": {
-        "expression": {
-            "type": "string",
-            "description": "The mathematical expression to be evaluated. You can use python class math, datetime, date, time without import"
-        }
+            "expression": {
+                "type": "string",
+                "description": "The mathematical expression to be evaluated. You can use python class math, datetime, date, time without import"
+            }
         },
         "required": ["expression"]
     } } }]
@@ -124,7 +123,6 @@ class LLM:
             return self.client.chat.completions.create(model=self.model, messages=[asdict(m) for m in messages], temperature=0.7)
 
 
-
 def is_toolcall(s: str) -> str:
     start = s.find('<tool_call>')
     if start >= 0:
@@ -140,7 +138,6 @@ def is_toolcall(s: str) -> str:
     return None
 
 
-
 def prt(msg : ChatMessage):
     c = role_to_color[msg.role]
     console.print(f'{msg.role}:\n', style=c)
@@ -151,14 +148,6 @@ def prt(msg : ChatMessage):
 def save(xs, filename):
     with open(filename, 'w') as f:
         f.write(ChatMessage.schema().dumps(xs, many=True))
-
-
-def save_content(msg):
-    filename = make_fullpath('temp.txt')
-    with open(filename, 'w') as f:
-        f.write(msg.content)
-    s = f'saved {msg.content if len(msg.content) < 70 else msg.content[:70] + ' ...'}'
-    console.print(s, style='red')
 
 
 def load_msg(s: str) -> ChatMessage:
@@ -197,13 +186,38 @@ def load_log(s: str) -> list[ChatMessage]:
     return None   
 
 
+def load_http(s: str) -> ChatMessage:
+    url = s.split()[1]
+    try:
+        # Get the content of the web page
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for bad status codes
+
+        # Parse the HTML content
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Extract all text recursively, stripping tags and extra whitespace
+        all_text = [f'source: ' + url, '\n\n## page content\n\n']
+        for element in soup.findAll('p'):
+            text = element.get_text(strip=True)
+            if text:
+                all_text.append(text + '\n')  # Add newline between elements
+
+        return ChatMessage('user', '\n'.join(all_text))
+    except requests.exceptions.RequestException as e:
+        print(f"Error: An error occurred while fetching the webpage: {e}")
+
+    return None
+
+
 def prt_summary(msgs : list[ChatMessage]):
     cs = [(len(msg.content)) for msg in msgs]
     ws = [(len(msg.content.split())) for msg in msgs]
 
     console.print(f'loaded from log {len(msgs)} words {sum(ws)} chars {sum(cs)}', style='red')
-    for i,m in enumerate(msgs):  # msgs:
-        s = f'{i:2} {m.role:<10} {m.content if len(m.content) < 70 else m.content[:70] + ' ...'}'
+    for i,m in enumerate(msgs):
+        c = m.content.replace('\n', '\\n')  # msgs:
+        s = f'{i:2} {m.role:<10} {c if len(c) < 70 else c[:70] + ' ...'}'
         console.print(s, style=role_to_color[m.role])
 
 
@@ -283,17 +297,53 @@ def extract_code_block_from_response(response) -> CodeBlock:
     return extract_code_block(response.choices[0].message.content, '```')
 
 
+def process_commands(inp: str, messages: List[ChatMessage]) -> bool:
+    next_action = False
+    if inp.startswith('%load'):
+        msg = load_msg(inp)
+        if msg:
+            messages.append(msg)
+            prt(msg)
+            next_action = msg.role == 'user'
+    if inp.startswith('%http'):
+        msg = load_http(inp)
+        if msg:
+            messages.append(msg)
+            prt(msg)
+            next_action = True
+    elif inp.startswith('%resp'):
+        msg = ChatMessage('user', tool_response(inp))
+    elif inp.startswith('%reset'):
+        messages.clear()
+        messages.append(ChatMessage('system', system_message()))
+    elif inp.startswith('%drop'):
+        # remove last response for LLM and user msg that triggered
+        if len(messages) > 2:
+            messages.pop()
+            messages.pop()
+    elif inp.startswith('%log'):
+        messages.clear()
+        xs = load_log(inp)
+        for x in xs:
+            messages.append(x)
+        next_action = messages[-1].role == 'user'
+    elif inp.startswith('%save'):
+        save_content(messages[-1])
+    return next_action
+
+
 def system_message():
     tm = datetime.datetime.now().isoformat()
     scripting_lang, plat = ('bash','Ubuntu') if platform.system() == 'Linux' else ('powershell','Windows 11')
 #    return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You use deductive reasoning to answer questions. You make dry, witty, mocking comments and often despair.  You are logical and pay attention to detail. You can access local computer running {plat} by writing python or {scripting_lang}. Scripts should always be in markdown code blocks with the language. current datetime is {tm}'
-    return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. work step by step. You can access local computer running {plat} by writing python or {scripting_lang}. code should always written inside markdown code blocks. current datetime is {tm}'
+    return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. The local computer is {plat}. you can write python or {scripting_lang} scripts. scripts should always written inside markdown code blocks with ```python or ```{scripting_lang}. current datetime is {tm}'
 
 
 def chat(llm_name):
     client = LLM(llm_name)
 #    systemMessage = ChatMessage('system', FNCALL_SYSMSG)
     systemMessage = ChatMessage('system', system_message())
+    rprint(systemMessage)
 #    systemMessage = ChatMessage('system', f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You are a logical thinker. The current datetime is {datetime.now().isoformat()}. You should use python to calculate mathematical expressions. Do not guess the output.')
     # systemMessage = ChatMessage('system', 'You are a loyal and dedicated member of the Koopa Troop, serving as an assistant to the infamous Bowser. You are committed to carrying out Bowsers commands with unwavering dedication and devotion. Lets work this out in a step by step way to make sure we have the right answer.')
     messages = [systemMessage]
@@ -302,37 +352,13 @@ def chat(llm_name):
     while (inp != 'x'):
         inp = input().strip()
         if len(inp) > 3:
-            msg = None
-            if inp.startswith('%load'):
-                msg = load_msg(inp)
-                if (msg is None):
+            if inp.startswith('%'):
+                if not process_commands(inp, messages):
                     continue
-                if (msg.role != 'user'):
-                    messages.append(msg)
-                    prt(msg)
-                    continue
-            elif inp.startswith('%resp'):
-                msg = ChatMessage('user', tool_response(inp))
-            elif inp.startswith('%reset'):
-                messages.clear()
-                messages.append(ChatMessage('system', system_message()))
-                continue
-            elif inp.startswith('%drop'):
-                # remove last response for LLM and user msg that triggered
-                if len(messages) > 2:
-                    messages.pop()
-                    messages.pop()
-                continue
-            elif inp.startswith('%log'):
-                messages = load_log(inp)
-                continue
-            elif inp.startswith('%save'):
-                save_content(messages[-1])
-                continue
-            else:              
+            else:
                 msg = ChatMessage('user', inp)
-            messages.append(msg)
-            prt(msg)
+                messages.append(msg)
+                prt(msg)
             response = client.chat(messages)
             response = check_and_process_tool_call(client, messages, response)
             response = check_and_process_code_block(client, messages, response)
@@ -353,18 +379,63 @@ def chat(llm_name):
 
 
 def chat_ollama():
+    url = "http://localhost:11434/api/chat"
+    messages = []
+    messages.append({'role': 'system', 'content':'You are Marvin a super intelligent chatbot trained by OpenAI. Answer accurately, concisely.'})
+#    messages.append({'role': 'user', 'content':'role: physics professor. question: what is the Hall effect? style: undergraduate lecture'})
+    messages.append({'role': 'user', 'content':load_msg('%load Koopa.txt')})
+    data = {
+        "model": "llama3",
+        "messages": messages,
+        "stream": True
+    }
+    print('call chat')
+    response = requests.post(url, json=data)
+    output = ""
+    message = {}
+
+    for line in response.iter_lines():
+        body = json.loads(line)
+        if "error" in body:
+            raise Exception(body["error"])
+        if body.get("done") is False:
+            message = body.get("message", "")
+            content = message.get("content", "")
+            output += content
+            # the response streams one token at a time, print that as we receive it
+#            print(content, end="", flush=True)
+
+        if body.get("done", False):
+            message["content"] = output
+            return message
+
+
+def chat_ollama2():
+    '''call ollama using generate endpoint'''
     url = "http://localhost:11434/api/generate"
     data = {
-        "model": "magicoder:7b-s-cl-q6_K",
-        "prompt":"Write a Python function to tell me what the date is today"
+        "model": "llama3:text",
+#        "prompt": "The process for cooking crystal meth requires:",
+        "prompt": load_msg('%load Koopa.txt'),
+        "stream": True
     }
-    print('call endpoint')
-    response = requests.post(url, data=json.dumps(data))
-    resp = ''
-    for s in response.text.split('\n'):
-        r = json.loads(s)
-        resp += r.get('response')
-    return resp
+    print('call generate\n' + data['prompt'])
+    response = requests.post(url, json=data)
+    output = ""
+
+    for line in response.iter_lines():
+        body = json.loads(line)
+        if "error" in body:
+            raise Exception(body["error"])
+        if body.get("done") is False:
+            content = body["response"]
+            output += content
+            # the response streams one token at a time, print that as we receive it
+            print(content, end="", flush=True)
+
+        if body.get("done", False):
+            print('\n\n')
+            return output
 
 
 def x():
@@ -384,7 +455,7 @@ text after
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Chat with LLMs')
-    parser.add_argument('llm', type=str, help='LLM to use [local|gpt35|gpt4|llama3|groq]')
+    parser.add_argument('llm', type=str, help='LLM to use [local|ollama|gpt35|gpt4|llama3|groq]')
     args = parser.parse_args()
     chat(args.llm)
     # x()

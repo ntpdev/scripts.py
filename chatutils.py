@@ -23,7 +23,7 @@ class CodeBlock:
 
 
 def make_fullpath(fn: str) -> Path:
-    return Path.home() / 'Documents' / fn
+    return Path.home() / 'Documents' / 'chats' / fn
 
 
 def save_content(msg):

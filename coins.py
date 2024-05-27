@@ -50,6 +50,41 @@ def remove_starting(xs):
         n += 1
     return xs[n:]
 
+
+def find_combination2(coins):
+    '''return all combinations of coins'''
+    # dp[i] is the list of coins to make i. None indicates no solution found yet.
+    target = sum(coins)
+    n = target + 1
+    dp = [None] * n
+    dp[0] = []
+    
+    for c in sorted(coins, reverse=True): # process largest first, this is not necessary but ensures least coins used
+        # find all solutions which can be extended by adding c and which do not have a solution
+        idxs = [i for i,soln in enumerate(dp) if soln is not None and i + c < n and dp[i+c] is None]
+        for i in idxs:
+            dp[i+c] = dp[i] + [c]
+
+    return dp
+
+
+def find_combination(coins, target):
+    '''find a combination of coins from the given list if coins which adds to the target'''
+    # dp[i] is the list of coins to make i. None indicates no solution found yet.
+    dp = [None] * (target + 1)
+    dp[0] = []
+
+    for coin in coins:
+        # because we are mutating dp we must move down the array
+        for i in range(target, coin-1, -1):
+            # if subproblem i-coin has a solution then i has a solution using coin & the earlier solution
+            # add solution if no existing solution and shorter
+            if (dp[i - coin] is not None) and ((dp[i] is None) or (len(dp[i]) > len(dp[i - coin]))):
+                dp[i] = dp[i - coin] + [coin]
+        
+    return dp[target]
+
+
 # DP solution find the least number of coins for a given total
 # minCoins[i] is list of coins needed to make i
 # O(c * n) compared to O(c ^ n)
@@ -58,7 +93,7 @@ def search(coins, target):
     least number of coins for a given total.
     
     Args:
-        coins: List of integers representing different coin values.
+        coins: List of integers representing different coin values available.
         target: An integer representing the total value to be achieved.
         
     Returns:
@@ -146,6 +181,26 @@ class TestMethods(unittest.TestCase):
         res = coins_at_least_target([2,5,7], 15)
         self.assertEqual(len(res), 0)
         print(res)
+
+    def test_find_combinations(self):
+        res = find_combination([10,5,5,2,2,2], 11)
+        self.assertEqual(sum(res), 11)
+        self.assertListEqual(res, [5,2,2,2])
+        
+        xs = [find_combination([2,2,2,5,5,10], e) for e in range(1,30)]
+        unreachable = [i+1 for i,x in enumerate(xs) if x is None]
+        self.assertListEqual(unreachable, [1, 3, 8, 13, 18, 23, 25, 27, 28, 29])
+
+
+    def test_find_combinations2(self):
+        dp = find_combination2([2,2,2,5,5,10])
+        self.assertEqual(sum(dp[11]), 11)
+        self.assertListEqual(dp[11], [5,2,2,2])
+        
+        dp = find_combination2([2,2,2,5,5,10])
+        unreachable = [i for i,x in enumerate(dp) if x is None]
+        self.assertListEqual(unreachable, [1, 3, 8, 13, 18, 23, 25])
+
 
 if __name__ == '__main__':
     unittest.main()

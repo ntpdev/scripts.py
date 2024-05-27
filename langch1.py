@@ -1,6 +1,6 @@
 import argparse
 from dataclasses import dataclass
-from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage, BaseMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
@@ -74,6 +74,15 @@ def process_tool_calls(messages):
             messages.append(ToolMessage('unknown tool: ' + call['name'], tool_call_id = call['id']))
 
 
+def check_and_process_tool_calls(llm, messages):
+    msg = messages[-1]
+    while len(msg.tool_calls) > 0:
+        process_tool_calls(messages)
+        msg = llm.invoke(messages)
+        messages.append(msg)
+        print_message(msg)
+
+
 def check_and_process_code_block(llm, messages, max_executions):
     '''check for a code block, execute it and pass output back to LLM. This can happen several times if there are errors. If there is no code block then the original response is returned'''
     aimsg = messages[-1]
@@ -120,11 +129,26 @@ def print_history(messages):
         print_message(m)
 
 
+def load_msg(s: str) -> BaseMessage:
+    xs = s.split()
+    fname = make_fullpath(xs[1])
+    is_human = len(xs) <= 2
+    
+    try:
+        with open(fname, 'r') as f:
+            s = f.read()
+            return HumanMessage(s) if is_human else AIMessage(s)
+    except FileNotFoundError:
+        console.print(f'{fname} FileNotFoundError', style='red')
+#       raise FileNotFoundError(f"Chat message file not found: {filename}")
+    return None
+
+
 messages = [
     SystemMessage(f'The current datetime is {datetime.now().isoformat()}.'),
-    HumanMessage(dedent("""
-use python to print the contents of ~\\Documents\\q2.md               
-                        """))
+#     HumanMessage(dedent("""
+# hello. what is the time.              
+#                         """))
 ]
 
 def create_llm(llm_name, toolUse):
@@ -142,28 +166,40 @@ def create_llm(llm_name, toolUse):
 def chat(llm_name):
     llm = create_llm(llm_name, False)
     console.print('chat with model: ' + llm.model_name, style='yellow')
-    msg = llm.invoke(messages)
+#    msg = llm.invoke(messages)
 
-    while len(msg.tool_calls) > 0:
-        messages.append(msg)
-        print_message(msg)
-        process_tool_calls(messages)
-        breakpoint()
-        msg = llm.invoke(messages)
+    # while len(msg.tool_calls) > 0:
+    #     messages.append(msg)
+    #     print_message(msg)
+    #     process_tool_calls(messages)
+    #     breakpoint()
+    #     msg = llm.invoke(messages)
 
-    messages.append(msg)
-    print_history(messages)
+    # messages.append(msg)
+    # print_history(messages)
 
-    check_and_process_code_block(llm, messages, 3)
+    # check_and_process_code_block(llm, messages, 3)
 
     inp = ''
     while (inp != 'x'):
-        inp = input()
+        inp = input().strip()
         if len(inp) > 3:
-            messages.append(HumanMessage(inp))
+            if inp.startswith('%load'):
+                msg = load_msg(inp)
+                if msg is None:
+                    continue
+                elif isinstance(msg, AIMessage):
+                    messages.append(msg)
+                    continue
+                print_message(msg)
+            else:
+                msg = HumanMessage(inp)
+            messages.append(msg)
             msg = llm.invoke(messages)
             messages.append(msg)
             print_message(msg)
+            check_and_process_tool_calls(llm, messages)
+            check_and_process_code_block(llm, messages, 3)
             
 
     # execute_code_reply(messages, 3)

@@ -4,10 +4,15 @@ from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, Tool
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_core.chat_history import BaseChatMessageHistory
 # from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_google_vertexai import ChatVertexAI, HarmBlockThreshold, HarmCategory
 from langchain_google_vertexai.model_garden import ChatAnthropicVertex
 from datetime import datetime, date, time
+import platform
+import math
 from rich.console import Console
 from rich.markdown import Markdown
 from rich import print as rprint
@@ -45,6 +50,7 @@ safety_settings = {
 #     }]
 
 console = Console()
+store = {}
 #llm2 = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.2)
 #llm = ChatOpenAI(model="gpt-4-turbo-preview", temperature=0.2)
 #llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.2, base_url='http://localhost:1234/v1')
@@ -53,10 +59,13 @@ console = Console()
 @tool
 def tool_eval(expression: str) -> str:
     """Evaluate a mathematical expression. The expression can include use python class math, datetime"""
-    console.print('eval: ' + expression, style='yellow')
+    #console.print('eval: ' + expression, style='yellow')
     r = ""
     try:
-        r = eval(expression)
+        exp = expression.replace('datetime.datetime', 'datetime')
+        exp = expression.replace('datetime.date', 'date')
+        console.print('eval: ' + exp, style='yellow')
+        r = eval(exp)
         console.print('result: ' + str(r), style='yellow')
     except Exception as e:
         r = 'ERROR: ' + str(e)
@@ -64,22 +73,25 @@ def tool_eval(expression: str) -> str:
     return r
 
 
-def process_tool_calls(messages):
-    '''process tool calls and add results to message history'''
-    for call in messages[-1].tool_calls:
+def process_tool_calls(msg):
+    '''process tool calls and add return ToolMessages'''
+    messages = []
+    for call in msg.tool_calls:
         if call['name'].lower() == 'tool_eval':
             r = tool_eval(call['args']['expression'])
             messages.append(ToolMessage(r, tool_call_id = call['id']))
         else:
             messages.append(ToolMessage('unknown tool: ' + call['name'], tool_call_id = call['id']))
+    return messages
 
 
-def check_and_process_tool_calls(llm, messages):
-    msg = messages[-1]
+def check_and_process_tool_calls(llm, history):
+    msg = history.messages[-1]
     while len(msg.tool_calls) > 0:
-        process_tool_calls(messages)
-        msg = llm.invoke(messages)
-        messages.append(msg)
+        toolmsgs = process_tool_calls(msg)
+        history.add_messages(toolmsgs)
+        msg = llm.invoke(history.messages)
+        history.add_message(msg)
         print_message(msg)
 
 
@@ -144,67 +156,80 @@ def load_msg(s: str) -> BaseMessage:
     return None
 
 
-messages = [
-    SystemMessage(f'The current datetime is {datetime.now().isoformat()}.'),
-#     HumanMessage(dedent("""
-# hello. what is the time.              
-#                         """))
-]
+def get_session_history(session_id: str) -> BaseChatMessageHistory:
+    if session_id not in store:
+        store[session_id] = ChatMessageHistory()
+    return store[session_id]
 
-def create_llm(llm_name, toolUse):
+
+def single_message(llm):
+    prompt = ChatPromptTemplate.from_messages([system_message(), load_msg('%load q2.md')])
+    h = get_session_history('z1')
+    h.add_message(system_message())
+    chain = prompt | llm
+    chain_history = RunnableWithMessageHistory(chain, get_session_history, input_messages_key="question", history_messages_key="history")
+    m = chain_history.invoke({}, config={'configurable': {'session_id': 'z1'}})
+    rprint(store)
+    # rprint(get_session_history('z1'))
+    
+
+def system_message():
+    tm = datetime.now().isoformat()
+    scripting_lang, plat = ('bash','Ubuntu 23.10') if platform.system() == 'Linux' else ('powershell','Windows 11')
+#    return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You use deductive reasoning to answer questions. You make dry, witty, mocking comments and often despair.  You are logical and pay attention to detail. You can access local computer running {plat} by writing python or {scripting_lang}. Scripts should always be in markdown code blocks with the language. current datetime is {tm}'
+    return SystemMessage(f'You are Marvin a super intelligent AI chatbot. The local computer is {plat}. you can write python or {scripting_lang} scripts. scripts should always written inside markdown code blocks with ```python or ```{scripting_lang}. current datetime is {tm}')
+
+
+# messages = [
+#     system_message(),
+# #     HumanMessage(dedent("""
+# # hello. what is the time.              
+# #                         """))
+# ]
+
+def create_llm(llm_name, temp, toolUse):
     if llm_name == 'pro':
-        llm = ChatVertexAI(model='gemini-1.5-pro-preview-0514',  safety_settings=safety_settings)
+        llm = ChatVertexAI(model='gemini-1.5-pro-preview-0514',  safety_settings=safety_settings, temperature=temp)
     elif llm_name == 'haiku':
-        llm = ChatAnthropicVertex(model_name='claude-3-haiku')
+        llm = ChatAnthropicVertex(model_name='claude-3-haiku', temperature=temp)
     else:
-        llm = ChatVertexAI(model='gemini-1.5-flash-preview-0514',  safety_settings=safety_settings)
+        llm = ChatVertexAI(model='gemini-1.5-flash-preview-0514',  safety_settings=safety_settings, temperature=temp)
     if toolUse and llm_name != 'haiku':
         llm = llm.bind_tools([tool_eval])
     return llm
 
 
 def chat(llm_name):
-    llm = create_llm(llm_name, False)
+    llm = create_llm(llm_name, 0.2, True)
     console.print('chat with model: ' + llm.model_name, style='yellow')
-#    msg = llm.invoke(messages)
-
-    # while len(msg.tool_calls) > 0:
-    #     messages.append(msg)
-    #     print_message(msg)
-    #     process_tool_calls(messages)
-    #     breakpoint()
-    #     msg = llm.invoke(messages)
-
-    # messages.append(msg)
-    # print_history(messages)
-
-    # check_and_process_code_block(llm, messages, 3)
+    history = ChatMessageHistory()
+    history.add_message(system_message())
 
     inp = ''
     while (inp != 'x'):
         inp = input().strip()
+        msg = None
         if len(inp) > 3:
             if inp.startswith('%load'):
                 msg = load_msg(inp)
                 if msg is None:
                     continue
                 elif isinstance(msg, AIMessage):
-                    messages.append(msg)
+                    history.add_message(msg)
+                    print_message(msg)
                     continue
-                print_message(msg)
             else:
                 msg = HumanMessage(inp)
-            messages.append(msg)
-            msg = llm.invoke(messages)
-            messages.append(msg)
             print_message(msg)
-            check_and_process_tool_calls(llm, messages)
-            check_and_process_code_block(llm, messages, 3)
+            history.add_message(msg)
+            msg = llm.invoke(history.messages)
+            history.add_message(msg)
+            # messages.append(msg)
+            print_message(msg)
+            check_and_process_tool_calls(llm, history)
+            # check_and_process_code_block(llm, messages, 3)
             
-
-    # execute_code_reply(messages, 3)
-
-#    print_history(messages)
+    print_history(history.messages)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Chat with LLMs')

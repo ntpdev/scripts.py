@@ -43,14 +43,6 @@ def cons(e, xs):
     return ys
 
 
-def remove_starting(xs):
-    n = 0
-    e = xs[0]
-    while n < len(xs) and e == xs[n]:
-        n += 1
-    return xs[n:]
-
-
 def find_combination2(coins):
     '''return all combinations of coins'''
     # dp[i] is the list of coins to make i. None indicates no solution found yet.
@@ -85,6 +77,16 @@ def find_combination(coins, target):
     return dp[target]
 
 
+# brute force search of all combinations.
+def check_all_combinations(coins, target):
+    n = len(coins)
+    for bit_pattern in range(2**n):
+        combination = [coins[i] for i in range(n) if (bit_pattern & (1 << i))]
+        if sum(combination) == target:
+            return combination
+    return None
+
+
 # DP solution find the least number of coins for a given total
 # minCoins[i] is list of coins needed to make i
 # O(c * n) compared to O(c ^ n)
@@ -112,23 +114,18 @@ def search(coins, target):
 
     return minCoins[target]
 
+# recursive solution to find coins to meet a target
 def coins_at_least_target(coins, target):
-    """return list of possible combinations of coins that sum to at least target, in sum order"""
     acc = []  # global list of results
 
+    def remove_starting(xs):
+        n = 0
+        e = xs[0]
+        while n < len(xs) and e == xs[n]:
+            n += 1
+        return xs[n:]
+
     def search(unused, target, choosen):
-        """
-        Recursive function that searches for combinations of coins in a wallet to achieve a target value.
-
-        Parameters:
-            unused (list): A list of individual coins.
-            target (int): The target value to be achieved.
-            choosen (list): A list of integers representing the chosen coins in the current combination.
-
-        Returns:
-            None. updates acc with possible solutions.
-        """
-        #print(f'searching {unused} {target} {choosen}')
         if target <= 0:
             acc.append(choosen)
         elif len(unused) > 0:
@@ -190,7 +187,6 @@ class TestMethods(unittest.TestCase):
         xs = [find_combination([2,2,2,5,5,10], e) for e in range(1,30)]
         unreachable = [i+1 for i,x in enumerate(xs) if x is None]
         self.assertListEqual(unreachable, [1, 3, 8, 13, 18, 23, 25, 27, 28, 29])
-
 
     def test_find_combinations2(self):
         dp = find_combination2([2,2,2,5,5,10])

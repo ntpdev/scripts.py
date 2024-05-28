@@ -37,10 +37,10 @@ def isNotMultipleAll(xs):
         f = andCombinator(f,g) if f else g
     return f
 
-def cons(e, xs):
-    ys = xs.copy()
-    ys.append(e)
-    return ys
+# def cons(e, xs):
+#     ys = xs.copy()
+#     ys.append(e)
+#     return ys
 
 
 def find_combination2(coins):
@@ -115,7 +115,7 @@ def search(coins, target):
     return minCoins[target]
 
 # recursive solution to find coins to meet a target
-def coins_at_least_target(coins, target):
+def coins_at_least_target_dfs(coins, target):
     acc = []  # global list of results
 
     def remove_starting(xs):
@@ -161,21 +161,21 @@ class TestMethods(unittest.TestCase):
         print(f'min coins {len(soln)} using {soln} for total {sum(soln)}')
 
     def test_search_limited_coins_a(self):
-        res = coins_at_least_target([1,1,1,1], 3)
+        res = coins_at_least_target_dfs([1,1,1,1], 3)
         self.assertEqual(len(res), 1)
         self.assertEqual(sum(res[0]), 3)
         self.assertListEqual(res[0], [1, 1, 1])
         print(res)
 
     def test_search_limited_coins_b(self):
-        res = coins_at_least_target([2,2,2,5,10], 6)
+        res = coins_at_least_target_dfs([2,2,2,5,10], 6)
         self.assertEqual(len(res), 7)
         self.assertEqual(sum(res[0]), 6)
         self.assertListEqual(res[0], [2, 2, 2])
         print(res)
 
     def test_search_limited_coins_c(self):
-        res = coins_at_least_target([2,5,7], 15)
+        res = coins_at_least_target_dfs([2,5,7], 15)
         self.assertEqual(len(res), 0)
         print(res)
 

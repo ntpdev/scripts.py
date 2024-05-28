@@ -1,7 +1,7 @@
 import argparse
 from dataclasses import dataclass
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage, BaseMessage
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 from langchain_community.chat_message_histories import ChatMessageHistory
@@ -95,22 +95,18 @@ def check_and_process_tool_calls(llm, history):
         print_message(msg)
 
 
-def check_and_process_code_block(llm, messages, max_executions):
+def check_and_process_code_block(llm, aimsg, session_id, max_executions):
     '''check for a code block, execute it and pass output back to LLM. This can happen several times if there are errors. If there is no code block then the original response is returned'''
-    aimsg = messages[-1]
     code = extract_code_block(aimsg.content, '```')
     n = 0
     while code and len(code.language) > 0 and n < max_executions:
-        # print original message from llm
         output = execute_script(code)
         n += 1
         code = None
         if output:
-            msg = HumanMessage('## output from running script\n' + output + '\n')
-            messages.append(msg)
-            print_message(msg)
-            aimsg = llm.invoke(messages)
-            messages.append(aimsg)
+            inp = '## output from running script\n' + output + '\n'
+            print_message(HumanMessage(inp))
+            aimsg =  llm.invoke({'input': inp}, config={'configurable': {'session_id': session_id}})
             print_message(aimsg)
             code = extract_code_block(aimsg.content,  '```')
 
@@ -137,6 +133,7 @@ def print_message(m):
 
 
 def print_history(messages):
+    console.print('\n=== History ===', style='yellow')
     for m in messages:
         print_message(m)
 
@@ -158,26 +155,35 @@ def load_msg(s: str) -> BaseMessage:
 
 def get_session_history(session_id: str) -> BaseChatMessageHistory:
     if session_id not in store:
-        store[session_id] = ChatMessageHistory()
+        h = ChatMessageHistory()
+        h.add_message(system_message())
+        store[session_id] = h
     return store[session_id]
 
 
 def single_message(llm):
-    prompt = ChatPromptTemplate.from_messages([system_message(), load_msg('%load q2.md')])
-    h = get_session_history('z1')
-    h.add_message(system_message())
+    prompt = ChatPromptTemplate.from_messages([MessagesPlaceholder(variable_name="history"), ('human', '{input}')])
+
     chain = prompt | llm
-    chain_history = RunnableWithMessageHistory(chain, get_session_history, input_messages_key="question", history_messages_key="history")
-    m = chain_history.invoke({}, config={'configurable': {'session_id': 'z1'}})
-    rprint(store)
+    chain_history = RunnableWithMessageHistory(chain, get_session_history, input_messages_key="input", history_messages_key="history")
+    m = chain_history.invoke({'input': load_msg('%load question1.txt').content}, config={'configurable': {'session_id': 'z1'}})
+    m = chain_history.invoke({'input': 'and what is the smallest'}, config={'configurable': {'session_id': 'z1'}})
+    print_history(get_session_history('z1').messages)
     # rprint(get_session_history('z1'))
-    
+
+def create_llm_with_history(llm):
+    prompt = ChatPromptTemplate.from_messages([MessagesPlaceholder(variable_name="history"),
+                                               ('human', '{input}')])
+
+    chain = prompt | llm
+    return RunnableWithMessageHistory(chain, get_session_history, input_messages_key="input", history_messages_key="history")
+
 
 def system_message():
     tm = datetime.now().isoformat()
     scripting_lang, plat = ('bash','Ubuntu 23.10') if platform.system() == 'Linux' else ('powershell','Windows 11')
 #    return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You use deductive reasoning to answer questions. You make dry, witty, mocking comments and often despair.  You are logical and pay attention to detail. You can access local computer running {plat} by writing python or {scripting_lang}. Scripts should always be in markdown code blocks with the language. current datetime is {tm}'
-    return SystemMessage(f'You are Marvin a super intelligent AI chatbot. The local computer is {plat}. you can write python or {scripting_lang} scripts. scripts should always written inside markdown code blocks with ```python or ```{scripting_lang}. current datetime is {tm}')
+    return SystemMessage(f'You are Marvin an expert in logic and reasoning. The local computer is {plat}. you can write python or {scripting_lang} scripts. scripts should always written inside markdown code blocks with ```python or ```{scripting_lang}. current datetime is {tm}')
 
 
 # messages = [
@@ -200,10 +206,10 @@ def create_llm(llm_name, temp, toolUse):
 
 
 def chat(llm_name):
-    llm = create_llm(llm_name, 0.2, True)
+    llm = create_llm(llm_name, 0.2, False)
     console.print('chat with model: ' + llm.model_name, style='yellow')
-    history = ChatMessageHistory()
-    history.add_message(system_message())
+    llm = create_llm_with_history(llm)
+    session_id = 'xyz'
 
     inp = ''
     while (inp != 'x'):
@@ -215,21 +221,17 @@ def chat(llm_name):
                 if msg is None:
                     continue
                 elif isinstance(msg, AIMessage):
-                    history.add_message(msg)
                     print_message(msg)
                     continue
-            else:
-                msg = HumanMessage(inp)
+                inp = msg.content
+
+            print_message(HumanMessage(inp))
+            msg = llm.invoke({'input': inp}, config={'configurable': {'session_id': session_id}})
             print_message(msg)
-            history.add_message(msg)
-            msg = llm.invoke(history.messages)
-            history.add_message(msg)
-            # messages.append(msg)
-            print_message(msg)
-            check_and_process_tool_calls(llm, history)
-            # check_and_process_code_block(llm, messages, 3)
+            # check_and_process_tool_calls(llm, history)
+            check_and_process_code_block(llm, msg, session_id, 3)
             
-    print_history(history.messages)
+    print_history(get_session_history(session_id).messages)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Chat with LLMs')

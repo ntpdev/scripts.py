@@ -43,41 +43,51 @@ def save_code(fn : str, code: CodeBlock) -> Path:
 
 
 def save_and_execute_python(code: CodeBlock):
-    script_path = save_code('temp.py', code)
+    try:
+        script_path = save_code('temp.py', code)
 
-    result = subprocess.run(["python", script_path], capture_output=True, text=True)
+        result = subprocess.run(["python", script_path], capture_output=True, text=True, timeout=1)
 
-    if len(result.stdout) > 0:
-        console.print(result.stdout, style='yellow')
-    else:
-        console.print(result.stderr, style='red')
-    return result.stdout, result.stderr
+        if len(result.stdout) > 0:
+            console.print(result.stdout, style='yellow')
+        else:
+            console.print(result.stderr, style='red')
+        return result.stdout, result.stderr
+    except Exception as e:
+        console.print(f'ERROR: {e}', style='red')
+        return None, str(e)
 
 
 def save_and_execute_bash(code: CodeBlock):
-    script_path = save_code('temp', code)
-    
-    os.chmod(script_path, 0o755)  # Set executable permissions
-    result = subprocess.run(["bash", script_path], capture_output=True, text=True)
+    try:
+        script_path = save_code('temp', code)
+        
+        os.chmod(script_path, 0o755)  # Set executable permissions
+        result = subprocess.run(["bash", script_path], capture_output=True, text=True, timeout=1)
 
-    if len(result.stdout) > 0:
-        console.print(result.stdout, style='yellow')
-    else:
-        console.print(result.stderr, style='red')
-    return result.stdout, result.stderr
+        if len(result.stdout) > 0:
+            console.print(result.stdout, style='yellow')
+        else:
+            console.print(result.stderr, style='red')
+        return result.stdout, result.stderr
+    except Exception as e:
+        console.print(f'ERROR: {e}', style='red')
+        return None, str(e)
 
 
 def save_and_execute_powershell(code: CodeBlock):
     script_path = save_code('temp.ps1', code)
+    try:
+        result = subprocess.run(["powershell", "-ExecutionPolicy", "Bypass", "-File", script_path], capture_output=True, text=True, timeout=1)
 
-    result = subprocess.run(["powershell", "-ExecutionPolicy", "Bypass", "-File", script_path], capture_output=True, text=True)
-
-    if len(result.stdout) > 0:
-        console.print(result.stdout, style='yellow')
-    else:
-        console.print(result.stderr, style='red')
-    return result.stdout, result.stderr
-
+        if len(result.stdout) > 0:
+            console.print(result.stdout, style='yellow')
+        else:
+            console.print(result.stderr, style='red')
+        return result.stdout, result.stderr
+    except Exception as e:
+        console.print(f'ERROR: {e}', style='red')
+        return None, str(e)
 
 def search_for_language(s: str) -> str:
     xs = [e for e in ['python', 'bash', 'powershell'] if e in s]

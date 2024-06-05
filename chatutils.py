@@ -7,6 +7,7 @@ import platform
 from pathlib import Path
 from rich.console import Console
 from rich.markdown import Markdown
+from rich.markup import escape
 from rich import print as rprint
 import json
 import subprocess
@@ -89,6 +90,7 @@ def save_and_execute_powershell(code: CodeBlock):
         console.print(f'ERROR: {e}', style='red')
         return None, str(e)
 
+
 def search_for_language(s: str) -> str:
     xs = [e for e in ['python', 'bash', 'powershell'] if e in s]
     return xs[0] if len(xs) > 0 else ''
@@ -136,7 +138,7 @@ def execute_script(code: CodeBlock):
     msg = None
     for i,s in enumerate(code.lines):
         k = i + 1
-        console.print(f'{k:02d} {s}', style='red')
+        console.print(f'{k:02d} {escape(s)}', style='red')
     if code.language == 'python':
         output, err = save_and_execute_python(code)
         if err:

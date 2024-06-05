@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# pip install langchain-core langchain-community langchain-openai langchain-google-vertexai
+
 import argparse
 from dataclasses import dataclass
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage, BaseMessage
@@ -22,6 +25,7 @@ import os
 from pathlib import Path
 from textwrap import dedent
 
+# setup app credentials https://cloud.google.com/docs/authentication/application-default-credentials#GAC
 # https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-attributes
 safety_settings = {
     HarmCategory.HARM_CATEGORY_UNSPECIFIED: HarmBlockThreshold.BLOCK_ONLY_HIGH,
@@ -85,8 +89,9 @@ def process_tool_calls(msg):
     return messages
 
 
-def check_and_process_tool_calls(llm, history):
-    msg = history.messages[-1]
+def check_and_process_tool_calls(llm, msg, session_id):
+    '''process any tool calls. llm should be the raw llm not a prompt chain. message history is manually updated.'''
+    history = get_session_history(session_id)
     while len(msg.tool_calls) > 0:
         toolmsgs = process_tool_calls(msg)
         history.add_messages(toolmsgs)
@@ -171,6 +176,7 @@ def single_message(llm):
     print_history(get_session_history('z1').messages)
     # rprint(get_session_history('z1'))
 
+
 def create_llm_with_history(llm):
     prompt = ChatPromptTemplate.from_messages([MessagesPlaceholder(variable_name="history"),
                                                ('human', '{input}')])
@@ -201,6 +207,7 @@ def create_llm(llm_name, temp, toolUse):
     else:
         llm = ChatVertexAI(model='gemini-1.5-flash-preview-0514',  safety_settings=safety_settings, temperature=temp)
     if toolUse and llm_name != 'haiku':
+        console.print('tool calls enabled', style='yellow')
         llm = llm.bind_tools([tool_eval])
     return llm
 
@@ -208,7 +215,7 @@ def create_llm(llm_name, temp, toolUse):
 def chat(llm_name):
     llm = create_llm(llm_name, 0.2, False)
     console.print('chat with model: ' + llm.model_name, style='yellow')
-    llm = create_llm_with_history(llm)
+    chain = create_llm_with_history(llm)
     session_id = 'xyz'
 
     inp = ''
@@ -226,12 +233,13 @@ def chat(llm_name):
                 inp = msg.content
 
             print_message(HumanMessage(inp))
-            msg = llm.invoke({'input': inp}, config={'configurable': {'session_id': session_id}})
+            msg = chain.invoke({'input': inp}, config={'configurable': {'session_id': session_id}})
             print_message(msg)
-            # check_and_process_tool_calls(llm, history)
-            check_and_process_code_block(llm, msg, session_id, 3)
+            check_and_process_tool_calls(llm, msg, session_id)
+            check_and_process_code_block(chain, msg, session_id, 3)
             
     print_history(get_session_history(session_id).messages)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Chat with LLMs')

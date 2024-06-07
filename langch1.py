@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# pip install langchain-core langchain-community langchain-openai langchain-google-vertexai
-
+# pip install langchain-core langchain-community langchain-openai langchain-google-vertexai langchain-anthropic
 import argparse
 from dataclasses import dataclass
+from typing import Union
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage, BaseMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import tool
@@ -19,7 +19,7 @@ import math
 from rich.console import Console
 from rich.markdown import Markdown
 from rich import print as rprint
-from chatutils import CodeBlock, make_fullpath, extract_code_block, execute_script
+from chatutils import make_fullpath, extract_code_block, execute_script
 import subprocess
 import os
 from pathlib import Path
@@ -137,9 +137,11 @@ def print_message(m):
         console.print(m.tool_calls[0], style=c)
 
 
-def print_history(messages):
+def print_history(history: Union[BaseChatMessageHistory, str]):
+    '''history is either BaseChatMessageHistory or str which is the session_id'''
+    h = get_session_history(history) if isinstance(history, str) else history
     console.print('\n=== History ===', style='yellow')
-    for m in messages:
+    for m in h.messages:
         print_message(m)
 
 
@@ -166,30 +168,28 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
     return store[session_id]
 
 
-def single_message(llm):
-    prompt = ChatPromptTemplate.from_messages([MessagesPlaceholder(variable_name="history"), ('human', '{input}')])
-
+def test_single_message(llm):
+    session_id = 'z1'
+    prompt = ChatPromptTemplate.from_messages([MessagesPlaceholder(variable_name="history"), ('human', '**instructions:** write down your thoughts before responding. **question:** {input}')])
     chain = prompt | llm
     chain_history = RunnableWithMessageHistory(chain, get_session_history, input_messages_key="input", history_messages_key="history")
-    m = chain_history.invoke({'input': load_msg('%load question1.txt').content}, config={'configurable': {'session_id': 'z1'}})
-    m = chain_history.invoke({'input': 'and what is the smallest'}, config={'configurable': {'session_id': 'z1'}})
-    print_history(get_session_history('z1').messages)
+    m = chain_history.invoke({'input': 'what is the largest (mass) planet in the solar system'}, config={'configurable': {'session_id': session_id}})
+    m = chain_history.invoke({'input': 'and is Pluto the smallest and if not what is'}, config={'configurable': {'session_id': session_id}})
+    print_history(session_id)
     # rprint(get_session_history('z1'))
 
 
 def create_llm_with_history(llm):
-    prompt = ChatPromptTemplate.from_messages([MessagesPlaceholder(variable_name="history"),
-                                               ('human', '{input}')])
-
+    prompt = ChatPromptTemplate.from_messages([MessagesPlaceholder(variable_name="history"), ('human', '{input}')])
     chain = prompt | llm
     return RunnableWithMessageHistory(chain, get_session_history, input_messages_key="input", history_messages_key="history")
 
 
 def system_message():
     tm = datetime.now().isoformat()
-    scripting_lang, plat = ('bash','Ubuntu 23.10') if platform.system() == 'Linux' else ('powershell','Windows 11')
+    scripting_lang, plat = ('bash','Ubuntu 24.04') if platform.system() == 'Linux' else ('powershell','Windows 11')
 #    return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You use deductive reasoning to answer questions. You make dry, witty, mocking comments and often despair.  You are logical and pay attention to detail. You can access local computer running {plat} by writing python or {scripting_lang}. Scripts should always be in markdown code blocks with the language. current datetime is {tm}'
-    return SystemMessage(f'You are Marvin an expert in logic and reasoning. The local computer is {plat}. you can write python or {scripting_lang} scripts. scripts should always written inside markdown code blocks with ```python or ```{scripting_lang}. current datetime is {tm}')
+    return SystemMessage(f'You are Marvin a super intelligent AI chatbot. The local computer is {plat}. you can write python or {scripting_lang} scripts. scripts should always written inside markdown code blocks with ```python or ```{scripting_lang}. current datetime is {tm}')
 
 
 # messages = [
@@ -238,7 +238,7 @@ def chat(llm_name):
             check_and_process_tool_calls(llm, msg, session_id)
             check_and_process_code_block(chain, msg, session_id, 3)
             
-    print_history(get_session_history(session_id).messages)
+    print_history(session_id=session_id)
 
 
 if __name__ == '__main__':

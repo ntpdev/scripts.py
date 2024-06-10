@@ -22,7 +22,7 @@ import math
 
 # pip install dataclasses-json
 
-model_name = {'gpt35':'gpt-3.5-turbo', 'gpt4':'gpt-4o', 'groq':'llama3-70b-8192', 'llama3':'meta-llama/Llama-3-70b-chat-hf', 'ollama':'mistral'}
+model_name = {'gpt35':'gpt-3.5-turbo', 'gpt4':'gpt-4o', 'groq':'llama3-70b-8192', 'llama3':'meta-llama/Llama-3-70b-chat-hf', 'ollama':'llama3:8b-instruct-q5_K_M'}
 FNAME = 'chat-log.json'
 console = Console()
 role_to_color = {

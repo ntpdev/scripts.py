@@ -252,7 +252,7 @@ def chat(llm_name):
             check_and_process_tool_calls(llm, msg, session_id)
             check_and_process_code_block(chain, msg, session_id, 3)
             
-    print_history(session_id=session_id)
+    print_history(session_id)
 
 
 if __name__ == '__main__':

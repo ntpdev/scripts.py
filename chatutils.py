@@ -47,7 +47,7 @@ def save_and_execute_python(code: CodeBlock):
     try:
         script_path = save_code('temp.py', code)
 
-        result = subprocess.run(["python", script_path], capture_output=True, text=True, timeout=1)
+        result = subprocess.run(["python", script_path], capture_output=True, text=True, timeout=5)
 
         if len(result.stdout) > 0:
             console.print(result.stdout, style='yellow')
@@ -64,7 +64,7 @@ def save_and_execute_bash(code: CodeBlock):
         script_path = save_code('temp', code)
         
         os.chmod(script_path, 0o755)  # Set executable permissions
-        result = subprocess.run(["bash", script_path], capture_output=True, text=True, timeout=1)
+        result = subprocess.run(["bash", script_path], capture_output=True, text=True, timeout=5)
 
         if len(result.stdout) > 0:
             console.print(result.stdout, style='yellow')
@@ -79,7 +79,7 @@ def save_and_execute_bash(code: CodeBlock):
 def save_and_execute_powershell(code: CodeBlock):
     script_path = save_code('temp.ps1', code)
     try:
-        result = subprocess.run(["powershell", "-ExecutionPolicy", "Bypass", "-File", script_path], capture_output=True, text=True, timeout=1)
+        result = subprocess.run(["powershell", "-ExecutionPolicy", "Bypass", "-File", script_path], capture_output=True, text=True, timeout=5)
 
         if len(result.stdout) > 0:
             console.print(result.stdout, style='yellow')
@@ -109,10 +109,10 @@ def extract_code_block(contents: str, sep: str) -> CodeBlock:
     inside = False
     code = None
     for x in xs:
-        if x.startswith(sep):
+        if x.strip().startswith(sep):
             inside = not inside
             if inside:
-               code = CodeBlock(x[len(sep):].lower(), [])
+               code = CodeBlock(x.strip()[len(sep):].lower(), [])
             else:
                if len(code.language) == 0:
                    code.language = search_for_language(contents.lower())

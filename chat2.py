@@ -164,6 +164,22 @@ def load_msg(s: str) -> ChatMessage:
     return None
 
 
+def load_template(s: str) -> ChatMessage:
+    xs = s.split(maxsplit=2)
+    fname = make_fullpath(xs[1])
+    rprint(xs)
+
+    try:
+        with open(fname, 'r') as f:
+            templ = f.read()
+            templ = templ.replace('{input}', xs[2])
+            return ChatMessage('user',  templ)
+    except FileNotFoundError:
+        console.print(f'{fname} FileNotFoundError', style='red')
+#       raise FileNotFoundError(f"Chat message file not found: {filename}")
+    return None
+
+
 def load_log(s: str) -> list[ChatMessage]:
     xs = s.split()
     fname = make_fullpath(xs[1])
@@ -203,6 +219,7 @@ def load_http(s: str) -> ChatMessage:
             if text:
                 all_text.append(text + '\n')  # Add newline between elements
 
+        breakpoint()
         return ChatMessage('user', '\n'.join(all_text))
     except requests.exceptions.RequestException as e:
         print(f"Error: An error occurred while fetching the webpage: {e}")
@@ -305,6 +322,12 @@ def process_commands(inp: str, messages: List[ChatMessage]) -> bool:
             messages.append(msg)
             prt(msg)
             next_action = msg.role == 'user'
+    elif inp.startswith('%tmpl'):
+        msg = load_template(inp)
+        if msg:
+            messages.append(msg)
+            prt(msg)
+            next_action = True
     if inp.startswith('%http'):
         msg = load_http(inp)
         if msg:
@@ -335,7 +358,7 @@ def process_commands(inp: str, messages: List[ChatMessage]) -> bool:
 def system_message():
     tm = datetime.datetime.now().isoformat()
     scripting_lang, plat = ('bash','Ubuntu') if platform.system() == 'Linux' else ('powershell','Windows 11')
-#    return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You use deductive reasoning to answer questions. You make dry, witty, mocking comments and often despair.  You are logical and pay attention to detail. You can access local computer running {plat} by writing python or {scripting_lang}. Scripts should always be in markdown code blocks with the language. current datetime is {tm}'
+#    return f'You are Marvin. You use logic and reasoning when answering questions. You make dry, witty, mocking comments and often despair.  You are logical and pay attention to detail. current datetime is {tm}'
     return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. The local computer is {plat}. you can write python or {scripting_lang} scripts. scripts should always written inside markdown code blocks with ```python or ```{scripting_lang}. current datetime is {tm}'
 
 
@@ -381,7 +404,7 @@ def chat(llm_name):
 def chat_ollama():
     url = "http://localhost:11434/api/chat"
     messages = []
-    messages.append({'role': 'system', 'content':'You are Marvin a super intelligent chatbot trained by OpenAI. Answer accurately, concisely.'})
+    messages.append({'role': 'system', 'content':'You are Marvin. You use logic and reasoning when answering questions. Answer accurately, concisely.'})
 #    messages.append({'role': 'user', 'content':'role: physics professor. question: what is the Hall effect? style: undergraduate lecture'})
     messages.append({'role': 'user', 'content':load_msg('%load Koopa.txt')})
     data = {

@@ -94,8 +94,9 @@ def check_and_process_tool_calls(llm, msg, session_id):
     history = get_session_history(session_id)
     while len(msg.tool_calls) > 0:
         toolmsgs = process_tool_calls(msg)
+        history = get_session_history(session_id)
         history.add_messages(toolmsgs)
-        msg = llm.invoke(history.messages)
+        msg =  llm.invoke(history.messages)
         history.add_message(msg)
         print_message(msg)
 
@@ -130,11 +131,18 @@ def print_message(m):
         role = 'tool'
     
     console.print(f'\n{role}:', style=c)
-    if m.content:
-        md = Markdown(m.content)
-        console.print(md, style=c)
+    # google flash sometimes returns a list
+    s = isinstance(m.content, list) and ' '.join(m.content) or m.content
+    if s:
+        try:
+            md = Markdown(s)
+            console.print(md, style=c)
+        except Exception as e:
+            rprint(e)
+            rprint(m)
+            breakpoint()
     elif len(m.tool_calls) > 0:
-        console.print(m.tool_calls[0], style=c)
+        console.print(m.tool_calls[0], style='yellow')
 
 
 def print_history(history: Union[BaseChatMessageHistory, str]):
@@ -178,9 +186,15 @@ def test_single_message(llm):
     print_history(session_id)
     # rprint(get_session_history('z1'))
 
-
 def create_llm_with_history(llm):
-    prompt = ChatPromptTemplate.from_messages([MessagesPlaceholder(variable_name="history"), ('human', '{input}')])
+    s = """
+**question:**
+
+{input}
+
+**instructions:** first write down your thoughts. structure your answer as **thinking:** **answer:**
+"""
+    prompt = ChatPromptTemplate.from_messages([MessagesPlaceholder(variable_name="history"), ('human', s)])
     chain = prompt | llm
     return RunnableWithMessageHistory(chain, get_session_history, input_messages_key="input", history_messages_key="history")
 
@@ -213,7 +227,7 @@ def create_llm(llm_name, temp, toolUse):
 
 
 def chat(llm_name):
-    llm = create_llm(llm_name, 0.2, False)
+    llm = create_llm(llm_name, 0.2, True)
     console.print('chat with model: ' + llm.model_name, style='yellow')
     chain = create_llm_with_history(llm)
     session_id = 'xyz'

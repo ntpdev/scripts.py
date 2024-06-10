@@ -147,11 +147,11 @@ def print_summary(df):
     dr = rth_index(di)
     console.print('\n--- Daily bars ---', style='yellow')
     df2 = aggregate_daily_bars(df, di)
-    console.print(df2, style='blue')
+    console.print(df2, style='cyan')
 
     console.print('\n--- RTH bars ---', style='yellow')
     df2 = aggregate_daily_bars(df, dr)
-    console.print(df2, style='blue')
+    console.print(df2, style='cyan')
 
 def whole_day_concat(fspec, fnout):
     '''combines all files in fspec into one file. takes whole days only'''
@@ -198,5 +198,5 @@ def simple_concat(fspec):
 
 
 if __name__ == '__main__':
-#    whole_day_concat('zesm4*.csv', 'zzESM4')
-    test_load('esm4*.csv')
+#    whole_day_concat('esm4*.csv', 'zzESM4')
+    test_load('zesm4*.csv')

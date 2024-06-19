@@ -198,5 +198,5 @@ def simple_concat(fspec):
 
 
 if __name__ == '__main__':
-#    whole_day_concat('esm4*.csv', 'zzESM4')
-    test_load('zesm4*.csv')
+    whole_day_concat('esm4*.csv', 'xESM4')
+#    test_load('zesm4*.csv')

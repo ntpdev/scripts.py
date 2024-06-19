@@ -172,12 +172,22 @@ def load_template(s: str) -> ChatMessage:
     try:
         with open(fname, 'r') as f:
             templ = f.read()
-            templ = templ.replace('{input}', xs[2])
+            if len(xs) > 2:
+                templ = templ.replace('{input}', xs[2])
+            
             return ChatMessage('user',  templ)
     except FileNotFoundError:
         console.print(f'{fname} FileNotFoundError', style='red')
+    s = """
+**question:**
+
+{input}
+
+**instructions:** first write down your thoughts. structure your answer as **thinking:** **answer:**
+"""
+    return ChatMessage('user',  s.replace('{input}', xs[2]))
 #       raise FileNotFoundError(f"Chat message file not found: {filename}")
-    return None
+    # return None
 
 
 def load_log(s: str) -> list[ChatMessage]:
@@ -360,6 +370,7 @@ def system_message():
     scripting_lang, plat = ('bash','Ubuntu') if platform.system() == 'Linux' else ('powershell','Windows 11')
 #    return f'You are Marvin. You use logic and reasoning when answering questions. You make dry, witty, mocking comments and often despair.  You are logical and pay attention to detail. current datetime is {tm}'
     return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. The local computer is {plat}. you can write python or {scripting_lang} scripts. scripts should always written inside markdown code blocks with ```python or ```{scripting_lang}. current datetime is {tm}'
+    # return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. current datetime is {tm}'
 
 
 def chat(llm_name):

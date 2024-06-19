@@ -11,14 +11,23 @@ function div { param($x, $y=1) $x / $y }
 filter mult { $_ * 2 }
 1,2,3 | mult
 
-# filter can be passed fixed parameters in addition to the pipeline elements
+# write text stream to file
+1..15 | 
+    % {"a{0:d2}b" -f $_} |
+    Set-Content -Path "d:\newf.txt"
+
+# converting the format string to a pipeline function 
+filter fmt { "c{0:d2}d" -f $_ }
+8..12 | fmt | Set-Content -Path "d:\newf.txt"
+
+# filter can be passed positional parameters in addition to the pipeline element
 filter Map-ToUrl { $args[0] -f $_ }
 
 1..80 | Map-ToUrl 'https://example.com/images/abc-{0:d}.jpg'
       | % { Invoke-WebRequest -HttpVersion 2.0 -Uri $_ -OutFile ("C:\temp\bimil\" + $_.split("/")[-1]);
             echo $_; }
 
-            # sums the length property on pipeline objects
+# sums the length property on pipeline objects
 function flen { begin { $sum = 0 }; process { $sum = $sum + $_.Length }; end { $sum } }
 
 dir -File | flen
@@ -34,15 +43,6 @@ Join-Path d:\test\* -ChildPath other -Resolve |
     Get-ChildItem -Filter *.txt |
     Sort-Object -Property Length -Descending -Top 1 |
     Get-Content
-
-# write text stream to file
-1..15 | 
-    % {"a{0:d2}b" -f $_} |
-    Set-Content -Path "d:\newf.txt"
-
-# converting the format string to a pipeline function 
-filter fmt { "c{0:d2}d" -f $_ }
-8..12 | fmt | Set-Content -Path "d:\newf.txt"
 
 "asdf house 54 ant house 12 asd" | Select-String "house (?<v>\w+)" -AllMatches | % { $_.Matches[0].Groups['v'].Value }
 $x = "asdf house 54 ant house 12 asd" | Select-String "house (?<v>\w+)" -AllMatches

@@ -340,7 +340,7 @@ def find_index_range(xs, x, n):
     '''given a sorted list xs return start,end index for n elements less than or equal to x. If n is negative x will be the last item.'''
     i = bisect_right(xs, x)
     if i < 1:
-        raise ValueError(f'{x} is before {xs[0]}')
+        raise ValueError(f'{x} is before first index entry {xs[0]}')
     i -= 1
     end = i + int(math.copysign(abs(n)-1, n))
     if n < 0:
@@ -400,7 +400,7 @@ print(argv)
 if len(argv.tlb) > 0:
     plot_3lb(argv.tlb)
 elif len(argv.mdb) > 0:
-    plot_mongo('esm4', parse_isodate(argv.mdb), argv.days)
+    plot_mongo('esu4', parse_isodate(argv.mdb), argv.days)
 elif argv.atr:
     plot_atr()
 elif argv.tick:

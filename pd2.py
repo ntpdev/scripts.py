@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 from datetime import datetime, timedelta, time
-import platform
 import glob as gb
 import pandas as pd
 import numpy as np
@@ -145,6 +144,8 @@ def main():
 def print_summary(df):
     di = day_index(df)
     dr = rth_index(di)
+    console.print('\n--- Day index ---', style='yellow')
+    console.print(di)
     console.print('\n--- Daily bars ---', style='yellow')
     df2 = aggregate_daily_bars(df, di)
     console.print(df2, style='cyan')
@@ -168,6 +169,7 @@ def whole_day_concat(fspec, fnout):
                 rows = day.shape[0]
                 # 1380 only correct when no daylight savings change
                 # for stocks bars=390 and some days might be partial due to half-day holidays
+                # if rows == 390:
                 if rows == 1380:
                     print(f'{fn} {start} {end} {rows} {hw}')
                     hw = end
@@ -188,15 +190,16 @@ def test_load(fn):
         print_summary(df)
 
 
-def simple_concat(fspec):
+def simple_concat(fspec, fnout):
     '''concatenates files into one dataframe skipping duplicate index entries. this only works for whole days'''
     dfs = [load_file(e) for e in gb.glob(make_filename(fspec))]
     comb = dfs[0]
     for df in dfs[1:]:
         comb = pd.concat([comb, df.loc[~df.index.isin(comb.index)]], axis=0, join='outer')
-    save_df(comb, 'zzesm4')
+    save_df(comb, fnout)
 
 
 if __name__ == '__main__':
-    whole_day_concat('esm4*.csv', 'xESM4')
-#    test_load('zesm4*.csv')
+#    whole_day_concat('esm4*.csv', 'zESM4')
+    simple_concat('nqm4*.csv', 'zNQM4')
+#    test_load('zznqm4*.csv')

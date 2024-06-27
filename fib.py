@@ -8,8 +8,10 @@ from scipy.optimize import brentq
 from functools import cache
 from datetime import date, timedelta
 import math
+from rich.console import Console
 # import plotly.graph_objs as go
 # import plotly.offline as py
+console = Console()
 
 def fib(n):
     return n if n < 2 else fib(n-1) + fib(n-2)
@@ -52,6 +54,14 @@ def draw_collatz_seq_length():
 
     fig = px.bar(df, x=df.index, y=df.iloc[:,0], title='Collatz Seq length')
     fig.show()
+
+# generator expression for a sequence of squares
+def gen_expr():
+   # note the brackets create an unevaluated generator
+   # which can be evaluated later on demand eg list(ex) or sum(ex)
+   ex = (x**2 for x in range(10))
+   for x in ex:
+      print(x)
 
 def draw_gantt_chart():
     s = '''start finish task
@@ -120,9 +130,10 @@ def example_cashflow():
     r = solve_cashflow(df, interest_rate)
     # re-evaluate with rounded repayment
     evaluate_cashflow(df, round(r,2), interest_rate)
-    print(f'drawdown {drawdown:.2f}, interest rate {interest_rate * 100:.4f}%, monthly payment {round(r,2)}')
-    print(f'total paid {df["repayment"].sum():.2f} , total interest {df["int_paid"].sum():.2f}, total frac {df["frac_int"].sum()}')
-    print(df)
+    console.print('--- example cashflow ---', style='yellow')
+    console.print(f'drawdown {drawdown:.2f}, interest rate {interest_rate * 100:.4f}%, monthly payment {round(r,2)}')
+    console.print(f'total paid {df["repayment"].sum():.2f} , total interest {df["int_paid"].sum():.2f}, total frac {df["frac_int"].sum()}')
+    console.print(df)
 
 if __name__ == '__main__':
     print([fib(x) for x in range(10)])
@@ -132,9 +143,8 @@ if __name__ == '__main__':
     print([f(x) for x in range(18)])
     
     print([x for x in fibIter(18)])
-    print([x for x in collatzIter(27)])
+    print(list(collatzIter(27)))
     # draw_collatz_seq_length()
-
 
     xs = [5, -7, 3, 5, 2, -2, 4, -1]
     # replace neg values by 0

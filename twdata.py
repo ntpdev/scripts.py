@@ -259,12 +259,11 @@ def three_line_break(xs):
     return df2.tlb.ffill().fillna(0).astype('int32')
 
 
-def process(df):
+def process(df, sw_perc = 5.0):
     print(df[-20:])
     print('\n-- 3 line break')
     tlb, rev = tsutils.calc_tlb(df.close, 3)
     print(tlb[-5:])
-    sw_perc = 5.0
     print(f'\n-- swings {sw_perc}')
     swings = tsutils.find_swings(df.close, sw_perc)
     print(swings)
@@ -300,7 +299,7 @@ def view(symbol: str):
     xs = list_cached_files(symbol)
     if len(xs) > 0:
         df = load_file(xs[0])
-        process(df)
+        process(df, 5.0 if (symbol == 'spy' or symbol == 'qqq') else 10.0)
         save_excel(symbol, df)
         return df
     return None

@@ -394,13 +394,14 @@ parser.add_argument('--mdb', type=str, default='', help='Load from MongoDB [yyyy
 parser.add_argument('--atr', action='store_true', help='Display ATR')
 parser.add_argument('--tick', action='store_true', help='Display tick')
 parser.add_argument('--days', type=int, default=1, help='Number of days')
+parser.add_argument('--sym', type=str, default='esu4', help='Index symbol')
 
 argv = parser.parse_args()
 print(argv)
 if len(argv.tlb) > 0:
     plot_3lb(argv.tlb)
 elif len(argv.mdb) > 0:
-    plot_mongo('esu4', parse_isodate(argv.mdb), argv.days)
+    plot_mongo(argv.sym, parse_isodate(argv.mdb), argv.days)
 elif argv.atr:
     plot_atr()
 elif argv.tick:

@@ -13,50 +13,46 @@
     </style>
   </head>
   <body>
+    <!-- 3 col layout container -->
     <div class="container">
         <div class="row">
-          <div class="col-lg-4">
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=ANET&tf=d&ct=candle_stick" width="324" height="180"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=ZS&tf=d&ct=candle_stick" width="324" height="180"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=TTD&tf=d&ct=candle_stick" width="324" height="180"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=CFLT&tf=d&ct=candle_stick" width="324" height="180"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=SQ&tf=d&ct=candle_stick" width="324" height="180"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=ONON&tf=d&ct=candle_stick" width="324" height="180"/>
-          </div>
-          <div class="col-lg-4">
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=DDOG&tf=d&ct=candle_stick" width="324" height="180"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=TEAM&tf=d&ct=candle_stick" width="324" height="180"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=ABNB&tf=d&ct=candle_stick" width="324" height="180"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=VRTX&tf=d&ct=candle_stick" width="324" height="180"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=MELI&tf=d&ct=candle_stick" width="324" height="180"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=ENPH&tf=d&ct=candle_stick" width="324" height="180"/>
-          </div>  
-          <div class="col-lg-4">
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=TYL&tf=d&ct=candle_stick" width="324" height="180"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=CRWD&tf=d&ct=candle_stick" width="324" height="180"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=SNOW&tf=d&ct=candle_stick" width="324" height="180"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=GH&tf=d&ct=candle_stick" width="324" height="180"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=VEEV&tf=d&ct=candle_stick" width="324" height="180"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=SEDG&tf=d&ct=candle_stick" width="324" height="180"/>
-          </div>
+          <div class="col-lg-4"></div>
+          <div class="col-lg-4"></div>
+          <div class="col-lg-4"></div>
         </div>
-    </div>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
-  </body>
+    </div> 
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+  <script>
+    function insertImages() {
+      // Get the container element
+      const container = document.querySelector('.container');
+
+      // Check if container exists
+      if (!container) {
+        console.error("Div with class 'container' not found!");
+        return;
+      }
+      const cols = Array.from(document.querySelectorAll('.col-lg-4'))
+      // symbols
+      const xs = 'anet ddog tyl zs team crwd ttd snow abnb vrtx cflt gh sq meli veev onon celh shop'.split(' ');
+      for (let i = 0; i < xs.length; i++) {
+        const image = document.createElement('img');
+        // Set image attributes (source, alt text, etc.)
+        image.src = "https://charts2-node.finviz.com/chart.ashx?cs=m&t=" + xs[i] + "&tf=d&ct=candle_stick";
+        image.alt = xs[i];
+        image.height = 180;
+        image.width = 324;
+
+        // Append the image to the appropriate column in the container expecting 3 columns
+        cols[i % 3].appendChild(image);
+        cols[i % 3].appendChild(document.createElement('br'));
+      }
+      // Create a new image element
+    }
+
+    // Call the function to insert the image
+    insertImages();
+  </script>
+</body>
 </html>

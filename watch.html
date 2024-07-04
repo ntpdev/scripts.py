@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 
     <title>Fool watchlist</title>
     <style>
@@ -15,16 +15,57 @@
   <body>
     <!-- 3 col layout container -->
     <div class="container">
-        <div class="row">
-          <div class="col-lg-4"></div>
-          <div class="col-lg-4"></div>
-          <div class="col-lg-4"></div>
+      <div class="row">
+        <!-- buttons groups are grouped by name property -->
+        <div class="btn-group btn-group-sm" role="group" aria-label="Symbol button group">
+          <input type="radio" class="btn-check" name="btnradio_sym" id="btn_index" autocomplete="off">
+          <label class="btn btn-outline-primary" for="btn_index">index</label>
+        
+          <input type="radio" class="btn-check" name="btnradio_sym" id="btn_fool" autocomplete="off" checked>
+          <label class="btn btn-outline-primary" for="btn_fool">fool</label>
         </div>
-    </div> 
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+
+        <div class="btn-group btn-group-sm" role="group" aria-label="Timeframe button group">
+          <input type="radio" class="btn-check" name="btnradio_tf" id="btn_daily" autocomplete="off" checked>
+          <label class="btn btn-outline-primary" for="btn_daily">daily</label>
+        
+          <input type="radio" class="btn-check" name="btnradio_tf" id="btn_weekly" autocomplete="off">
+          <label class="btn btn-outline-primary" for="btn_weekly">weekly</label>
+        </div>
+      </div>  
+      <div class="row">
+        <div class="col-lg-4"></div>
+        <div class="col-lg-4"></div>
+        <div class="col-lg-4"></div>
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>  
   <script>
-    function insertImages() {
+    const symbols_index = 'spy qqq dia iwm tlt jnk xlk xly xlf gld tan arkk spsm ibit xop'
+    const symbols_fool = 'anet ddog tyl zs team crwd ttd snow abnb vrtx cflt gh sq meli veev onon enph sedg'
+    // bind elements
+    const btn_index = document.getElementById('btn_index')
+    const btn_fool = document.getElementById('btn_fool')
+    const btn_daily = document.getElementById('btn_daily')
+    const btn_weekly = document.getElementById('btn_weekly')
+    const cols = Array.from(document.querySelectorAll('.col-lg-4'))
+
+    function init() {
+      // Add event listener to all radio buttons"
+      const radios = document.querySelectorAll('input[type="radio"]')
+      radios.forEach(radio => {
+        radio.addEventListener('change', function() { process_changed(this.id) })
+      })
+      insertImages(symbols_fool, 'd')
+    }
+
+    function process_changed(id) {
+      console.log(id, btn_index.checked, btn_fool.checked, btn_daily.checked, btn_weekly.checked);
+      insertImages(btn_index.checked ? symbols_index : symbols_fool,
+                   btn_daily.checked ? 'd' : 'w');
+    }
+
+    function insertImages(symbols, tf) {
       // Get the container element
       const container = document.querySelector('.container');
 
@@ -33,13 +74,16 @@
         console.error("Div with class 'container' not found!");
         return;
       }
-      const cols = Array.from(document.querySelectorAll('.col-lg-4'))
+
+      // Clear the container
+      cols.forEach(col => col.innerHTML = '');
+
       // symbols
-      const xs = 'anet ddog tyl zs team crwd ttd snow abnb vrtx cflt gh sq meli veev onon celh shop'.split(' ');
+      const xs = symbols.split(' ');
       for (let i = 0; i < xs.length; i++) {
         const image = document.createElement('img');
         // Set image attributes (source, alt text, etc.)
-        image.src = "https://charts2-node.finviz.com/chart.ashx?cs=m&t=" + xs[i] + "&tf=d&ct=candle_stick";
+        image.src = "https://charts2-node.finviz.com/chart.ashx?cs=m&t=" + xs[i] + "&tf=" + tf +"&ct=candle_stick";
         image.alt = xs[i];
         image.height = 180;
         image.width = 324;
@@ -51,8 +95,8 @@
       // Create a new image element
     }
 
-    // Call the function to insert the image
-    insertImages();
+    // add event listener and draw page
+    init();
   </script>
 </body>
 </html>

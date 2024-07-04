@@ -38,10 +38,13 @@
         <div class="col-lg-4"></div>
         <div class="col-lg-4"></div>
       </div>
+      <div class="row">
+        <a id="lnk_finviz" href="https://finviz.com" target="_blank">finviz</a>
+      </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
   <script>
-    const symbols_index = 'spy qqq dia iwm tlt jnk xlk xly xlf gld tan arkk spsm ibit xop'
+    const symbols_index = 'spy xly xlc xlk xli xlb xle xlp xlv xlu xlf xlre iwm dia qqq shy tlt jnk ibit gld xop iyt tan arkk xbi eem pbw'
     const symbols_fool = 'anet ddog tyl zs team crwd ttd snow abnb vrtx cflt gh sq meli veev onon enph sedg'
     // bind elements
     const btn_index = document.getElementById('btn_index')
@@ -49,7 +52,8 @@
     const btn_daily = document.getElementById('btn_daily')
     const btn_weekly = document.getElementById('btn_weekly')
     const cols = Array.from(document.querySelectorAll('.col-lg-4'))
-
+    const lnk_finviz = document.getElementById('lnk_finviz')
+    
     function init() {
       // Add event listener to all radio buttons"
       const radios = document.querySelectorAll('input[type="radio"]')
@@ -92,7 +96,8 @@
         cols[i % 3].appendChild(image);
         cols[i % 3].appendChild(document.createElement('br'));
       }
-      // Create a new image element
+      // add link to finviz
+      lnk_finviz.href = 'https://finviz.com/screener.ashx?v=171&t=' + symbols.replaceAll(' ', ',') + '&o=-rsi'
     }
 
     // add event listener and draw page

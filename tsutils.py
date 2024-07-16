@@ -113,41 +113,41 @@ def aggregateMinVolume(df, minvol):
             eur_open = i + timedelta(hours=8, minutes=59)
             rth_open = i + timedelta(hours=15, minutes=29)
         acc = combine(acc, i, r, 1) if acc else single(i,r,1)
-        if acc['Volume'] >= minvol or lastbar.loc[i] or i == eur_open or i == rth_open:
+        if acc['volume'] >= minvol or lastbar.loc[i] or i == eur_open or i == rth_open:
             rows.append(acc)
             acc = None
     if acc:
         rows.append(acc)
     df2 = pd.DataFrame(rows)
-    df2.set_index('Date', inplace=True)
+    df2.set_index('date', inplace=True)
     return df2
 
 def single(dt_fst, fst, period):
     r = {}
-    r['Date'] = dt_fst
-    r['DateCl'] = dt_fst + timedelta(minutes=period)
-    r['Open'] = fst['Open']
-    r['High'] = fst['High']
-    r['Low'] = fst['Low']
-    r['Close'] = fst['Close']
-    r['Volume'] = fst['Volume']
-    r['VWAP'] = fst['VWAP']
-    if 'EMA' in fst:
-        r['EMA'] = fst['EMA']
+    r['date'] = dt_fst
+    r['dateCl'] = dt_fst + timedelta(minutes=period)
+    r['open'] = fst['open']
+    r['high'] = fst['high']
+    r['low'] = fst['low']
+    r['close'] = fst['close']
+    r['volume'] = fst['volume']
+    r['vwap'] = fst['vwap']
+    if 'ema' in fst:
+        r['ema'] = fst['ema']
     return r
 
 def combine(acc, dt_snd, snd, period):
     r = {}
-    r['Date'] = acc['Date']
-    r['DateCl'] = dt_snd + timedelta(minutes=period)
-    r['Open'] = acc['Open']
-    r['High'] = max(acc['High'], snd['High'])
-    r['Low'] = min(acc['Low'], snd['Low'])
-    r['Close'] = snd['Close']
-    r['Volume'] = acc['Volume'] + snd['Volume']
-    r['VWAP'] = snd['VWAP']
-    if 'EMA' in snd:
-        r['EMA'] = snd['EMA']
+    r['date'] = acc['date']
+    r['dateCl'] = dt_snd + timedelta(minutes=period)
+    r['open'] = acc['open']
+    r['high'] = max(acc['high'], snd['high'])
+    r['low'] = min(acc['low'], snd['low'])
+    r['close'] = snd['close']
+    r['volume'] = acc['volume'] + snd['volume']
+    r['vwap'] = snd['vwap']
+    if 'ema' in snd:
+        r['ema'] = snd['ema']
     return r
 
 def count_back(xs, i):
@@ -205,6 +205,7 @@ def aggregate_daily_bars(df, daily_index):
     daily['Gap'] = daily.Open - daily.Close.shift()
     daily['DayChg'] = daily.Close - daily.Open
     daily['Range'] = daily.High - daily.Low
+    daily['Strat'] = calc_strat(daily)
     return daily[daily.Volume > 125000]
 
 
@@ -235,12 +236,12 @@ def calc_vwap(df):
 
 def calc_strat(df):
     """return a series categorising bar by its strat bar type 0 - inside, 1 up, 2 down, 3 outside"""
-    hs = df.High.diff().gt(0)
-    ls = df.Low.diff().lt(0)
+    hs = df.high.diff().gt(0)
+    ls = df.low.diff().lt(0)
     return hs.astype(int) + ls * 2
 
 def calc_atr(df, n):
-    rng = df.High.rolling(n).max() - df.Low.rolling(n).min()
+    rng = df.high.rolling(n).max() - df.low.rolling(n).min()
     df2 = pd.DataFrame( {'tm':df.index.time, 'rng':rng}, index=rng.index )
     return df2.groupby('tm').rng.agg('mean')
 

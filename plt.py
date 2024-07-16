@@ -11,6 +11,7 @@ import plotly.offline as pyo
 import platform
 import sys
 import tsutils as ts
+import mdbutils as md
 import re
 from plotly.offline import init_notebook_mode
 from pymongo.mongo_client import MongoClient
@@ -20,6 +21,7 @@ from bisect import bisect_right
 
 @dataclass
 class MinVolDay:
+    tradeDt: date
     startTm: datetime
     startBar: int
     euStartBar: int
@@ -73,19 +75,19 @@ def draw_daily_lines(df, fig, tms, idxs):
         fig.add_shape(type='line', x0=tms.iloc[op], y0=y, x1=tms.iloc[cl], y1=y, line=dict(color='LightSeaGreen', dash='dot'))
 
 def highs(df, window):
-    hs = df['High'].rolling(window, center=True).max()
-    hsv = df['High'][np.equal(df['High'], hs)]
+    hs = df['high'].rolling(window, center=True).max()
+    hsv = df['high'][np.equal(df['high'], hs)]
     t = pd.Series.diff(hsv)
     # remove 0 elements
-    return df.High[t[t.ne(0)].index]
+    return df.high[t[t.ne(0)].index]
 
 
 def lows(df, window):
-    hs = df['Low'].rolling(window, center=True).min()
-    hsv = df['Low'][np.equal(df['Low'], hs)]
+    hs = df['low'].rolling(window, center=True).min()
+    hsv = df['low'][np.equal(df['low'], hs)]
     # remove adjacent values which are the same by differencing and removing 0
     t = pd.Series.diff(hsv)
-    return df.Low[t[t.ne(0)].index]  
+    return df.low[t[t.ne(0)].index]  
 
 
 def add_hilo_labels(df, tms, fig):
@@ -95,7 +97,7 @@ def add_hilo_labels(df, tms, fig):
     fig.add_trace(go.Scatter(
         x=[tm for tm in df.loc[hs.index].tm],
         y=hs.add(1),
-        text=['%.2f' % p for p in df.loc[hs.index].High],
+        text=['%.2f' % p for p in df.loc[hs.index].high],
         mode='text',
         textposition="top center",
         name='local high' ))
@@ -103,7 +105,7 @@ def add_hilo_labels(df, tms, fig):
     fig.add_trace(go.Scatter(
         x=[tm for tm in df.loc[ls.index].tm],
         y=ls.sub(1),
-        text=['%.2f' % p for p in df.loc[ls.index].Low],
+        text=['%.2f' % p for p in df.loc[ls.index].low],
         mode='text',
         textposition="bottom center",
         name='local low' ))
@@ -179,13 +181,13 @@ def color_bars(df, tm, opt):
     #     print(f'{df['tm'].iloc[m.span()[0]]} {m.group()}')
     # breakpoint()
 
-    fig = go.Figure(data=[go.Scatter(x=tm, y=df['VWAP'], line=dict(color='orange'), name='vwap') ])
-    if 'EMA' in df:
-        fig.add_trace(go.Scatter(x=tm, y=df['EMA'], line=dict(color='yellow'), name='ema'))
-    fig.add_trace(go.Ohlc(x=dfInside['tm'], open=dfInside['Open'], high=dfInside['High'], low=dfInside['Low'], close=dfInside['Close'], name='ES inside'))
-    fig.add_trace(go.Ohlc(x=dfUp['tm'], open=dfUp['Open'], high=dfUp['High'], low=dfUp['Low'], close=dfUp['Close'], name='ES up'))
-    fig.add_trace(go.Ohlc(x=dfDown['tm'], open=dfDown['Open'], high=dfDown['High'], low=dfDown['Low'], close=dfDown['Close'], name='ES down'))
-    fig.add_trace(go.Ohlc(x=dfOutside['tm'], open=dfOutside['Open'], high=dfOutside['High'], low=dfOutside['Low'], close=dfOutside['Close'], name='ES outside'))
+    fig = go.Figure(data=[go.Scatter(x=tm, y=df['vwap'], line=dict(color='orange'), name='vwap') ])
+    if 'ema' in df:
+        fig.add_trace(go.Scatter(x=tm, y=df['ema'], line=dict(color='yellow'), name='ema'))
+    fig.add_trace(go.Ohlc(x=dfInside['tm'], open=dfInside['open'], high=dfInside['high'], low=dfInside['low'], close=dfInside['close'], name='inside'))
+    fig.add_trace(go.Ohlc(x=dfUp['tm'], open=dfUp['open'], high=dfUp['high'], low=dfUp['low'], close=dfUp['close'], name='up'))
+    fig.add_trace(go.Ohlc(x=dfDown['tm'], open=dfDown['open'], high=dfDown['high'], low=dfDown['low'], close=dfDown['close'], name='down'))
+    fig.add_trace(go.Ohlc(x=dfOutside['tm'], open=dfOutside['open'], high=dfOutside['high'], low=dfOutside['low'], close=dfOutside['close'], name='outside'))
                      
     fig.data[2].increasing.line.color = 'yellow'
     fig.data[2].decreasing.line.color = 'yellow'
@@ -197,11 +199,11 @@ def color_bars(df, tm, opt):
     fig.data[5].decreasing.line.color = 'purple'
     return fig
   else:  
-    return go.Figure(data=[go.Candlestick(x=tm, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='ES'),
-                     go.Scatter(x=tm, y=df['VWAP'], line=dict(color='orange'), name='vwap') ])
+    return go.Figure(data=[go.Candlestick(x=tm, open=df['open'], high=df['high'], low=df['low'], close=df['close'], name='ES'),
+                     go.Scatter(x=tm, y=df['vwap'], line=dict(color='orange'), name='vwap') ])
 
 def plot_atr():
-    df = ts.load_files(ts.make_filename('esh4*.csv'))
+    df = ts.load_files(ts.make_filename('esu4*.csv'))
     atr = ts.calc_atr(df, 2)
     fig = go.Figure()
     fig.add_trace( go.Scatter(x=atr.index, y=atr, mode='lines', name='ATR5') )
@@ -227,13 +229,15 @@ def plot_tick(days :int):
     fig.show()
 
 
-def create_minVol_index(dfMinVol, day_index):
+def create_minVol_index(dfMinVol, day_index) -> list[MinVolDay]:
     # first bar will either be at 23:00 most of the time but 22:00 when US/UK clocks change at different dates
     startTm = dfMinVol.index[0]
     last = dfMinVol.shape[0] - 1
     
     xs = []
-    for startTm in day_index.openTime:
+    for i,r in day_index.iterrows():
+        startTm = r.openTime
+#    for startTm in day_index.openTime:
         startBar = floor_index(dfMinVol, startTm)
         print(startTm, startBar)
         euStart = startTm + timedelta(minutes=540)
@@ -247,39 +251,62 @@ def create_minVol_index(dfMinVol, day_index):
                 rthStartBar = floor_index(dfMinVol, rthStart)
                 rthEnd = startTm + timedelta(minutes=1320)
                 rthEndBar = floor_index(dfMinVol, rthEnd)
-        xs.append(MinVolDay(startTm, startBar, euStartBar, euEndBar, rthStartBar, rthEndBar))
+        xs.append(MinVolDay(i, startTm, startBar, euStartBar, euEndBar, rthStartBar, rthEndBar))
     return xs
 
 
+# def create_day_summary(df, day_index):
+#     xs = []
+#     for i,r in day_index.iterrows():
+#         euClose = r.openTime + pd.Timedelta(minutes=929)
+#         rthOpen = r.openTime + pd.Timedelta(minutes=930)
+#         rthClose = r.openTime + pd.Timedelta(minutes=1319)
+#         xs.append({'date' : i,
+#                    'glbx_high': df['High'][r.openTime:euClose].max(),
+#                    'glbx_low': df['Low'][r.openTime:euClose].min(),
+#                    'rth_hi': df['High'][rthOpen:rthClose].max(),
+#                    'rth_lo': df['Low'][rthOpen:rthClose].min(),
+#                    'close': df['Close'][rthClose]
+#                    })
+#     day_summary_df = pd.DataFrame(xs)
+#     day_summary_df.set_index('date', inplace=True)
+#     return day_summary_df
+
+
 def plot_mongo(symbol, dt, n):
-    df = load_mongo(symbol, dt, n)
+    df = md.load_price_history(symbol, dt, n)
     idx = ts.day_index(df)
+    day_summary_df = md.create_day_summary(df, idx)
     dfMinVol = ts.aggregateMinVolume(df, 5000 if idx.shape[0] > 2 else 2500)
 
     # create a string for X labels
     tm = dfMinVol.index.strftime('%d/%m %H:%M')
     fig = color_bars(dfMinVol, tm, 'strat')
     add_hilo_labels(dfMinVol, tm, fig)
-    prevRthHi, prevRthLo = -1, -1
     for i in create_minVol_index(dfMinVol, idx):
-        euOpen = dfMinVol.at[dfMinVol.index[i.euStartBar], 'Open']
+        euOpen = dfMinVol.at[dfMinVol.index[i.euStartBar], 'open']
         fig.add_shape(type='line', x0=tm[i.euStartBar], y0=euOpen, x1=tm[i.euEndBar], y1=euOpen, line=dict(color='LightSeaGreen', dash='dot'))
         if i.rthStartBar > 0:
             fig.add_vline(x=tm[i.rthStartBar], line_width=1, line_dash="dash", line_color="blue")
             if i.rthEndBar > 0:
                 fig.add_vline(x=tm[i.rthEndBar], line_width=1, line_dash="dash", line_color="blue")
-            rthOpen = dfMinVol.at[dfMinVol.index[i.rthStartBar], 'Open']
+            rthOpen = dfMinVol.at[dfMinVol.index[i.rthStartBar], 'open']
             fig.add_shape(type='line', x0=tm[i.rthStartBar], y0=rthOpen, x1=tm[i.rthEndBar], y1=rthOpen, line=dict(color='LightSeaGreen', dash='dot'))
-            glbxHi = dfMinVol.High[i.startBar:i.euEndBar].max()
+            glbxHi = dfMinVol.high[i.startBar:i.euEndBar].max()
             fig.add_shape(type='line', x0=tm[i.rthStartBar], y0=glbxHi, x1=tm[i.rthEndBar], y1=glbxHi, line=dict(color='Gray', dash='dot'))
-            glbxLo = dfMinVol.Low[i.startBar:i.euEndBar].min()
+            glbxLo = dfMinVol.low[i.startBar:i.euEndBar].min()
             fig.add_shape(type='line', x0=tm[i.rthStartBar], y0=glbxLo, x1=tm[i.rthEndBar], y1=glbxLo, line=dict(color='Gray', dash='dot'))
-            if (prevRthHi > 0):
-                fig.add_shape(type='line', x0=tm[i.rthStartBar], y0=prevRthHi, x1=tm[i.rthEndBar], y1=prevRthHi, line=dict(color='chocolate', dash='dot'))
-                fig.add_shape(type='line', x0=tm[i.rthStartBar], y0=prevRthLo, x1=tm[i.rthEndBar], y1=prevRthLo, line=dict(color='chocolate', dash='dot'))
 
-            prevRthHi = dfMinVol.High[i.rthStartBar:i.rthEndBar].max()
-            prevRthLo = dfMinVol.Low[i.rthStartBar:i.rthEndBar].min()
+            ix = day_summary_df.index.searchsorted(i.tradeDt)
+            if ix > 0:
+                x = day_summary_df.iloc[ix-1]
+                prevRthHi = x.rth_hi
+                prevRthLo = x.rth_lo
+                prevRthClose = x.close
+                
+                fig.add_shape(type='line', x0=tm[i.startBar], y0=prevRthHi, x1=tm[i.rthEndBar], y1=prevRthHi, line=dict(color='chocolate', dash='dot'))
+                fig.add_shape(type='line', x0=tm[i.startBar], y0=prevRthLo, x1=tm[i.rthEndBar], y1=prevRthLo, line=dict(color='chocolate', dash='dot'))
+                fig.add_shape(type='line', x0=tm[i.startBar], y0=prevRthClose, x1=tm[i.rthEndBar], y1=prevRthClose, line=dict(color='cyan', dash='dot'))
     fig.show()
 
 
@@ -288,33 +315,32 @@ def floor_index(df, tm):
     return df.index.searchsorted(tm, side='right') - 1
 
 
-def load_mongo(symbol, day, n=1):
-    client = MongoClient('localhost', 27017)
-    # print(client.admin.command('ping'))
-    collection = client['futures'].m1
-    dfDays = load_trading_days(collection, symbol, 100000)
-    days = dfDays.index.date.tolist()
-    t = find_index_range(days, day, n)
-    tmStart, tmEnd = map_to_date_range(days, t)
-    # tz difference changes normal 23:00 but can be 22:00 so load from 10pm prior day
-    print(f'loading {symbol} {tmStart} to {tmEnd}')
-    #plot_normvol(dfDays)
-    c = collection.find(filter = {'symbol' : symbol, 'timestamp' : {'$gte': tmStart, '$lt': tmEnd}}, sort = ['timestamp'])
-    rows = []
-    for d in c:
-#            pprint.pprint(d)
-        rows.append( {
-                'Date': d['timestamp'],
-                'Open': d['open'],
-                'High': d['high'],
-                'Low':  d['low'],
-                'Close': d['close'],
-                'Volume': d['volume'],
-                'VWAP': d['vwap'] } )
-    df = pd.DataFrame(rows)
-    df.set_index('Date', inplace=True)
-    df['EMA'] = df.Close.ewm(span=90, adjust=False).mean()
-    return df
+# def load_mongo(symbol, day, n=1):
+#     client = MongoClient('localhost', 27017)
+#     # print(client.admin.command('ping'))
+#     collection = client['futures'].m1
+#     dfDays = load_trading_days(collection, symbol, 100000)
+#     days = dfDays.index.date.tolist()
+#     t = find_index_range(days, day, n)
+#     tmStart, tmEnd = map_to_date_range(days, t)
+#     # tz difference changes normal 23:00 but can be 22:00 so load from 10pm prior day
+#     print(f'loading {symbol} {tmStart} to {tmEnd}')
+#     #plot_normvol(dfDays)
+#     c = collection.find(filter = {'symbol' : symbol, 'timestamp' : {'$gte': tmStart, '$lt': tmEnd}}, sort = ['timestamp'])
+#     rows = []
+#     for d in c:
+#         rows.append( {
+#                 'Date': d['timestamp'],
+#                 'Open': d['open'],
+#                 'High': d['high'],
+#                 'Low':  d['low'],
+#                 'Close': d['close'],
+#                 'Volume': d['volume'],
+#                 'VWAP': d['vwap'] } )
+#     df = pd.DataFrame(rows)
+#     df.set_index('Date', inplace=True)
+#     df['EMA'] = df.Close.ewm(span=90, adjust=False).mean()
+#     return df
 
 
 def load_trading_days(collection, symbol, minVol):
@@ -363,6 +389,7 @@ def parse_isodate(s):
 def plot_normvol(df):
     fig = px.bar(df, x=df.index, y='normv')
     fig.show()
+
 
 def compare_emas():
     """compare 19 ema on M5 to emas on M1. Nearest is around 90-92"""

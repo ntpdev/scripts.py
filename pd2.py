@@ -8,16 +8,6 @@ from tsutils import aggregate, aggregateMinVolume, make_filename, load_files, da
 import plotly.graph_objects as go
 from rich.console import Console
 
-# def rth_index(df):
-#     selector = (df.index.minute == 0) & (df.index.to_series().diff() != timedelta(minutes=1))
-#     idx = df[selector].index.to_series()
-#     # open will always have a gap before it 23:00 CET to add to get RTH hours 14:30 - 20:59
-#     idx_open = idx.add(timedelta(hours=15, minutes=30))
-#     idx_open = df.index.intersection(pd.Index(idx_open))
-#     idx_close = idx.add(timedelta(hours=21, minutes=59))
-#     idx_close = df.index.intersection(pd.Index(idx_close))
-#     return idx_open, idx_close
-
 console = Console()
 
 def rth_bars(df):
@@ -149,10 +139,12 @@ def print_summary(df):
     console.print('\n--- Daily bars ---', style='yellow')
     df2 = aggregate_daily_bars(df, di)
     console.print(df2, style='cyan')
+    console.print(f'range min,median,max = {df2['Range'].min():.2f} {df2['Range'].median():.2f} {df2['Range'].max():.2f}', style='green')
 
     console.print('\n--- RTH bars ---', style='yellow')
     df2 = aggregate_daily_bars(df, dr)
     console.print(df2, style='cyan')
+    console.print(f'range min,median,max = {df2['Range'].min():.2f} {df2['Range'].median():.2f} {df2['Range'].max():.2f}', style='green')
 
 def whole_day_concat(fspec, fnout):
     '''combines all files in fspec into one file. takes whole days only'''
@@ -196,10 +188,11 @@ def simple_concat(fspec, fnout):
     comb = dfs[0]
     for df in dfs[1:]:
         comb = pd.concat([comb, df.loc[~df.index.isin(comb.index)]], axis=0, join='outer')
-    save_df(comb, fnout)
+#    save_df(comb, fnout)
+    print_summary(comb)
 
 
 if __name__ == '__main__':
 #    whole_day_concat('esm4*.csv', 'zESM4')
-    simple_concat('nqm4*.csv', 'zNQM4')
-#    test_load('zznqm4*.csv')
+   simple_concat('esu4*.csv', 'zESU4')
+#    test_load('esu4*.csv')

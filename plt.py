@@ -212,15 +212,17 @@ def plot_atr():
 
 def plot_tick(days :int):
     '''display the last n days'''
-    df = ts.load_files(ts.make_filename('TICK-NYSE*.csv'))
+    df = ts.load_files(ts.make_filename('zTICK-NYSE*.csv'))
     #  last n days from a dataframe with a datetime index
     idx = ts.day_index(df)
-    filtered = df[df.index >= idx.openTime[-days]]
-    hi = filtered['High'].quantile(0.95)
-    lo = filtered['Low'].quantile(0.05)
-    print(f'tick percentiles 5,95  {lo} and {hi}')
+    filtered = df[df.index >= idx.openTime.iloc[-days]]
+    hi = filtered['high'].quantile(0.95)
+    lo = filtered['low'].quantile(0.05)
+    mid = (filtered['high'] + filtered['low']) / 2
+    print(f'tick percentiles 5,95 {lo:.2f} and {hi:.2f}')
     tm = filtered.index.strftime('%d/%m %H:%M')
-    fig = px.bar(x=tm, y=filtered.High, base=filtered.Low)
+    fig = px.bar(x=tm, y=filtered.high, base=filtered.low)
+    fig.add_trace(go.Scatter(x=tm, y=mid, line=dict(color='green'), name='ema'))
     # fig = go.Figure()
     # fig.add_trace(go.Scatter(x=tm, y=df['High'], mode='lines', name='high') )
     # fig.add_trace(go.Scatter(x=tm, y=df['Low'], mode='lines', name='low') )
@@ -277,7 +279,9 @@ def plot_mongo(symbol, dt, n):
     df = md.load_price_history(symbol, dt, n)
     idx = ts.day_index(df)
     day_summary_df = md.create_day_summary(df, idx)
-    dfMinVol = ts.aggregateMinVolume(df, 5000 if idx.shape[0] > 2 else 2500)
+    i = idx.shape[0]
+    # loaded an additional day for hi-lo info but create minVol for display skipping first day
+    dfMinVol = ts.aggregateMinVolume(df[idx.iat[1,0]:idx.iat[i-1,1]], 5000 if i > 3 else 2500)
 
     # create a string for X labels
     tm = dfMinVol.index.strftime('%d/%m %H:%M')
@@ -290,28 +294,37 @@ def plot_mongo(symbol, dt, n):
             fig.add_vline(x=tm[i.rthStartBar], line_width=1, line_dash="dash", line_color="blue")
             if i.rthEndBar > 0:
                 fig.add_vline(x=tm[i.rthEndBar], line_width=1, line_dash="dash", line_color="blue")
-            rthOpen = dfMinVol.at[dfMinVol.index[i.rthStartBar], 'open']
+            rthOpen = day_summary_df.at[i.tradeDt, 'rth_open']
             fig.add_shape(type='line', x0=tm[i.rthStartBar], y0=rthOpen, x1=tm[i.rthEndBar], y1=rthOpen, line=dict(color='LightSeaGreen', dash='dot'))
-            glbxHi = dfMinVol.high[i.startBar:i.euEndBar].max()
+            glbxHi = day_summary_df.at[i.tradeDt, 'glbx_high']
             fig.add_shape(type='line', x0=tm[i.rthStartBar], y0=glbxHi, x1=tm[i.rthEndBar], y1=glbxHi, line=dict(color='Gray', dash='dot'))
-            glbxLo = dfMinVol.low[i.startBar:i.euEndBar].min()
+            glbxLo = day_summary_df.at[i.tradeDt, 'glbx_low']
             fig.add_shape(type='line', x0=tm[i.rthStartBar], y0=glbxLo, x1=tm[i.rthEndBar], y1=glbxLo, line=dict(color='Gray', dash='dot'))
 
-            ix = day_summary_df.index.searchsorted(i.tradeDt)
-            if ix > 0:
-                x = day_summary_df.iloc[ix-1]
-                prevRthHi = x.rth_hi
-                prevRthLo = x.rth_lo
-                prevRthClose = x.close
+        # add first hour hi-lo
+        y = day_summary_df.at[i.tradeDt, 'rth_h1_high']
+        if pd.notna(y):
+            fig.add_shape(type='line', x0=tm[i.rthStartBar], y0=y, x1=tm[i.rthEndBar], y1=y, line=dict(color='Gray', dash='dot'))
+            y = day_summary_df.at[i.tradeDt, 'rth_h1_low']
+            fig.add_shape(type='line', x0=tm[i.rthStartBar], y0=y, x1=tm[i.rthEndBar], y1=y, line=dict(color='Gray', dash='dot'))
+
+        # add previous day rth hi-lo-close
+        ix = day_summary_df.index.searchsorted(i.tradeDt)
+        if ix > 0:
+            x = day_summary_df.iloc[ix-1]
+            prevRthHi = x.rth_high
+            prevRthLo = x.rth_low
+            prevRthClose = x.close
                 
-                fig.add_shape(type='line', x0=tm[i.startBar], y0=prevRthHi, x1=tm[i.rthEndBar], y1=prevRthHi, line=dict(color='chocolate', dash='dot'))
-                fig.add_shape(type='line', x0=tm[i.startBar], y0=prevRthLo, x1=tm[i.rthEndBar], y1=prevRthLo, line=dict(color='chocolate', dash='dot'))
-                fig.add_shape(type='line', x0=tm[i.startBar], y0=prevRthClose, x1=tm[i.rthEndBar], y1=prevRthClose, line=dict(color='cyan', dash='dot'))
+            fig.add_shape(type='line', x0=tm[i.startBar], y0=prevRthHi, x1=tm[i.rthEndBar], y1=prevRthHi, line=dict(color='chocolate', dash='dot'))
+            fig.add_shape(type='line', x0=tm[i.startBar], y0=prevRthLo, x1=tm[i.rthEndBar], y1=prevRthLo, line=dict(color='chocolate', dash='dot'))
+            fig.add_shape(type='line', x0=tm[i.startBar], y0=prevRthClose, x1=tm[i.rthEndBar], y1=prevRthClose, line=dict(color='cyan', dash='dot'))
+    
     fig.show()
 
 
 def floor_index(df, tm):
-    """return index of inverval that includes tm"""
+    """return index of interval that includes tm"""
     return df.index.searchsorted(tm, side='right') - 1
 
 

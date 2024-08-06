@@ -178,6 +178,26 @@ def calc_hilo(ser):
     return pd.Series(cs, ser.index)
 
 
+def day_index2(df):
+    '''create a df [date, first, last, rth_first, rth_last] for each trading day based on gaps in index'''
+    first_bar_selector = df.index.diff() != timedelta(minutes=1)
+    last_bar_selector = np.roll(first_bar_selector, -1)
+    # contiguous time ranges
+    idx = pd.DataFrame({'first': df.index[first_bar_selector], 'last': df.index[last_bar_selector]})
+    # calculate rth range as offset from open
+    rth_start = idx['first'] + timedelta(hours=15, minutes=30)
+    rth_end = idx['first'] + timedelta(hours=21, minutes=59)
+    nat = np.datetime64("NaT")
+    s = np.where(idx['last'] > rth_start, rth_start, nat)
+    e = np.where(np.isnat(s), nat, np.minimum(rth_end, idx['last']))
+    idx['rth_first'] = s
+    idx['rth_last'] = e
+    idx['duration'] = ((idx['last'] - idx['first']).dt.total_seconds()) / 60 + 1
+    idx.set_index(idx['last'].dt.date, inplace=True)
+    idx.index.name = 'date'
+    return idx
+
+
 def day_index(df):
     '''create a df [date, openTime, closeTime] for each trading day based on gaps in index'''
     selector = (df.index.to_series().diff() != timedelta(minutes=1))
@@ -201,25 +221,25 @@ def aggregate_daily_bars(df, daily_index):
         rows.append(aggregate(df, r['openTime'], r['closeTime']))
 
     daily = pd.DataFrame(rows, index=daily_index.index)
-    daily['Change'] = daily.Close.diff()
-    daily['Gap'] = daily.Open - daily.Close.shift()
-    daily['DayChg'] = daily.Close - daily.Open
-    daily['Range'] = daily.High - daily.Low
-    daily['Strat'] = calc_strat(daily)
-    return daily[daily.Volume > 125000]
+    daily['change'] = daily.close.diff()
+    daily['gap'] = daily.open - daily.close.shift()
+    daily['day_chg'] = daily.close - daily.open
+    daily['range'] = daily.high - daily.low
+    daily['strat'] = calc_strat(daily)
+    return daily[daily.volume > 125000]
 
 
 # return a row which aggregates bars between inclusive indexes
 def aggregate(df, s, e):
     r = {}
-    r['Open'] = df.at[s, 'Open']
-    r['High'] = df.High[s:e].max()
-    r['Low'] = df.Low[s:e].min()
-    r['Close'] = df.at[e, 'Close']
-    r['Volume'] = df.Volume[s:e].sum()
+    r['open'] = df.at[s, 'open']
+    r['high'] = df.high[s:e].max()
+    r['low'] = df.low[s:e].min()
+    r['close'] = df.at[e, 'close']
+    r['volume'] = df.volume[s:e].sum()
     # contract expiry is opening price of day so day has no volume
-    vwap = 0 if r['Volume'] <= 0 else np.average( df.WAP[s:e], weights=df.Volume[s:e] )
-    r['VWAP'] = round(vwap, 2)
+    vwap = 0 if r['volume'] <= 0 else np.average( df.wap[s:e], weights=df.volume[s:e] )
+    r['vwap'] = round(vwap, 2)
     return r
 
 
@@ -230,7 +250,7 @@ def calc_vwap(df):
     for i,r in df.iterrows():
         if is_first_bar.loc[i]:
             start = i
-        v = np.average( df['WAP'].loc[start:i], weights=df['Volume'].loc[start:i] )
+        v = np.average( df['wap'].loc[start:i], weights=df['volume'].loc[start:i] )
         xs.append(round(v, 2))
     return pd.Series(xs, df.index)
 
@@ -261,11 +281,16 @@ def make_filename(fname):
     return p + fname
 
 def load_files(fname):
+    '''load all files matching specified pattern and return a single dataframe'''
     dfs = [load_file(e) for e in gb.glob(fname)]
-    return pd.concat(dfs)
+    df = pd.concat(dfs)
+    if not df.index.is_monotonic_increasing:
+        raise ValueError(f'index not monotonic increasing')
+    return df
 
 def load_file(fname):
     df = pd.read_csv(fname, parse_dates=['Date'], index_col='Date')
+    df.columns = df.columns.str.lower()
     print(f'loaded {fname} {df.shape[0]} {df.shape[1]}')
     return df
 

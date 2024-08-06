@@ -14,22 +14,26 @@ from pathlib import Path
 from rich.console import Console
 from rich.markdown import Markdown
 from rich import print as rprint
+from rich.pretty import pprint
 import requests
 import json
 import subprocess
 import yaml
-import math
+import math # used by eval
+import sympy # used by eval
+import re
 
 # pip install dataclasses-json
+# OpenAI Python library: https://github.com/openai/openai-python
 
-model_name = {'gpt35':'gpt-3.5-turbo', 'gpt4':'gpt-4o', 'groq':'llama3-70b-8192', 'llama3':'meta-llama/Llama-3-70b-chat-hf', 'ollama':'llama3:8b-instruct-q5_K_M'}
+model_name = {'gptm':'gpt-4o-mini', 'gpt4o':'gpt-4o', 'groq':'llama-3.1-70b-versatile', 'llama3':'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo', 'ollama':'llama3:8b-instruct-q5_K_M'}
 FNAME = 'chat-log.json'
 console = Console()
 role_to_color = {
     "system": "red",
     "user": "green",
     "assistant": "cyan",
-    "function": "yellow" }
+    "tool": "yellow" }
 FNCALL_SYSMSG = """
 
 You are Marvin, an AI chatbot trained by OpenAI. You are a function calling AI model. You are provided with function signatures within <tools></tools> XML tags. You may call one or more functions to assist with the user query. Don't make assumptions about what values to plug into functions. Here are the available tools: 
@@ -61,21 +65,32 @@ class ChatMessage:
     def __post_init__(self):
         if not self.role:
             raise ValueError("Role cannot be empty")
-        if not self.content:
-            raise ValueError("Content cannot be empty")
+        # if not self.content:
+        #     raise ValueError("Content cannot be empty")
 
 
 @dataclass_json
 @dataclass
 # add validation to check that role and content are not empty   
-class ChatToolMessage(ChatMessage):
+class ChatToolMessageResponse(ChatMessage):
     name: str
     tool_call_id: str
 
     def __init__(self, name, tool_call_id, content):
-        super().__init__('function', content)
+        super().__init__('tool', content)
         self.name = name
         self.tool_call_id = tool_call_id
+
+
+@dataclass_json
+@dataclass
+class ChatToolMessageCall(ChatMessage):
+    tool_calls: list
+
+    def __init__(self, chat_completion):
+        '''takes openAI ChatCompletionMessageToolCall and saves tool_calls'''
+        super().__init__('assistant', None)
+        self.tool_calls = chat_completion.to_dict()['tool_calls']
 
 
 class LLM:
@@ -95,19 +110,19 @@ class LLM:
         "required": ["expression"]
     } } }]
 
-    def __init__(self, llm_name: str):
+    def __init__(self, llm_name: str, useTool: bool = False):
         self.llm_name = llm_name
         self.model = model_name.get(llm_name, 'local')
         self.client = self.create_client(llm_name)
-        self.useTool = llm_name.startswith('gpt')
+        self.useTool = useTool
 
     def __str__(self):
-        return f'{self.model} {self.llm_name}'
+        return f'{self.model} {self.llm_name} tool use = {self.useTool}'
 
     def create_client(self, llm_name):
         if llm_name == 'llama3':
             return OpenAI(api_key=os.environ['TOGETHERAI_API_KEY'], base_url='https://api.together.xyz/v1')
-        elif llm_name == 'gpt35' or llm_name == 'gpt4':
+        elif llm_name == 'gptm' or llm_name == 'gpt4o':
             return OpenAI()
         elif llm_name == 'groq':
             return OpenAI(api_key=os.environ['GROQ_API_KEY'], base_url='https://api.groq.com/openai/v1')
@@ -265,28 +280,41 @@ def process_tool_call(tool_call):
     if fnname == 'eval':
         r = ""
         try:
-            r = eval(args['expression'])
+            # can get lines like - import sympy; sympy.factorint(30907)
+            stmts = re.split(r'[;\n]', args['expression'])
+            pprint(stmts)
+            # if it is a script fragment wrap the final statement in print and execute as a code block
+            if len(stmts) > 1:
+                stmts[-1] = 'print(' + stmts[-1] + ')'
+                r = execute_script(CodeBlock('python', stmts))
+            else:    
+                r = eval(stmts[0])
         except Exception as e:
-            console.print(f'ERROR: {r}', style='red')
+            console.print(f'ERROR: {e}', style='red')
+            r = e
         console.print(f'result = {str(r)}', style='yellow')
-        # d = {"role": "function",
+        # d = {"role": "tool",
         #      "name": fnname,
         #      "tool_call_id": tool_call.id,   
         #      "content": str(r)}
-        return ChatToolMessage(fnname, tool_call.id, str(r))
+        return ChatToolMessageResponse(fnname, tool_call.id, str(r))
 
     s = 'Unknown function name ' + fnname
     console.print(s, style='red')
-    return ChatToolMessage(fnname, tool_call.id, 'ERROR: ' + s)
+    return ChatToolMessageResponse(fnname, tool_call.id, 'ERROR: ' + s)
 
 
 def check_and_process_tool_call(client, messages, response):
     '''check for a tool call and process. If there is no tool call then the original response is returned'''
+    # https://platform.openai.com/docs/guides/function-calling
     choice = response.choices[0]
-    while choice.finish_reason == 'tool_calls':
+    n = 3
+    while choice.finish_reason == 'tool_calls' and n > 0:
+        n -= 1
+        # append choice.message to message history
+        messages.append(ChatToolMessageCall(choice.message))
         for tc in choice.message.tool_calls:
-            tcm = ChatToolMessage(tc.function.name, tc.id, tc.function.arguments)
-            # messages.append(tcm) don't add the tool call to message history
+            tcm = ChatToolMessageResponse(tc.function.name, tc.id, tc.function.arguments)
             prt(tcm)
             tool_response = process_tool_call(tc)
             messages.append(tool_response)
@@ -294,6 +322,8 @@ def check_and_process_tool_call(client, messages, response):
         response = client.chat(messages)
         choice = response.choices[0]
 
+    if n == 0:
+        console.print('tool call limit exceeded', style='red')
     return response
 
 
@@ -368,13 +398,14 @@ def process_commands(inp: str, messages: List[ChatMessage]) -> bool:
 def system_message():
     tm = datetime.datetime.now().isoformat()
     scripting_lang, plat = ('bash','Ubuntu') if platform.system() == 'Linux' else ('powershell','Windows 11')
-#    return f'You are Marvin. You use logic and reasoning when answering questions. You make dry, witty, mocking comments and often despair.  You are logical and pay attention to detail. current datetime is {tm}'
-    return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. The local computer is {plat}. you can write python or {scripting_lang} scripts. scripts should always written inside markdown code blocks with ```python or ```{scripting_lang}. current datetime is {tm}'
-    # return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. current datetime is {tm}'
+    # return f'You are Marvin. You use logic and reasoning when answering questions. You make dry, witty, mocking comments and often despair.  You are logical and pay attention to detail. current datetime is {tm}'
+    # return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. The local computer is {plat}. you can write python or {scripting_lang} scripts. scripts should always written inside markdown code blocks with ```python or ```{scripting_lang}. current datetime is {tm}'
+    return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. current datetime is {tm}'
 
 
-def chat(llm_name):
-    client = LLM(llm_name)
+def chat(llm_name, use_tool):
+    # useTool pass llm_name.startswith('gpt')
+    client = LLM(llm_name, use_tool)
 #    systemMessage = ChatMessage('system', FNCALL_SYSMSG)
     systemMessage = ChatMessage('system', system_message())
     rprint(systemMessage)
@@ -489,9 +520,11 @@ text after
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Chat with LLMs')
-    parser.add_argument('llm', type=str, help='LLM to use [local|ollama|gpt35|gpt4|llama3|groq]')
+    parser.add_argument('llm', type=str, help='LLM to use [local|ollama|gptm|gpt4o|llama3|groq]')
+    parser.add_argument('tool_use', type=str, nargs='?', default='', help='add tool to enable tool calls')
+
     args = parser.parse_args()
-    chat(args.llm)
+    chat(args.llm, args.tool_use == 'tool')
     # x()
     # s = chat_ollama()
     # print(s)

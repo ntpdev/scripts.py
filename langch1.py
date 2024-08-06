@@ -81,7 +81,7 @@ def process_tool_calls(msg):
     '''process tool calls and add return ToolMessages'''
     messages = []
     for call in msg.tool_calls:
-        if call['name'].lower() == 'tool_eval':
+        if 'tool_eval' in call['name'].lower():
             r = tool_eval(call['args']['expression'])
             messages.append(ToolMessage(r, tool_call_id = call['id']))
         else:
@@ -213,23 +213,26 @@ def system_message():
 # #                         """))
 # ]
 
-def create_llm(llm_name, temp, toolUse):
+def create_llm(llm_name, temp, tool_use):
     if llm_name == 'pro':
-        llm = ChatVertexAI(model='gemini-1.5-pro',  safety_settings=safety_settings, temperature=temp)
+        llm = ChatVertexAI(model='gemini-1.5-pro-001',  safety_settings=safety_settings, temperature=temp)
+    if llm_name == 'exp':
+        llm = ChatVertexAI(model='gemini-experimental',  safety_settings=safety_settings, temperature=temp)
     elif llm_name == 'haiku':
         llm = ChatAnthropicVertex(model_name='claude-3-haiku', location='europe-west1', temperature=temp)
     elif llm_name == 'sonnet':
         llm = ChatAnthropicVertex(model_name='claude-3-5-sonnet@20240620', location='europe-west1', temperature=temp)
     else:
-        llm = ChatVertexAI(model='gemini-1.5-flash',  safety_settings=safety_settings, temperature=temp)
-    if toolUse and (llm_name != 'haiku' or llm_name != 'sonnet'):
+        llm = ChatVertexAI(model='gemini-1.5-flash-001',  safety_settings=safety_settings, temperature=temp)
+
+    if tool_use and llm.model_name.startswith('gemini'):
         console.print('tool calls enabled', style='yellow')
         llm = llm.bind_tools([tool_eval])
     return llm
 
 
-def chat(llm_name):
-    llm = create_llm(llm_name, 0.2, False)
+def chat(llm_name, tool_use = False):
+    llm = create_llm(llm_name, 0.2, tool_use)
     console.print('chat with model: ' + llm.model_name, style='yellow')
     chain = create_llm_with_history(llm)
     session_id = 'xyz'
@@ -259,6 +262,7 @@ def chat(llm_name):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Chat with LLMs')
-    parser.add_argument('llm', type=str, help='LLM to use [flash|pro|haiku]')
+    parser.add_argument('llm', type=str, help='LLM to use [flash|pro|exp|haiku|sonnet]')
+    parser.add_argument('tool_use', type=str, nargs='?', default='', help='add tool to enable tool calls')
     args = parser.parse_args()
-    chat(args.llm)
+    chat(args.llm, args.tool_use == 'tool')

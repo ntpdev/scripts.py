@@ -155,7 +155,7 @@ def make_trade_dates(dfSummary, dfGaps, symbol):
     return df
 
 
-def calculate_time_range(dfTradeDays, dt, range_name):
+def calculate_trading_hours(dfTradeDays, dt, range_name):
     '''return start and end inclusive datetime for a given date and range name. range_name is 'rth' or 'glbx' or 'day'.'''
     try:
         st = dfTradeDays.at[dt, 'start']
@@ -171,26 +171,40 @@ def calculate_time_range(dfTradeDays, dt, range_name):
 
 
 def create_day_summary(df, day_index):
-    console.print(day_index)
-    xs = []
-    for i,r in day_index.iterrows():
-        euClose = r.openTime + pd.Timedelta(minutes=929)
-        rthOpen = r.openTime + pd.Timedelta(minutes=930)
-        rthClose = min(r.closeTime - pd.Timedelta(minutes=1),  r.openTime + pd.Timedelta(minutes=1319))
-        glbx = df[r.openTime:euClose]
-        rth = df[rthOpen:rthClose]
-        xs.append({'date' : i,
-                   'glbx_high': glbx['high'].max(),
-                   'glbx_low': glbx['low'].min(),
-                   'rth_hi': rth['high'].max(),
-                   'rth_lo': rth['low'].min(),
-                #    'rth_hi_tm': rth['high'].idxmax(),
-                #    'rth_lo_tm': rth['low'].idxmin(),
-                   'close': df.at[rthClose, 'close']
-                   })
-    day_summary_df = pd.DataFrame(xs)
-    day_summary_df.set_index('date', inplace=True)
-    return day_summary_df
+  console.print(day_index)
+  xs = []
+  for i,r in day_index.iterrows():
+    euClose = min(r.closeTime, r.openTime + pd.Timedelta(minutes=929))
+    rthOpen = r.openTime + pd.Timedelta(minutes=930)
+    rthFirst = r.openTime + pd.Timedelta(minutes=989)
+    rthClose = r.openTime + pd.Timedelta(minutes=1319)
+    glbx = df[r.openTime:euClose]
+    rth = df[rthOpen:rthClose]
+    rth_hi, rth_lo, rth_open, rth_close, rth_fhi, rth_flo = pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA
+    if not rth.empty:
+      rth_hi = rth['high'].max()
+      rth_lo = rth['low'].min()
+      rth_open = rth.iat[0, rth.columns.get_loc('open')]
+      rth_close = rth.iat[-1, rth.columns.get_loc('close')]
+      rthFirstHour = df[rthOpen:rthFirst]
+      rth_fhi = rthFirstHour['high'].max()
+      rth_flo = rthFirstHour['low'].min()
+
+    xs.append({'date' : i,
+      'glbx_high': glbx['high'].max(),
+      'glbx_low': glbx['low'].min(),
+      'rth_open': rth_open,
+      'rth_high': rth_hi,
+      'rth_low': rth_lo,
+      'close': rth_close,
+      'rth_h1_high': rth_fhi,
+      'rth_h1_low': rth_flo
+    })
+
+  day_summary_df = pd.DataFrame(xs)
+  day_summary_df.set_index('date', inplace=True)
+  console.print(day_summary_df)
+  return day_summary_df
 
 
 def load_price_history(symbol, dt, n = 1):
@@ -202,20 +216,14 @@ def load_price_history(symbol, dt, n = 1):
     # console.print(dfGaps)
     dfTradeDays = make_trade_dates(dfSummary, dfGaps, symbol)
     # console.print(dfTradeDays)
-    s,e = find_datetime_range(dfTradeDays, dt, n - 1)
+    s,e = find_datetime_range(dfTradeDays, dt, n-1 if n < 0 else n)
     # console.print(s, e)
     return load_timeseries(collection, symbol, s, e)
 
-    # dfDays = load_trading_days(collection, symbol, 100000)
-    # s,e = find_index_range(dfDays.index.date.tolist(), dt, n)
-    # if s > 0:
-    #     s -= 1
-    # df = load_mongo(collection, symbol, dfDays.index[s], dfDays.index[e])
-    # di = ts.day_index(df)
-    # day_summary = create_day_summary(df, di)
-    # console.print(day_summary)
 
-def main(symbol):
+def main(symbol: str, dt: date = None):
+    if dt is None:
+        dt = date.today()
     client = MongoClient('localhost', 27017)
     collection = client['futures'].m1
     dfDays = load_trading_days(collection, symbol, 100000)
@@ -229,11 +237,13 @@ def main(symbol):
     console.print(dfGaps)
     dfTradeDays = make_trade_dates(dfSummary, dfGaps, symbol)
     console.print(dfTradeDays)
-    tms,tme = find_datetime_range(dfTradeDays, date(2024, 6, 20), -3)
+    tms,tme = find_datetime_range(dfTradeDays, dt, -3)
     df = load_timeseries(collection, symbol, tms, tme)
-    tms, tme = calculate_time_range(dfTradeDays, date(2024,6,20), 'rth')
+    tms, tme = calculate_trading_hours(dfTradeDays, tme.date(), 'rth')
     console.print(df[tms:tme].head())
-    console.print(create_day_summary(df, ts.day_index(df)))
+    console.print(df[tms:tme].tail())
+    dfDayIndex = ts.day_index(df)
+    console.print(create_day_summary(df, dfDayIndex))
 
 
 if __name__ == '__main__':

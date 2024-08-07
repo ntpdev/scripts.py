@@ -3,7 +3,7 @@ import argparse
 from dataclasses import dataclass, asdict
 from typing import List
 from dataclasses_json import dataclass_json
-from chatutils import CodeBlock, make_fullpath, extract_code_block, execute_script, save_content
+from chatutils import CodeBlock, make_fullpath, extract_code_block, execute_script, save_content, translate_latex
 from bs4 import BeautifulSoup
 import datetime
 #from datetime import datetime, date, time
@@ -25,8 +25,8 @@ import re
 
 # pip install dataclasses-json
 # OpenAI Python library: https://github.com/openai/openai-python
-
-model_name = {'gptm':'gpt-4o-mini', 'gpt4o':'gpt-4o', 'groq':'llama-3.1-70b-versatile', 'llama3':'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo', 'ollama':'llama3:8b-instruct-q5_K_M'}
+# togetherAI models https://docs.together.ai/docs/chat-models
+model_name = {'gptm':'gpt-4o-mini', 'gpt4o':'gpt-4o', 'groq':'llama-3.1-70b-versatile', 'llama':'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo', 'llama-big':'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo', 'ollama':'llama3:8b-instruct-q5_K_M'}
 FNAME = 'chat-log.json'
 console = Console()
 role_to_color = {
@@ -120,9 +120,9 @@ class LLM:
         return f'{self.model} {self.llm_name} tool use = {self.useTool}'
 
     def create_client(self, llm_name):
-        if llm_name == 'llama3':
+        if llm_name.startswith('llama'):
             return OpenAI(api_key=os.environ['TOGETHERAI_API_KEY'], base_url='https://api.together.xyz/v1')
-        elif llm_name == 'gptm' or llm_name == 'gpt4o':
+        elif llm_name.startswith('gpt'):
             return OpenAI()
         elif llm_name == 'groq':
             return OpenAI(api_key=os.environ['GROQ_API_KEY'], base_url='https://api.groq.com/openai/v1')
@@ -156,7 +156,7 @@ def is_toolcall(s: str) -> str:
 def prt(msg : ChatMessage):
     c = role_to_color[msg.role]
     console.print(f'{msg.role}:\n', style=c)
-    md = Markdown(msg.content)
+    md = Markdown(translate_latex(msg.content))
     console.print(md, style=c)
 
 
@@ -400,7 +400,7 @@ def system_message():
     scripting_lang, plat = ('bash','Ubuntu') if platform.system() == 'Linux' else ('powershell','Windows 11')
     # return f'You are Marvin. You use logic and reasoning when answering questions. You make dry, witty, mocking comments and often despair.  You are logical and pay attention to detail. current datetime is {tm}'
     # return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. The local computer is {plat}. you can write python or {scripting_lang} scripts. scripts should always written inside markdown code blocks with ```python or ```{scripting_lang}. current datetime is {tm}'
-    return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. current datetime is {tm}'
+    return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. current datetime is {tm}.'
 
 
 def chat(llm_name, use_tool):
@@ -520,7 +520,7 @@ text after
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Chat with LLMs')
-    parser.add_argument('llm', type=str, help='LLM to use [local|ollama|gptm|gpt4o|llama3|groq]')
+    parser.add_argument('llm', type=str, help='LLM to use [local|ollama|gptm|gpt4o|llama|llama-big|groq]')
     parser.add_argument('tool_use', type=str, nargs='?', default='', help='add tool to enable tool calls')
 
     args = parser.parse_args()

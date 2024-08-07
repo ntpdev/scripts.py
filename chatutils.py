@@ -16,6 +16,30 @@ import unittest
 
 
 console = Console()
+latex_to_unicode = {
+    'neg': '¬',
+    'forall': '∀',
+    'exists': '∃',
+    'in': '∈',
+    'vdash': '⊢',
+    'dashv': '⊣',
+    'sim': '∼',
+    'approx': '≈',
+    'land': '∧',
+    'wedge': '∧',
+    'lor': '∨',
+    'rightarrow': '→',
+    'implies': '⇒',
+    'iff': '⇔',
+    'subset': '⊂',
+    'supset': '⊃',
+    'leftrightarrow': '↔',
+    'therefore': '∴',
+    'neq': '≠',
+    'equiv': '≡',
+    'times': '×',
+    'div': '÷',
+}
 
 @dataclass
 class CodeBlock:
@@ -162,6 +186,12 @@ def execute_script(code: CodeBlock):
     return msg
 
 
+def translate_latex(s: str) -> str:
+    for k,v in latex_to_unicode.items():
+        s = s.replace('\\' + k, v)
+    return s
+
+
 class TestChat(unittest.TestCase):
 
     def test_save_and_execute_python(self):
@@ -273,6 +303,12 @@ This PowerShell command will list the 5 largest `.txt` files in the `~\\Document
         console.print(c)
         self.assertEqual(c.language, 'powershell')
         self.assertEqual(len(c.lines), 3)
+
+
+    def test_translate_latex(self):
+        s = "if A \\rightarrow B \\lor \\negC \\neq D"
+        r = translate_latex(s)
+        self.assertEqual(r, 'if A → B ∨ ¬C ≠ D')
 
 
 if __name__ == '__main__':

@@ -6,6 +6,10 @@ import pandas as pd
 import glob as gb
 import platform
 import sys
+from rich.console import Console
+from rich.pretty import pprint
+
+console = Console()
 
 class Blotter:
 
@@ -50,8 +54,8 @@ class Blotter:
         prf = self.calc_profit(op['Fin Instrument'][:3], pts)
         trade['Points'] = pts
         trade['Profit'] = prf
-        trade['Comm'] = 1.14
-        trade['Net'] = prf - 1.14
+        trade['Comm'] = 1.24
+        trade['Net'] = prf - 1.24
         self.trades.append(trade)
  
     def find_matching(self, symbol, action):
@@ -117,23 +121,24 @@ def aggregrate_by_sequence(df):
         Num=pd.NamedAgg(column="Symbol", aggfunc="count"),
         Profit=pd.NamedAgg(column="Profit", aggfunc="sum") )
 
-parser = argparse.ArgumentParser(description='Process IB trade logs')
-parser.add_argument('--skip', metavar='skip', default=0, type=int, help='number of rows to skip')
-parser.add_argument('--input', metavar='input', default='', help='file name')
-args = parser.parse_args()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Process IB trade logs')
+    parser.add_argument('--skip', metavar='skip', default=0, type=int, help='number of rows to skip')
+    parser.add_argument('--input', metavar='input', default='', help='file name')
+    args = parser.parse_args()
 
-if len(args.input) > 0:
-    df = load_fileEx(args.input)
-else:
-    df = pd.concat( [load_file('trades-0214.csv'), load_file('trades.20220222.csv'), load_file('trades.20220223.csv')] )
+    if len(args.input) > 0:
+        df = load_fileEx(args.input)
+    else:
+        df = pd.concat( [load_file('trades-0214.csv'), load_file('trades.20220222.csv'), load_file('trades.20220223.csv')] )
 
-b = Blotter()
-trades = b.process_trade_log(df, args.skip)
-print(trades.tail(19))
-c = len(b.openPositions)
-if c > 0:
-    print(f'Open contracts {c}')
-else:
-    print('All contracts matched')
-print(aggregrate_by_sequence(trades))
-print_trade_stats(trades)
+    b = Blotter()
+    trades = b.process_trade_log(df, args.skip)
+    console.print(trades, style='cyan')
+    c = len(b.openPositions)
+    if c > 0:
+        console.print(f'Open contracts {c}', style='yellow')
+    else:
+        console.print('All contracts matched', style='yellow')
+    console.print(aggregrate_by_sequence(trades), style='cyan')
+    print_trade_stats(trades)

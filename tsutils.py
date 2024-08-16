@@ -198,27 +198,27 @@ def day_index2(df):
     return idx
 
 
-def day_index(df):
-    '''create a df [date, openTime, closeTime] for each trading day based on gaps in index'''
-    selector = (df.index.to_series().diff() != timedelta(minutes=1))
-    idx = df[selector].index.array
-    idx_close = df[selector.shift(periods=-1, fill_value=True)].index.array
-    return pd.DataFrame({'openTime':idx, 'closeTime':idx_close}, index=idx_close.date)
+# def day_index(df):
+#     '''create a df [date, openTime, closeTime] for each trading day based on gaps in index'''
+#     selector = (df.index.to_series().diff() != timedelta(minutes=1))
+#     idx = df[selector].index.array
+#     idx_close = df[selector.shift(periods=-1, fill_value=True)].index.array
+#     return pd.DataFrame({'openTime':idx, 'closeTime':idx_close}, index=idx_close.date)
 
 
 # create a df [date, openTime, closeTime] for each rth day from an index of trading days
-def rth_index(day_index):
-    fulldays = day_index[day_index.closeTime - day_index.openTime == timedelta(hours=22, minutes=59)]
-    rth_open = fulldays.openTime + timedelta(hours=15, minutes=30)
-    rth_close = fulldays.openTime + timedelta(hours=21, minutes=59)
-    return pd.DataFrame( {'openTime':rth_open, 'closeTime':rth_close }, index=fulldays.index )
+# def rth_index(day_index):
+#     fulldays = day_index[day_index.closeTime - day_index.openTime == timedelta(hours=22, minutes=59)]
+#     rth_open = fulldays.openTime + timedelta(hours=15, minutes=30)
+#     rth_close = fulldays.openTime + timedelta(hours=21, minutes=59)
+#     return pd.DataFrame( {'openTime':rth_open, 'closeTime':rth_close }, index=fulldays.index )
 
 
 # create a new DF which aggregates bars using a daily index
-def aggregate_daily_bars(df, daily_index):
+def aggregate_daily_bars(df, daily_index, start_col, end_col):
     rows = []
     for i,r in daily_index.iterrows():
-        rows.append(aggregate(df, r['openTime'], r['closeTime']))
+        rows.append(aggregate(df, r[start_col], r[end_col]))
 
     daily = pd.DataFrame(rows, index=daily_index.index)
     daily['change'] = daily.close.diff()

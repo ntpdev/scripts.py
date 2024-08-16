@@ -26,7 +26,7 @@ import re
 # pip install dataclasses-json
 # OpenAI Python library: https://github.com/openai/openai-python
 # togetherAI models https://docs.together.ai/docs/chat-models
-model_name = {'gptm':'gpt-4o-mini', 'gpt4o':'gpt-4o', 'groq':'llama-3.1-70b-versatile', 'llama':'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo', 'llama-big':'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo', 'ollama':'llama3:8b-instruct-q5_K_M'}
+model_name = {'gptm':'gpt-4o-mini', 'gpt4':'gpt-4o-2024-08-06', 'groq':'llama-3.1-70b-versatile', 'llama':'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo', 'llama-big':'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo', 'ollama':'llama3:8b-instruct-q5_K_M'}
 FNAME = 'chat-log.json'
 console = Console()
 role_to_color = {

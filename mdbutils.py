@@ -174,29 +174,34 @@ def create_day_summary(df, day_index):
   console.print(day_index)
   xs = []
   for i,r in day_index.iterrows():
-    euClose = min(r.closeTime, r.openTime + pd.Timedelta(minutes=929))
-    rthOpen = r.openTime + pd.Timedelta(minutes=930)
-    rthFirst = r.openTime + pd.Timedelta(minutes=989)
-    rthClose = r.openTime + pd.Timedelta(minutes=1319)
-    glbx = df[r.openTime:euClose]
-    rth = df[rthOpen:rthClose]
-    rth_hi, rth_lo, rth_open, rth_close, rth_fhi, rth_flo = pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA
-    if not rth.empty:
-      rth_hi = rth['high'].max()
-      rth_lo = rth['low'].min()
-      rth_open = rth.iat[0, rth.columns.get_loc('open')]
-      rth_close = rth.iat[-1, rth.columns.get_loc('close')]
-      rthFirstHour = df[rthOpen:rthFirst]
-      rth_fhi = rthFirstHour['high'].max()
-      rth_flo = rthFirstHour['low'].min()
+    openTime = r['first']
+    rthOpen = r['rth_first']
+    euClose = min(r['last'], rthOpen - pd.Timedelta(minutes=1))
+    glbx_df = df[openTime:euClose]
+    rth_hi, rth_lo, rth_hi_tm, rth_lo_tm, rth_open, rth_close, rth_fhi, rth_flo = pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA
+    if not pd.isnull(rthOpen):
+      rth_df = df[rthOpen:r['rth_last']]
+      rth_hi = rth_df['high'].max()
+      rth_hi_tm = rth_df['high'].idxmax()
+      rth_lo = rth_df['low'].min()
+      rth_lo_tm = rth_df['low'].idxmin()
+      rth_open = rth_df.iat[0, rth_df.columns.get_loc('open')]
+      rth_close = rth_df.iat[-1, rth_df.columns.get_loc('close')]
+
+      rth_h1_last = rthOpen + pd.Timedelta(minutes=59)
+      rth_h1_df = df[rthOpen:rth_h1_last]
+      rth_fhi = rth_h1_df['high'].max()
+      rth_flo = rth_h1_df['low'].min()
 
     xs.append({'date' : i,
-      'glbx_high': glbx['high'].max(),
-      'glbx_low': glbx['low'].min(),
+      'glbx_high': glbx_df['high'].max(),
+      'glbx_low': glbx_df['low'].min(),
       'rth_open': rth_open,
       'rth_high': rth_hi,
       'rth_low': rth_lo,
       'close': rth_close,
+      'rth_high_tm': rth_hi_tm,
+      'rth_low_tm': rth_lo_tm,
       'rth_h1_high': rth_fhi,
       'rth_h1_low': rth_flo
     })

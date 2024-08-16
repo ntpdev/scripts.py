@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from io import StringIO
 #from pathlib import Path
-from tsutils import aggregate, aggregateMinVolume, make_filename, load_files, load_file, day_index, day_index2, rth_index, aggregate_daily_bars, calc_vwap, calc_atr, save_df
+from tsutils import aggregate, aggregateMinVolume, make_filename, load_files, load_file, day_index2, aggregate_daily_bars, calc_vwap, calc_atr, save_df
 import plotly.graph_objects as go
 from rich.console import Console
 
@@ -168,27 +168,22 @@ def main():
     #    color_discrete_map={ '0' : 'blue' }))
     #fig.show()
 
+
 def print_summary(df):
-    di = day_index(df)
-    dr = rth_index(di)
+    di = day_index2(df)
     console.print('\n--- Day index ---', style='yellow')
     console.print(di)
-
-    console.print('\n--- Day index ---', style='yellow')
-    console.print(dr)
-    di2 = day_index2(df)
-    console.print('\n--- Day index ---', style='yellow')
-    console.print(di2)
     
     console.print('\n--- Daily bars ---', style='yellow')
-    df2 = aggregate_daily_bars(df, di)
+    df2 = aggregate_daily_bars(df, di, 'first', 'last')
     console.print(df2, style='cyan')
     console.print(f'range min,median,max = {df2['range'].min():.2f} {df2['range'].median():.2f} {df2['range'].max():.2f}', style='green')
 
     console.print('\n--- RTH bars ---', style='yellow')
-    df2 = aggregate_daily_bars(df, dr)
+    df2 = aggregate_daily_bars(df, di, 'rth_first', 'rth_last')
     console.print(df2, style='cyan')
     console.print(f'range min,median,max = {df2['range'].min():.2f} {df2['range'].median():.2f} {df2['range'].max():.2f}', style='green')
+
 
 def whole_day_concat(fspec, fnout):
     '''combines all files in fspec into one file. takes whole days only'''
@@ -240,9 +235,9 @@ def simple_concat(fspec, fnout):
 
 if __name__ == '__main__':
 #    whole_day_concat('esm4*.csv', 'zESM4')
-    test_tick()
-    # df_es = simple_concat('zesu4*.csv', 'zESU4')
-    # print_summary(df_es)
+    # test_tick()
+    df_es = simple_concat('zesu4*.csv', 'zESU4')
+    print_summary(df_es)
     # df_tick = simple_concat('ztick-nyse*.csv', 'x')
     # di = day_index(df_tick)
     # breakpoint()

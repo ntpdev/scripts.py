@@ -214,8 +214,8 @@ def plot_tick(days :int):
     '''display the last n days'''
     df = ts.load_files(ts.make_filename('zTICK-NYSE*.csv'))
     #  last n days from a dataframe with a datetime index
-    idx = ts.day_index(df)
-    filtered = df[df.index >= idx.openTime.iloc[-days]]
+    idx = ts.day_index2(df)
+    filtered = df[df.index >= idx.first.iloc[-days]]
     hi = filtered['high'].quantile(0.95)
     lo = filtered['low'].quantile(0.05)
     mid = (filtered['high'] + filtered['low']) / 2
@@ -235,10 +235,11 @@ def create_minVol_index(dfMinVol, day_index) -> list[MinVolDay]:
     # first bar will either be at 23:00 most of the time but 22:00 when US/UK clocks change at different dates
     startTm = dfMinVol.index[0]
     last = dfMinVol.shape[0] - 1
-    
+    breakpoint()
+    #TODO
     xs = []
     for i,r in day_index.iterrows():
-        startTm = r.openTime
+        startTm = r['first']
 #    for startTm in day_index.openTime:
         startBar = floor_index(dfMinVol, startTm)
         print(startTm, startBar)
@@ -277,7 +278,7 @@ def create_minVol_index(dfMinVol, day_index) -> list[MinVolDay]:
 
 def plot_mongo(symbol, dt, n):
     df = md.load_price_history(symbol, dt, n)
-    idx = ts.day_index(df)
+    idx = ts.day_index2(df)
     day_summary_df = md.create_day_summary(df, idx)
     i = idx.shape[0]
     # loaded an additional day for hi-lo info but create minVol for display skipping first day

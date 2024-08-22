@@ -96,6 +96,17 @@
     const clRsk = document.getElementById("rsk")
     const clRr = document.getElementById("rr")
 
+    const tick = x => (Math.round(x*4)/4)
+    const calc_ratio = (n, r) => (r*n-1)/(n-1)
+    const calc_stop_size = (rng, ratio) => rng / (1 + ratio)
+
+    function calc_entry(stop, target, rr) {
+      range = target - stop
+      ratio = calc_ratio(3,rr)
+      x = calc_stop_size(range, ratio)
+      return {stop: stop, target: target, entry: tick(stop + x), scale: tick(stop + 2*x), stop_sz: x, risk_reward: rr }
+    }
+
     function calc() {
         // alert("calc")
         if (txtTarget.value && txtStop.value) {
@@ -112,7 +123,7 @@
             var tgt = target
             var scl = stp + d * 0.5
             var ent = stp + d * 0.25
-            clTgt.innerHTML = target
+            clTgt.innerHTML = target.toFixed(2)
             clScl.innerHTML = scl.toFixed(2)
             clEnt.innerHTML = ent.toFixed(2)
             clRsk.innerHTML = (dirn * d/4).toFixed(2)

@@ -3,7 +3,7 @@ from datetime import date, time, timedelta, datetime
 import numpy as np
 import pandas as pd
 import sys
-from tsutils import aggregate, aggregateMinVolume, make_filename, load_files, day_index, rth_index, aggregate_daily_bars, calc_vwap, calc_atr, LineBreak
+from tsutils import aggregate, aggregateMinVolume, make_filename, load_files, day_index2, aggregate_daily_bars, calc_vwap, calc_atr, LineBreak
 
 def export_daily(df, fname):
     dt = df.index[-1]
@@ -26,7 +26,7 @@ def exportMinVol(df, outfile):
 def export_3lb(df, outfile):
     lb = LineBreak(3)
     for i,r in df.iterrows():
-        lb.append(r['Close'], i)
+        lb.append(r['close'], i)
     df2 = lb.asDataFrame()
     print(f'exporting 3lb file {outfile} {len(df2)}')
     df2.to_csv(outfile)
@@ -119,21 +119,20 @@ def fn1():
     print(dfd.tail(19))
 
 def print_summary(df):
-    di = day_index(df)
-    dr = rth_index(di)
+    di = day_index2(df)
     print('--- Daily bars ---')
-    df2 = aggregate_daily_bars(df, di)
+    df2 = aggregate_daily_bars(df, di, 'first', 'last')
     export_daily(df2, 'es-daily')
     print(df2)
 
     print('--- RTH bars ---')
-    df2 = aggregate_daily_bars(df, dr)
+    df2 = aggregate_daily_bars(df, di, 'rth_first', 'rth_last')
     export_daily(df2, 'es-daily-rth')
     print(df2)
     export_3lb(df2, make_filename('es-rth-3lb.csv'))
 
 
-df = load_files(make_filename('esh4*.csv'))
+df = load_files(make_filename('esu4*.csv'))
 print_summary(df)
 df['VWAP'] = calc_vwap(df)
 #exportNinja(df, make_filename('ES 09-22.Last.txt'))

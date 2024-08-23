@@ -1,36 +1,31 @@
-from pydantic import BaseModel, field_validator, Field, TypeAdapter, ValidationError
+from pydantic import BaseModel, Field, TypeAdapter, StringConstraints, NonNegativeInt, ValidationError
 from typing_extensions import Annotated
 from typing import List
 from uuid import uuid4, UUID
 from rich.pretty import pprint
 from pathlib import Path
 
-    
+
 class Person(BaseModel):
-    # provide a default value for id, id field is a uuid in python but converted to a string
-    # name, age mandatory
+    # provide a default value for id, id field is a uuid. pydantic has support for many types from standard library
+    # name, age mandatory - use constrained types to validate
     # best_friend optional
-    # id: str = Field(default_factory=uuid4) # cheating by making the type hint a str but actual type is UUID
-    id: Annotated[str, Field(default_factory=lambda: uuid4().hex)] # type is str
-    name: str
-    age: int
+    id: UUID = Field(default_factory=uuid4)
+    # id: Annotated[str, Field(default_factory=lambda: uuid4().hex)] # type is str
+    # see https://docs.pydantic.dev/2.8/api/types/  use Annotated instead of constr
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=2)]
+    age: NonNegativeInt
+    # union types can be written as | or the older way of Union[str, None]
     best_friend: str | None = None
 
-    # use field_validator to convert str to UUID
-    # @field_validator('id')
+
+    # can write custom validation but using conint(ge=0) or the builtin types is preferred
+    # @field_validator('age')
     # @classmethod
-    # def validate_id(cls, v):
-    #     if len(v) < 16:
-    #         raise ValueError(f'uuid must be a string')
-    #     return UUID(v)
-
-
-    @field_validator('age')
-    @classmethod
-    def validate_age(cls, v):
-        if v < 0:
-            raise ValueError(f'age must be positive')
-        return v
+    # def validate_age(cls, v):
+    #     if v < 0:
+    #         raise ValueError(f'age must be positive')
+    #     return v
     
 
     # provide a custom ordering
@@ -65,7 +60,9 @@ def main():
 
     # pydantic models do not validate property sets so person2.age = -9 is allowed
     try:
-        person3 = Person(name="Zed", age=-1)
+        person4 = Person(name=" Jake ", age=99)
+        pprint(person4)
+        person4 = Person(name=" x ", age=-1)
     except ValidationError as e:
         pprint(e)
 

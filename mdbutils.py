@@ -170,10 +170,10 @@ def calculate_trading_hours(dfTradeDays, dt, range_name):
     return None
 
 
-def create_day_summary(df, day_index):
-  console.print(day_index)
+def create_day_summary(df, df_di):
+  console.print(df_di)
   xs = []
-  for i,r in day_index.iterrows():
+  for i,r in df_di.iterrows():
     openTime = r['first']
     rthOpen = r['rth_first']
     euClose = min(r['last'], rthOpen - pd.Timedelta(minutes=1))
@@ -247,8 +247,9 @@ def main(symbol: str, dt: date = None):
     tms, tme = calculate_trading_hours(dfTradeDays, tme.date(), 'rth')
     console.print(df[tms:tme].head())
     console.print(df[tms:tme].tail())
-    dfDayIndex = ts.day_index(df)
-    console.print(create_day_summary(df, dfDayIndex))
+    df_di = ts.day_index2(df)
+    console.print(df_di)
+    console.print(create_day_summary(df, df_di))
 
 
 if __name__ == '__main__':

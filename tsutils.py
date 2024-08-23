@@ -218,20 +218,23 @@ def day_index2(df):
 def aggregate_daily_bars(df, daily_index, start_col, end_col):
     rows = []
     for i,r in daily_index.iterrows():
-        rows.append(aggregate(df, r[start_col], r[end_col]))
+        if not pd.isnull(r[start_col]) and not pd.isnull(r[end_col]):
+            rows.append(aggregate(df, i, r[start_col], r[end_col]))
 
-    daily = pd.DataFrame(rows, index=daily_index.index)
+    daily = pd.DataFrame(rows)
+    daily.set_index('date', inplace=True)
     daily['change'] = daily.close.diff()
     daily['gap'] = daily.open - daily.close.shift()
     daily['day_chg'] = daily.close - daily.open
     daily['range'] = daily.high - daily.low
     daily['strat'] = calc_strat(daily)
-    return daily[daily.volume > 125000]
+    return daily[daily.volume > 10000]
 
 
 # return a row which aggregates bars between inclusive indexes
-def aggregate(df, s, e):
+def aggregate(df, dt, s, e):
     r = {}
+    r['date'] = dt
     r['open'] = df.at[s, 'open']
     r['high'] = df.high[s:e].max()
     r['low'] = df.low[s:e].min()

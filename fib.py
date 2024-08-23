@@ -7,6 +7,7 @@ import graphviz
 from scipy.optimize import brentq
 from functools import cache
 from datetime import date, timedelta
+from typing import List
 import math
 from rich.console import Console
 # import plotly.graph_objs as go
@@ -62,6 +63,29 @@ def gen_expr():
    ex = (x**2 for x in range(10))
    for x in ex:
       print(x)
+
+
+def foldr1(op, xs: List[int]) -> int:
+    '''structural pattern matching'''
+    match xs:
+        case [h]:
+            return h
+        case [h, *t]:
+            return op(h, foldr1(op, t))
+        case _:
+            raise ValueError(f'empty list')
+
+
+def pattern_match_commands(s: str) -> int:
+    '''pattern match a list with constants'''
+    match s.split():
+        case ['neg', x]:
+            return -int(x)
+        case['add', x, y]:
+            return int(x) + int(y)
+        case _:
+            raise ValueError(f'bad command {s}')
+
 
 def draw_gantt_chart():
     s = '''start finish task
@@ -158,6 +182,11 @@ if __name__ == '__main__':
     # not as nice using reduce
     #functools.reduce(lambda acc, e : acc + e if e > 0 else acc, xs, 0)
 
+    console.print(f'sum {xs} = {foldr1(lambda x, y: x + y, xs)}', style='green')
+    s = 'neg 7'
+    console.print(f'command  {s} = {pattern_match_commands(s)}', style='green')
+    s = 'add 2 3'
+    console.print(f'command  {s} = {pattern_match_commands(s)}', style='green')
     # draw_gantt_chart()
     #draw_diag()
     example_cashflow()

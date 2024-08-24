@@ -57,7 +57,7 @@
     function init() {
       // Add event listener to all radio buttons"
       const radios = document.querySelectorAll('input[type="radio"]')
-      radios.forEach(radio => radio.addEventListener('change', () => process_changed(this.id) ) )
+      radios.forEach(radio => radio.addEventListener('change', function () {process_changed(this.id)} ) )
       insertImages(symbols_fool, 'd')
     }
 

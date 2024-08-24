@@ -41,8 +41,9 @@
         <a id="lnk_finviz" href="https://finviz.com" target="_blank">finviz</a>
       </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
   <script>
+    "use strict"
     const symbols_index = 'spy xly xlc xlk xli xlb xle xlp xlv xlu xlf xlre iwm dia qqq shy tlt jnk ibit gld xop iyt tan arkk xbi eem pbw'
     const symbols_fool = 'anet ddog tyl zs team crwd ttd snow abnb vrtx cflt gh sq meli veev onon enph sedg'
     // bind elements
@@ -56,14 +57,12 @@
     function init() {
       // Add event listener to all radio buttons"
       const radios = document.querySelectorAll('input[type="radio"]')
-      radios.forEach(radio => {
-        radio.addEventListener('change', function() { process_changed(this.id) })
-      })
+      radios.forEach(radio => radio.addEventListener('change', () => process_changed(this.id) ) )
       insertImages(symbols_fool, 'd')
     }
 
     function process_changed(id) {
-      console.log(id, btn_index.checked, btn_fool.checked, btn_daily.checked, btn_weekly.checked);
+      //console.log(id, btn_index.checked, btn_fool.checked, btn_daily.checked, btn_weekly.checked);
       insertImages(btn_index.checked ? symbols_index : symbols_fool,
                    btn_daily.checked ? 'd' : 'w');
     }

@@ -235,8 +235,6 @@ def create_minVol_index(dfMinVol, day_index) -> list[MinVolDay]:
     # first bar will either be at 23:00 most of the time but 22:00 when US/UK clocks change at different dates
     startTm = dfMinVol.index[0]
     last = dfMinVol.shape[0] - 1
-    breakpoint()
-    #TODO
     xs = []
     for i,r in day_index.iterrows():
         startTm = r['first']

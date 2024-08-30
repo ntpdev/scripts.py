@@ -169,20 +169,47 @@ def main():
     #fig.show()
 
 
+def plot_hl_times(df, daily_index, start_col, end_col, period = 30):
+    rows = []
+    bar = lambda x, y: (x-y).seconds // (period * 60) # find 15 min block
+    for i,r in daily_index.dropna(subset=[start_col, end_col]).iterrows():
+        day = df[r[start_col]:r[end_col]]
+        idx_hi = day['high'].idxmax()
+        idx_lo = day['low'].idxmin()
+        start = day.index[0]
+        rows.append({'high_tm':idx_hi, 'high':day.at[idx_hi, 'high'], 'low_tm':idx_lo, 'low':day.at[idx_lo, 'low'], 'x':bar(idx_hi, start), 'y':bar(idx_lo, start)})
+
+    df2 = pd.DataFrame(rows)
+    # hist, bin_edges = np.histogram(df2['x'].to_numpy(), bins=13, range=(0,13))
+    all_bars = np.concatenate((df2['x'].to_numpy(), df2['y'].to_numpy()))
+    counts = np.bincount(all_bars)
+    counts_perc = 100 * counts / np.sum(counts)
+    max_bars = 390 // period
+    fig = go.Figure()
+    fig.add_trace(go.Bar(y=counts_perc))
+    # fig.add_trace(go.Histogram(x=df2['y'], nbinsx=max_bars, marker_color='red'))
+    fig.show()
+    return df2
+
+
 def print_summary(df):
     di = day_index2(df)
     console.print('\n--- Day index ---', style='yellow')
     console.print(di)
     
     console.print('\n--- Daily bars ---', style='yellow')
-    df2 = aggregate_daily_bars(df, di, 'first', 'last')
-    console.print(df2, style='cyan')
-    console.print(f'range min,median,max = {df2['range'].min():.2f} {df2['range'].median():.2f} {df2['range'].max():.2f}', style='green')
+    daily = aggregate_daily_bars(df, di, 'first', 'last')
+    console.print(daily, style='cyan')
+    console.print(f'range min,median,max = {daily['range'].min():.2f} {daily['range'].median():.2f} {daily['range'].max():.2f}', style='green')
 
     console.print('\n--- RTH bars ---', style='yellow')
-    df2 = aggregate_daily_bars(df, di, 'rth_first', 'rth_last')
+    rth = aggregate_daily_bars(df, di, 'rth_first', 'rth_last')
+    console.print(rth, style='cyan')
+    console.print(f'range min,median,max = {rth['range'].min():.2f} {rth['range'].median():.2f} {rth['range'].max():.2f}', style='green')
+
+    df2 = plot_hl_times(df, di, 'rth_first', 'rth_last', 15)
     console.print(df2, style='cyan')
-    console.print(f'range min,median,max = {df2['range'].min():.2f} {df2['range'].median():.2f} {df2['range'].max():.2f}', style='green')
+
 
 
 def whole_day_concat(fspec, fnout):
@@ -236,7 +263,7 @@ def simple_concat(fspec, fnout):
 if __name__ == '__main__':
 #    whole_day_concat('esm4*.csv', 'zESM4')
     # test_tick()
-    df_es = simple_concat('zesu4*.csv', 'zESU4')
+    df_es = simple_concat('esu4*.csv', 'zESU4')
     print_summary(df_es)
     # df_tick = simple_concat('ztick-nyse*.csv', 'x')
     # di = day_index(df_tick)

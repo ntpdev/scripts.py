@@ -217,9 +217,8 @@ def day_index2(df):
 # create a new DF which aggregates bars using a daily index
 def aggregate_daily_bars(df, daily_index, start_col, end_col):
     rows = []
-    for i,r in daily_index.iterrows():
-        if not pd.isnull(r[start_col]) and not pd.isnull(r[end_col]):
-            rows.append(aggregate(df, i, r[start_col], r[end_col]))
+    for i,r in daily_index.dropna(subset=[start_col, end_col]).iterrows():
+        rows.append(aggregate(df, i, r[start_col], r[end_col]))
 
     daily = pd.DataFrame(rows)
     daily.set_index('date', inplace=True)

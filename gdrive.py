@@ -15,6 +15,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.pretty import pprint
 from google.auth.exceptions import RefreshError
+from rich.text import Text
 
 console = Console()
 
@@ -26,9 +27,8 @@ SCOPES = ["https://www.googleapis.com/auth/drive"]
 # created by following https://developers.google.com/drive/api/quickstart/python
 Credentials_JSON = Path.home() / "client_secret_32374387863-e7jikh2ktb31m25l27liebbunt0nfnkv.apps.googleusercontent.com.json"
 
-TOKEN_FILE = "token.json"  # Define the constant
+TOKEN_FILE = Path.home() / "Downloads" / "token.json"
 
-###
 
 def print_table(items):
     # items.sort(key=lambda e: e["name"])
@@ -43,7 +43,7 @@ def print_table(items):
       dt = datetime.strptime(item["modifiedTime"], "%Y-%m-%dT%H:%M:%S.%fZ")
       sz = round(int(item["size"]) / 1024) if "size" in item else 0
       table.add_row(
-          item["name"],
+          Text(item["name"], style="red" if item['trashed'] else "cyan"),  # Inline style
           str(sz),
           str(dt.strftime("%Y-%m-%d %H:%M")), 
           item["mimeType"],
@@ -158,8 +158,8 @@ def list_files(service):
   """
   results = (service.files().list(
       pageSize=16,
-      fields="nextPageToken, files(id, name, mimeType, size, modifiedTime)",
-      orderBy="modifiedTime desc"  # Sort by modifiedTime, newest first
+      fields="nextPageToken, files(id, name, mimeType, size, modifiedTime, version, trashed)",
+      orderBy="modifiedTime desc"
   ).execute())
   items = results.get("files", [])
 # print(f"{item['name']} ({item['id']} {item['mimeType']} {item['size']} {item['modifiedTime']})")
@@ -171,9 +171,22 @@ def list_files(service):
   print_table(items)
 
 
+def delete_file(drive_service, file_id):
+    """Move a file to trash given its file_id."""
+    try:
+        # Update the file's trashed status
+        drive_service.files().update(
+            fileId=file_id,
+            body={'trashed': True}
+        ).execute()
+        print(f"File with ID: {file_id} has been moved to trash.")
+    except Exception as e:
+        print(f"An error occurred while deleting the file: {e}")
+
+
 def main(cmd: str, fname: str):
   try:
-    creds = login(Path.home() / 'Downloads' / TOKEN_FILE)
+    creds = login(TOKEN_FILE)
     if creds:
       service = build("drive", "v3", credentials=creds)
       if cmd == "list":
@@ -192,15 +205,21 @@ def main(cmd: str, fname: str):
         if id:
           fn = Path.home() / 'Downloads' / fname
           id = download_file(service, id, fn)
+      elif cmd == "rm" and len(fname) > 0:
+        id = find_file(service, fname)
+        if id:
+          delete_file(service, id)
+        else:
+          console.print(f"file not found {fname}", style="red")
 
   except HttpError as error:
     # TODO(developer) - Handle errors from drive API.
-    print(f"An error occurred: {error}")
+    console.print(f"An error occurred: {error}", style="red")
 
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='access google drive')
-  parser.add_argument('cmd', choices=['list', 'find', 'up', 'dn'], type=str, help='command [list|find|upload|download]')
+  parser.add_argument('cmd', choices=['list', 'find', 'up', 'dn', 'rm'], type=str, help='command [list|find|upload|download|rm]')
   parser.add_argument('fn', type=str, nargs='?', default='', help='file name')
   args = parser.parse_args()
   main(args.cmd, args.fn)

@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
+from plotly.subplots import make_subplots
 import plotly.offline as pyo 
 import platform
 import sys
@@ -278,9 +279,9 @@ def plot_mongo(symbol, dt, n):
     df = md.load_price_history(symbol, dt, n)
     idx = ts.day_index2(df)
     day_summary_df = md.create_day_summary(df, idx)
-    i = idx.shape[0]
+    num_days = idx.shape[0]
     # loaded an additional day for hi-lo info but create minVol for display skipping first day
-    dfMinVol = ts.aggregateMinVolume(df[idx.iat[1,0]:idx.iat[i-1,1]], 5000 if i > 3 else 2500)
+    dfMinVol = ts.aggregateMinVolume(df[idx.iat[1,0]:idx.iat[num_days-1,1]], 5000 if num_days > 3 else 2500)
 
     # create a string for X labels
     tm = dfMinVol.index.strftime('%d/%m %H:%M')
@@ -320,6 +321,43 @@ def plot_mongo(symbol, dt, n):
             fig.add_shape(type='line', x0=tm[i.startBar], y0=prevRthClose, x1=tm[i.rthEndBar], y1=prevRthClose, line=dict(color='cyan', dash='dot'))
     
     fig.show()
+
+
+def plot_volp(symbol, dt, n):
+    df = md.load_price_history(symbol, dt, n)
+    idx = ts.day_index2(df)
+    day_summary_df = md.create_day_summary(df, idx)
+    num_days = idx.shape[0]
+    s, e = (idx.iat[0, 0], idx.iat[n-1, 1]) if n > 0 else (idx.iat[n, 0], idx.iat[-1, 1])
+    title = f'volume profile from {s} to {e}'
+    # loaded an additional day for hi-lo info but create minVol for display skipping first day
+    df_day = df[s:e]
+    dfMinVol = ts.aggregateMinVolume(df_day, 2500)
+    profile_df = ts.create_volume_profile(df_day, 25, 5)
+    peaks = profile_df[profile_df['is_peak'] == True]
+    
+    # plot the unsmooted volume profile but use smoothed one for peaks
+    bar_graph = go.Bar(y=profile_df.index, x=profile_df['volume'], orientation='h')
+    annots = go.Scatter(x=peaks['volume'], y=peaks.index, text=peaks.index, mode='markers+text', textposition="bottom center")
+    tm = dfMinVol.index.strftime('%d/%m %H:%M')
+    price_chart = go.Scatter(y = dfMinVol['close'], x=tm)
+
+    fig = make_subplots(rows=1, cols=2, shared_yaxes=True)
+    fig.add_trace(bar_graph, row=1, col=1)
+    fig.add_trace(annots, row=1, col=1)
+    fig.add_trace(price_chart, row=1, col=2)
+    # Customize the layout (optional)
+    fig.update_layout(
+        title=title,
+        xaxis_title='volume',
+        yaxis_title='price'
+        # autosize=False,
+        # width=600,
+        # height=600
+    )
+    
+    fig.show()
+
 
 
 def floor_index(df, tm):
@@ -429,6 +467,7 @@ def compare_emas():
 parser = argparse.ArgumentParser(description='Plot daily chart')
 parser.add_argument('--index', type=int, default=-1, help='Index of day to plot e.g. -1 for last')
 parser.add_argument('--tlb', type=str, default='', help='Display three line break [fname]')
+parser.add_argument('--volp', action='store_true', help='Display volume profile for day')
 parser.add_argument('--mdb', type=str, default='', help='Load from MongoDB [yyyymmdd]')
 parser.add_argument('--atr', action='store_true', help='Display ATR')
 parser.add_argument('--tick', action='store_true', help='Display tick')
@@ -439,6 +478,8 @@ argv = parser.parse_args()
 print(argv)
 if len(argv.tlb) > 0:
     plot_3lb(argv.tlb)
+elif argv.volp and len(argv.mdb) > 0:
+    plot_volp(argv.sym, parse_isodate(argv.mdb), argv.days)
 elif len(argv.mdb) > 0:
     plot_mongo(argv.sym, parse_isodate(argv.mdb), argv.days)
 elif argv.atr:

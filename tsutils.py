@@ -2,6 +2,7 @@
 from datetime import date, time, timedelta, datetime
 from collections import deque
 from dataclasses import dataclass, asdict
+from scipy.signal import find_peaks
 import numpy as np
 import pandas as pd
 import glob as gb
@@ -310,6 +311,40 @@ def save_df(df, symbol):
     df2['Date'] = df2['Date'].dt.strftime("%Y%m%d %H:%M:%S")
     df2.to_csv(fout)
 
+
+def create_volume_profile(df, prominence = 40, smoothing_period = 1):
+    '''return df of price,volume, peak flag'''
+    mx = df['high'].max()
+    mn = df['low'].min()
+    num_bins = lambda hi,lo : int((hi-lo) * 4 + 1)
+    to_bin = lambda p : int((p-mn) * 4)
+    to_price = lambda b : b / 4 + mn
+
+    bins = num_bins(mx, mn)
+#    print(df.index[0], df.index[-1], mn, mx, bins)
+
+    xs = np.zeros(bins)
+    for i,r in df.iterrows():
+        x = r['low']
+        y = r['high']
+        xs[to_bin(x):to_bin(y)+1] += r['volume']/num_bins(y, x)
+
+    if smoothing_period > 1:
+        # sma smoothing
+        sma_kernel = np.full(smoothing_period, 1 / smoothing_period)
+        ys = np.convolve(xs, sma_kernel, 'same')
+    else:
+        ys = xs
+    
+    peak_indicies, peak_info = find_peaks(ys, prominence=np.percentile(ys, prominence))
+    # pprint(peak_indicies)
+    # pprint(to_price(peak_indicies))
+    # pprint(peak_info)
+    mxs = np.zeros(bins, dtype=bool)
+    mxs[peak_indicies] = True
+    
+    return pd.DataFrame({'volume': xs, 'is_peak':mxs}, index=to_price(np.arange(bins)))
+ 
 
 @dataclass
 class Block:

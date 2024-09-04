@@ -14,6 +14,7 @@ from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 from rich.console import Console
 from rich.table import Table
 from rich.pretty import pprint
+from google.auth.exceptions import RefreshError
 
 console = Console()
 
@@ -25,10 +26,12 @@ SCOPES = ["https://www.googleapis.com/auth/drive"]
 # created by following https://developers.google.com/drive/api/quickstart/python
 Credentials_JSON = Path.home() / "client_secret_32374387863-e7jikh2ktb31m25l27liebbunt0nfnkv.apps.googleusercontent.com.json"
 
+TOKEN_FILE = "token.json"  # Define the constant
+
 ###
 
 def print_table(items):
-    items.sort(key=lambda e: e["name"])
+    # items.sort(key=lambda e: e["name"])
     table = Table(title="Files")
     table.add_column("Name", style="cyan", no_wrap=True)
     table.add_column("Size (kb)", justify="right", style="cyan")
@@ -49,22 +52,26 @@ def print_table(items):
     console.print(table)
 
 
-def login():
+def login(token_file: Path):
   creds = None
-  # The file token.json stores the user's access and refresh tokens, and is
+  # The file TOKEN_FILE stores the user's access and refresh tokens, and is
   # created automatically when the authorization flow completes for the first
   # time.
-  if os.path.exists("token.json"):
-    creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+  if os.path.exists(token_file):
+    creds = Credentials.from_authorized_user_file(token_file, SCOPES)
   # If there are no (valid) credentials available, let the user log in.
   if not creds or not creds.valid:
     if creds and creds.expired and creds.refresh_token:
-      creds.refresh(Request())
-    else:
+      try:
+          creds.refresh(Request())
+      except RefreshError:
+          # If refresh fails, force a new login
+          creds = None
+    if not creds:
       flow = InstalledAppFlow.from_client_secrets_file(Credentials_JSON, SCOPES)
       creds = flow.run_local_server(port=0)
     # Save the credentials for the next run
-    with open("token.json", "w") as token:
+    with open(token_file, "w") as token:
       token.write(creds.to_json())
 
   return creds
@@ -149,7 +156,11 @@ def list_files(service):
   """Shows basic usage of the Drive v3 API.
   Prints the names and ids of the first 10 files the user has access to.
   """
-  results = (service.files().list(pageSize=16, fields="nextPageToken, files(id, name, mimeType, size, modifiedTime)").execute())
+  results = (service.files().list(
+      pageSize=16,
+      fields="nextPageToken, files(id, name, mimeType, size, modifiedTime)",
+      orderBy="modifiedTime desc"  # Sort by modifiedTime, newest first
+  ).execute())
   items = results.get("files", [])
 # print(f"{item['name']} ({item['id']} {item['mimeType']} {item['size']} {item['modifiedTime']})")
 
@@ -162,7 +173,7 @@ def list_files(service):
 
 def main(cmd: str, fname: str):
   try:
-    creds = login()
+    creds = login(Path.home() / 'Downloads' / TOKEN_FILE)
     if creds:
       service = build("drive", "v3", credentials=creds)
       if cmd == "list":

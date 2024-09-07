@@ -3,7 +3,8 @@ from datetime import datetime, timedelta, time
 import pandas as pd
 import numpy as np
 from io import StringIO
-from tsutils import load_files, day_index2, match_spec, aggregate_daily_bars, calc_vwap, save_df
+from dataclasses import dataclass
+from tsutils import load_file, load_files, day_index2, load_files_as_dict, load_overlapping_files, aggregate_daily_bars, calc_vwap, save_df
 import plotly.graph_objects as go
 from rich.console import Console
 
@@ -130,6 +131,31 @@ def make_colour(h,l):
     return 'green' if h > abs(l) else 'red'
 
 
+@dataclass
+class RmseCompare:
+    n: int
+    rmse: float
+
+def compare_emas():
+    """compare 19 ema on M5 to emas on M1. Nearest is around 83-90 depends on data"""
+    df = load_file('c:\\users\\niroo\\documents\\data\\ESM4 20240304.csv')
+    a = df.close.resample('5T').first()
+    # adjust=False is needed to match usual ema calc
+    b = a.ewm(span=19, adjust=False).mean()
+    dfm5 = pd.DataFrame({'close_m5':a, 'ema_m5':b})
+
+    xs = []
+    for i in range(79, 99):
+        df['ema'] = df.close.ewm(span=i, adjust=False).mean()
+        df2 = df.merge(dfm5, how='inner', left_index=True, right_index=True)
+        rmse = ((df2.ema - df2.ema_m5) ** 2).mean() ** 0.5
+        xs.append(RmseCompare(i, rmse))
+
+    df_rmse = pd.DataFrame(xs)
+    df_rmse.sort_values(by='rmse', ascending=True, inplace=True)
+    print(df_rmse)
+
+
 def main():
     print(f'Hello world {datetime.now()}')
     #df = load_files('/media/niroo/ULTRA/esh1*')
@@ -205,14 +231,14 @@ def print_summary(df):
     console.print(rth, style='cyan')
     console.print(f'range min,median,max = {rth['range'].min():.2f} {rth['range'].median():.2f} {rth['range'].max():.2f}', style='green')
 
-    df2 = plot_hl_times(df, di, 'rth_first', 'rth_last', 15)
-    console.print(df2, style='cyan')
+    # df2 = plot_hl_times(df, di, 'rth_first', 'rth_last', 15)
+    # console.print(df2, style='cyan')
 
 
 
 def whole_day_concat(fspec, fnout):
     '''combines all files in fspec into one file. takes whole days only'''
-    dfs = match_spec(fspec)
+    dfs = load_files_as_dict(fspec)
     hw = pd.Timestamp('2020-01-01')
     comb = None
     for fn,df in dfs.items():
@@ -241,30 +267,17 @@ def whole_day_concat(fspec, fnout):
 
 
 def test_load(fspec):
-    dfs = match_spec(fspec)
+    dfs = load_files_as_dict(fspec)
     for df in dfs.values():
         print_summary(df)
-
-
-def simple_concat(fspec, fnout):
-    '''concatenates files into one dataframe skipping duplicate index entries. this only works when minute bars are complete because it picks the first occurence of a time'''
-    comb = None
-    for df in match_spec(fspec).values():
-        if comb is None:
-            comb = df
-        else:
-            comb = pd.concat([comb, df.loc[~df.index.isin(comb.index)]], axis=0, join='outer')
-#    save_df(comb, fnout)
-    if not comb.index.is_monotonic_increasing:
-        raise ValueError(f'index not monotonic increasing')
-    return comb
 
 
 if __name__ == '__main__':
 #    whole_day_concat('esm4*.csv', 'zESM4')
     # test_tick()
-    df_es = simple_concat('esu4*.csv', 'zESU4')
+    df_es = load_overlapping_files('zesu4*.csv')
     print_summary(df_es)
+    compare_emas()
     # df_tick = simple_concat('ztick-nyse*.csv', 'x')
     # di = day_index(df_tick)
     # breakpoint()

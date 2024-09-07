@@ -53,7 +53,7 @@ def load_timeseries(collection, symbol, tmStart, tmEnd):
                 'vwap': d['vwap'] } )
     df = pd.DataFrame(rows)
     df.set_index('date', inplace=True)
-    df['ema'] = df.close.ewm(span=90, adjust=False).mean()
+    df['ema'] = df.close.ewm(span=87, adjust=False).mean()
 # TODO change tsutils to return lower case column names    df['strat'] = ts.calc_strat(df)
     return df
 

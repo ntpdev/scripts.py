@@ -180,7 +180,7 @@ def calc_hilo(ser):
     return pd.Series(cs, ser.index)
 
 
-def day_index2(df):
+def day_index2(df: pd.DataFrame) -> pd.DataFrame:
     '''create a df [date, first, last, rth_first, rth_last] for each trading day based on gaps in index'''
     first_bar_selector = df.index.diff() != timedelta(minutes=1)
     last_bar_selector = np.roll(first_bar_selector, -1)
@@ -277,25 +277,37 @@ def make_threeLB(x, xs):
         xs.append(x)
     return xs
 
+
 def to_date(timestmp):
     return timestmp.to_pydatetime().date()
 
-def match_spec(spec: str):
-    '''return a dict of path:data_frame'''
-    xs = [f for f in (Path.home() / 'Documents' / 'data').glob(spec)]
-    xs.sort()
-    return {x:load_file(x) for x in xs}
 
 def make_filename(fname: str) -> Path:
     return Path.home() / 'Documents' / 'data' / fname
 
-def load_files(spec):
+
+def load_files_as_dict(spec: str) -> dict[Path, pd.DataFrame]:
+    '''return a dict of paths and data_frames'''
+    return {x:load_file(x) for x in sorted((Path.home() / 'Documents' / 'data').glob(spec, case_sensitive=False))}
+
+
+def load_files(spec: str) -> pd.DataFrame:
     '''load all files matching specified pattern and return a single dataframe'''
-    dfs = match_spec(spec).values()
-    df = pd.concat(dfs)
+    df = pd.concat(load_files_as_dict(spec).values())
     if not df.index.is_monotonic_increasing:
         raise ValueError(f'index not monotonic increasing')
     return df
+
+
+def load_overlapping_files(spec: str) -> pd.DataFrame:
+    '''concatenates files into one dataframe skipping duplicate index entries. this only works when minute bars are complete because it picks the first occurence of a time'''
+    comb = None
+    for df in load_files_as_dict(spec).values():
+        comb = df if comb is None else pd.concat([comb, df.loc[~df.index.isin(comb.index)]], axis=0, join='outer')
+    if not comb.index.is_monotonic_increasing:
+        raise ValueError(f'index not monotonic increasing')
+    return comb
+
 
 def load_file(fname):
     df = pd.read_csv(fname, parse_dates=['Date'], index_col='Date')

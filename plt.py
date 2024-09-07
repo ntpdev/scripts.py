@@ -8,14 +8,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
-import plotly.offline as pyo 
-import platform
-import sys
 import tsutils as ts
 import mdbutils as md
-import re
-from plotly.offline import init_notebook_mode
-from pymongo.mongo_client import MongoClient
 import math
 from bisect import bisect_right
 
@@ -365,34 +359,6 @@ def floor_index(df, tm):
     return df.index.searchsorted(tm, side='right') - 1
 
 
-# def load_mongo(symbol, day, n=1):
-#     client = MongoClient('localhost', 27017)
-#     # print(client.admin.command('ping'))
-#     collection = client['futures'].m1
-#     dfDays = load_trading_days(collection, symbol, 100000)
-#     days = dfDays.index.date.tolist()
-#     t = find_index_range(days, day, n)
-#     tmStart, tmEnd = map_to_date_range(days, t)
-#     # tz difference changes normal 23:00 but can be 22:00 so load from 10pm prior day
-#     print(f'loading {symbol} {tmStart} to {tmEnd}')
-#     #plot_normvol(dfDays)
-#     c = collection.find(filter = {'symbol' : symbol, 'timestamp' : {'$gte': tmStart, '$lt': tmEnd}}, sort = ['timestamp'])
-#     rows = []
-#     for d in c:
-#         rows.append( {
-#                 'Date': d['timestamp'],
-#                 'Open': d['open'],
-#                 'High': d['high'],
-#                 'Low':  d['low'],
-#                 'Close': d['close'],
-#                 'Volume': d['volume'],
-#                 'VWAP': d['vwap'] } )
-#     df = pd.DataFrame(rows)
-#     df.set_index('Date', inplace=True)
-#     df['EMA'] = df.Close.ewm(span=90, adjust=False).mean()
-#     return df
-
-
 def load_trading_days(collection, symbol, minVol):
     """return dataframe of complete trading days [date, bar-count, volume, normalised-volume]"""
     cursor = collection.aggregate(
@@ -441,21 +407,6 @@ def plot_normvol(df):
     fig.show()
 
 
-def compare_emas():
-    """compare 19 ema on M5 to emas on M1. Nearest is around 90-92"""
-    df = ts.load_file('c:\\temp\\ultra\\ESZ3 20231002.csv')
-    a = df.Close.resample('5T').first()
-    # adjust=False is needed to match usual ema calc
-    b = a.ewm(span=19, adjust=False).mean()
-    dfm5 = pd.DataFrame({'Close_m5':a, 'ema_m5':b})
-
-    for i in range(79, 99):
-        df['ema'] = df.Close.ewm(span=i, adjust=False).mean()
-        df2 = df.merge(dfm5, how='inner', left_index=True, right_index=True)
-        rmse = ((df2.ema - df2.ema_m5) ** 2).mean() ** 0.5
-        print(f'i = {i} rmse={rmse}')
-
-
 # df.index.indexer_at_time(datetime(2023,10,19,7,15,0))
 # df.iloc[495]
 # df.loc[datetime(2023,10,19,7,15,0)]
@@ -463,31 +414,34 @@ def compare_emas():
 # dfMinVol.loc[datetime(2023,10,18,23,54,0)]
 # index of time imm before
 # dfMinVol.index.searchsorted(datetime(2023,10,18,23,54,0), side='right') - 1 
+def main():
+    parser = argparse.ArgumentParser(description='Plot daily chart')
+    parser.add_argument('--index', type=int, default=-1, help='Index of day to plot e.g. -1 for last')
+    parser.add_argument('--tlb', type=str, default='', help='Display three line break [fname]')
+    parser.add_argument('--volp', action='store_true', help='Display volume profile for day')
+    parser.add_argument('--mdb', type=str, default='', help='Load from MongoDB [yyyymmdd]')
+    parser.add_argument('--atr', action='store_true', help='Display ATR')
+    parser.add_argument('--tick', action='store_true', help='Display tick')
+    parser.add_argument('--days', type=int, default=1, help='Number of days')
+    parser.add_argument('--sym', type=str, default='esu4', help='Index symbol')
 
-parser = argparse.ArgumentParser(description='Plot daily chart')
-parser.add_argument('--index', type=int, default=-1, help='Index of day to plot e.g. -1 for last')
-parser.add_argument('--tlb', type=str, default='', help='Display three line break [fname]')
-parser.add_argument('--volp', action='store_true', help='Display volume profile for day')
-parser.add_argument('--mdb', type=str, default='', help='Load from MongoDB [yyyymmdd]')
-parser.add_argument('--atr', action='store_true', help='Display ATR')
-parser.add_argument('--tick', action='store_true', help='Display tick')
-parser.add_argument('--days', type=int, default=1, help='Number of days')
-parser.add_argument('--sym', type=str, default='esu4', help='Index symbol')
-
-argv = parser.parse_args()
-print(argv)
-if len(argv.tlb) > 0:
-    plot_3lb(argv.tlb)
-elif argv.volp and len(argv.mdb) > 0:
-    plot_volp(argv.sym, parse_isodate(argv.mdb), argv.days)
-elif len(argv.mdb) > 0:
-    plot_mongo(argv.sym, parse_isodate(argv.mdb), argv.days)
-elif argv.atr:
-    plot_atr()
-elif argv.tick:
-    plot_tick(argv.days)
-else:
-    plot(argv.index)
+    argv = parser.parse_args()
+    print(argv)
+    if len(argv.tlb) > 0:
+        plot_3lb(argv.tlb)
+    elif argv.volp and len(argv.mdb) > 0:
+        plot_volp(argv.sym, parse_isodate(argv.mdb), argv.days)
+    elif len(argv.mdb) > 0:
+        plot_mongo(argv.sym, parse_isodate(argv.mdb), argv.days)
+    elif argv.atr:
+        plot_atr()
+    elif argv.tick:
+        plot_tick(argv.days)
+    else:
+        plot(argv.index)
 #plot_atr()
 #hilo(df)
 #samp3LB()
+if __name__ == '__main__':
+    #main()
+    compare_emas()

@@ -262,7 +262,7 @@ def chat(llm_name, tool_use = False):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Chat with LLMs')
-    parser.add_argument('llm', type=str, help='LLM to use [flash|pro|exp|haiku|sonnet]')
+    parser.add_argument('llm', choices=['flash','pro','exp','haiku','sonnet'], type=str, help='LLM to use [flash|pro|exp|haiku|sonnet]')
     parser.add_argument('tool_use', type=str, nargs='?', default='', help='add tool to enable tool calls')
     args = parser.parse_args()
     chat(args.llm, args.tool_use == 'tool')

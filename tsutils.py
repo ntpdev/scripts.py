@@ -3,6 +3,7 @@ from datetime import date, time, timedelta, datetime
 from collections import deque
 from dataclasses import dataclass, asdict
 from scipy.signal import find_peaks
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import glob as gb
@@ -279,13 +280,18 @@ def make_threeLB(x, xs):
 def to_date(timestmp):
     return timestmp.to_pydatetime().date()
 
-def make_filename(fname):
-    p = '/media/niroo/ULTRA/' if platform.system() == 'Linux' else 'c:\\temp\\ultra\\'
-    return p + fname
+def match_spec(spec: str):
+    '''return a dict of path:data_frame'''
+    xs = [f for f in (Path.home() / 'Documents' / 'data').glob(spec)]
+    xs.sort()
+    return {x:load_file(x) for x in xs}
 
-def load_files(fname):
+def make_filename(fname: str) -> Path:
+    return Path.home() / 'Documents' / 'data' / fname
+
+def load_files(spec):
     '''load all files matching specified pattern and return a single dataframe'''
-    dfs = [load_file(e) for e in gb.glob(fname)]
+    dfs = match_spec(spec).values()
     df = pd.concat(dfs)
     if not df.index.is_monotonic_increasing:
         raise ValueError(f'index not monotonic increasing')

@@ -26,7 +26,7 @@ import re
 # pip install dataclasses-json
 # OpenAI Python library: https://github.com/openai/openai-python
 # togetherAI models https://docs.together.ai/docs/chat-models
-model_name = {'gptm':'gpt-4o-mini', 'gpt4':'gpt-4o-2024-08-06', 'groq':'llama-3.1-70b-versatile', 'llama':'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo', 'llama-big':'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo', 'ollama':'llama3:8b-instruct-q5_K_M'}
+model_name = {'gptm':'gpt-4o-mini', 'gpt4o':'gpt-4o-2024-08-06', 'groq':'llama-3.1-70b-versatile', 'llama':'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo', 'llama-big':'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo', 'ollama':'llama3.1:8b-instruct-q5_K_M'}
 FNAME = 'chat-log.json'
 console = Console()
 role_to_color = {
@@ -520,7 +520,7 @@ text after
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Chat with LLMs')
-    parser.add_argument('llm', type=str, help='LLM to use [local|ollama|gptm|gpt4o|llama|llama-big|groq]')
+    parser.add_argument('llm', choices=list(model_name.keys()), type=str, help='LLM to use [local|ollama|gptm|gpt4o|llama|llama-big|groq]')
     parser.add_argument('tool_use', type=str, nargs='?', default='', help='add tool to enable tool calls')
 
     args = parser.parse_args()

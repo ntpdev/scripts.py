@@ -1,11 +1,9 @@
 #!/usr/bin/python3
 from datetime import datetime, timedelta, time
-import glob as gb
 import pandas as pd
 import numpy as np
 from io import StringIO
-#from pathlib import Path
-from tsutils import aggregate, aggregateMinVolume, make_filename, load_files, load_file, day_index2, aggregate_daily_bars, calc_vwap, calc_atr, save_df
+from tsutils import load_files, day_index2, match_spec, aggregate_daily_bars, calc_vwap, save_df
 import plotly.graph_objects as go
 from rich.console import Console
 
@@ -135,7 +133,7 @@ def make_colour(h,l):
 def main():
     print(f'Hello world {datetime.now()}')
     #df = load_files('/media/niroo/ULTRA/esh1*')
-    df = load_files(make_filename('esm1*.csv'))
+    df = load_files('esm1*.csv')
     df['VWAP'] = calc_vwap(df)
     calc_hilo(df)
     print('--- RTH bars ---')
@@ -214,7 +212,7 @@ def print_summary(df):
 
 def whole_day_concat(fspec, fnout):
     '''combines all files in fspec into one file. takes whole days only'''
-    dfs = {f:load_file(f) for f in gb.glob(make_filename(fspec))}
+    dfs = match_spec(fspec)
     hw = pd.Timestamp('2020-01-01')
     comb = None
     for fn,df in dfs.items():
@@ -242,18 +240,20 @@ def whole_day_concat(fspec, fnout):
         print_summary(comb)
 
 
-def test_load(fn):
-    dfs = [load_file(e) for e in gb.glob(make_filename(fn))]
-    for df in dfs:
+def test_load(fspec):
+    dfs = match_spec(fspec)
+    for df in dfs.values():
         print_summary(df)
 
 
 def simple_concat(fspec, fnout):
     '''concatenates files into one dataframe skipping duplicate index entries. this only works when minute bars are complete because it picks the first occurence of a time'''
-    dfs = [load_file(e) for e in gb.glob(make_filename(fspec))]
-    comb = dfs[0]
-    for df in dfs[1:]:
-        comb = pd.concat([comb, df.loc[~df.index.isin(comb.index)]], axis=0, join='outer')
+    comb = None
+    for df in match_spec(fspec).values():
+        if comb is None:
+            comb = df
+        else:
+            comb = pd.concat([comb, df.loc[~df.index.isin(comb.index)]], axis=0, join='outer')
 #    save_df(comb, fnout)
     if not comb.index.is_monotonic_increasing:
         raise ValueError(f'index not monotonic increasing')
@@ -263,7 +263,7 @@ def simple_concat(fspec, fnout):
 if __name__ == '__main__':
 #    whole_day_concat('esm4*.csv', 'zESM4')
     # test_tick()
-    df_es = simple_concat('esu4*.csv', 'zESU4')
+    df_es = simple_concat('ESU4*.csv', 'zESU4')
     print_summary(df_es)
     # df_tick = simple_concat('ztick-nyse*.csv', 'x')
     # di = day_index(df_tick)

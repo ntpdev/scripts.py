@@ -263,7 +263,7 @@ def simple_concat(fspec, fnout):
 if __name__ == '__main__':
 #    whole_day_concat('esm4*.csv', 'zESM4')
     # test_tick()
-    df_es = simple_concat('ESU4*.csv', 'zESU4')
+    df_es = simple_concat('esu4*.csv', 'zESU4')
     print_summary(df_es)
     # df_tick = simple_concat('ztick-nyse*.csv', 'x')
     # di = day_index(df_tick)

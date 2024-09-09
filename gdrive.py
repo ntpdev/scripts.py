@@ -27,7 +27,7 @@ SCOPES = ["https://www.googleapis.com/auth/drive"]
 # created by following https://developers.google.com/drive/api/quickstart/python
 Credentials_JSON = Path.home() / "client_secret_32374387863-e7jikh2ktb31m25l27liebbunt0nfnkv.apps.googleusercontent.com.json"
 
-TOKEN_FILE = Path.home() / "Downloads" / "token.json"
+TOKEN_FILE = Path("~/Downloads/token.json").expanduser()
 
 mime_types = {'.xlsx':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '.7z':'application/x-compressed', '.zip':'application/zip', '.txt':'text/plain'}
 

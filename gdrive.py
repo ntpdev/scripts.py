@@ -29,6 +29,7 @@ Credentials_JSON = Path.home() / "client_secret_32374387863-e7jikh2ktb31m25l27li
 
 TOKEN_FILE = Path.home() / "Downloads" / "token.json"
 
+mime_types = {'.xlsx':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '.7z':'application/x-compressed', '.zip':'application/zip', '.txt':'text/plain'}
 
 def print_table(items):
     # items.sort(key=lambda e: e["name"])
@@ -91,7 +92,7 @@ def download_file(drive_service, file_id, fn):
   print(f'downloaded file {file_id} to {fn}')
 
 
-def create_file(drive_service, fn):
+def create_file(drive_service, fn: Path):
   """Insert new file.
   Returns : Id's of the file uploaded
 
@@ -103,7 +104,8 @@ def create_file(drive_service, fn):
   try:
     fname = os.path.basename(fn)
     file_metadata = {"name": fname}
-    media = MediaFileUpload(fn, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    mime = mime_types[fn.suffix]
+    media = MediaFileUpload(fn, mimetype=mime)
     # pylint: disable=maybe-no-member
     file = (
         drive_service.files()
@@ -118,10 +120,11 @@ def create_file(drive_service, fn):
 
   return file.get("id")
 
-def update_file(drive_service, file_id, fn):
+def update_file(drive_service, file_id: str, fn: Path):
   try:
     # file_metadata = {"id": file_id}
-    media = MediaFileUpload(fn, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    mime = mime_types[fn.suffix]
+    media = MediaFileUpload(fn, mimetype=mime)
     # pylint: disable=maybe-no-member
     file = (
         drive_service.files()
@@ -194,12 +197,15 @@ def main(cmd: str, fname: str):
       elif cmd == "find" and len(fname) > 0:
         id = find_file(service, fname)
       elif cmd == "up" and len(fname) > 0:
-        id = find_file(service, fname)
         fn = Path.home() / 'Downloads' / fname
-        if id:
-          update_file(service, id, fn)
+        if fn.exists():
+          id = find_file(service, fname)
+          if id:
+            update_file(service, id, fn)
+          else:
+            create_file(service, fn)
         else:
-          create_file(service, fn)
+          console.print(f"file not found {fn}", style="red")
       elif cmd == "dn" and len(fname) > 0:
         id = find_file(service, fname)
         if id:

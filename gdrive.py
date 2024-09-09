@@ -104,8 +104,7 @@ def create_file(drive_service, fn: Path):
   try:
     fname = os.path.basename(fn)
     file_metadata = {"name": fname}
-    mime = mime_types[fn.suffix]
-    media = MediaFileUpload(fn, mimetype=mime)
+    media = MediaFileUpload(fn, mimetype=mime_types[fn.suffix])
     # pylint: disable=maybe-no-member
     file = (
         drive_service.files()
@@ -123,8 +122,7 @@ def create_file(drive_service, fn: Path):
 def update_file(drive_service, file_id: str, fn: Path):
   try:
     # file_metadata = {"id": file_id}
-    mime = mime_types[fn.suffix]
-    media = MediaFileUpload(fn, mimetype=mime)
+    media = MediaFileUpload(fn, mimetype=mime_types[fn.suffix])
     # pylint: disable=maybe-no-member
     file = (
         drive_service.files()

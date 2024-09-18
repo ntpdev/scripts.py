@@ -4,7 +4,7 @@ from dataclasses import dataclass, asdict
 from typing import List
 from dataclasses_json import dataclass_json
 from chatutils import CodeBlock, make_fullpath, extract_code_block, execute_script, save_content, translate_latex
-from bs4 import BeautifulSoup
+from firecrawl import FirecrawlApp
 import datetime
 #from datetime import datetime, date, time
 from openai import OpenAI
@@ -15,12 +15,12 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich import print as rprint
 from rich.pretty import pprint
-import requests
+# import requests
 import json
 import subprocess
 import yaml
 import math # used by eval
-import sympy # used by eval
+# import sympy # used by eval
 import re
 
 # pip install dataclasses-json
@@ -230,23 +230,35 @@ def load_log(s: str) -> list[ChatMessage]:
 def load_http(s: str) -> ChatMessage:
     url = s.split()[1]
     try:
-        # Get the content of the web page
-        response = requests.get(url)
-        response.raise_for_status()  # Raise an exception for bad status codes
+        crawler = FirecrawlApp(api_key=os.environ.get('FC_API_KEY', 'fc-536657e48e2c4bc1b58066211939c77e'))
+        result = crawler.scrape_url(url, params={'formats': ['markdown']})
+        pprint(result)
+        if result['metadata']['statusCode'] == 200:
+            text = result['markdown']
+            title = result['metadata']['title']
+            title = re.sub(r'[^a-zA-Z0-9]', '_', title)
+            title = re.sub('_+', '_', title)
+            console.print(f'saving {url}\n to {title}.md', style='red')
+            with open(make_fullpath(title + '.md'), 'w', encoding='utf-8') as f:
+                f.write(text)
+            return ChatMessage('user', text)    
+        # breakpoint()
+        # # Get the content of the web page
+        # response = None # requests.get(url)
+        # response.raise_for_status()  # Raise an exception for bad status codes
 
-        # Parse the HTML content
-        soup = BeautifulSoup(response.content, 'html.parser')
+        # # Parse the HTML content
+        # soup = None # BeautifulSoup(response.content, 'html.parser')
 
-        # Extract all text recursively, stripping tags and extra whitespace
-        all_text = [f'source: ' + url, '\n\n## page content\n\n']
-        for element in soup.findAll('p'):
-            text = element.get_text(strip=True)
-            if text:
-                all_text.append(text + '\n')  # Add newline between elements
+        # # Extract all text recursively, stripping tags and extra whitespace
+        # all_text = [f'source: ' + url, '\n\n## page content\n\n']
+        # for element in soup.findAll('p'):
+        #     text = element.get_text(strip=True)
+        #     if text:
+        #         all_text.append(text + '\n')  # Add newline between elements
 
-        breakpoint()
-        return ChatMessage('user', '\n'.join(all_text))
-    except requests.exceptions.RequestException as e:
+        # breakpoint()
+    except Exception as e: # requests.exceptions.RequestException as e:
         print(f"Error: An error occurred while fetching the webpage: {e}")
 
     return None
@@ -259,7 +271,7 @@ def prt_summary(msgs : list[ChatMessage]):
     console.print(f'loaded from log {len(msgs)} words {sum(ws)} chars {sum(cs)}', style='red')
     for i,m in enumerate(msgs):
         c = m.content.replace('\n', '\\n')  # msgs:
-        s = f'{i:2} {m.role:<10} {c if len(c) < 70 else c[:70] + ' ...'}'
+        s = f'{i:2} {m.role:<10} {c if len(c) < 70 else c[:70] + " ..."}'
         console.print(s, style=role_to_color[m.role])
 
 

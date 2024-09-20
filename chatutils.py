@@ -53,7 +53,7 @@ def make_fullpath(fn: str) -> Path:
 
 def save_content(msg):
     filename = make_fullpath('temp.txt')
-    with open(filename, 'w') as f:
+    with open(filename, 'w', encoding='utf-8') as f:
         f.write(msg.content)
     s = f'saved {msg.content if len(msg.content) < 70 else msg.content[:70] + ' ...'}'
     console.print(s, style='red')
@@ -62,7 +62,7 @@ def save_content(msg):
 def save_code(fn : str, code: CodeBlock) -> Path:
     console.print('executing code...', style='red')
     full_path = make_fullpath(fn)
-    with open(full_path, 'w') as f:
+    with open(full_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(code.lines))
     return full_path
 

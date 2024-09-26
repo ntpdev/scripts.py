@@ -3,13 +3,14 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 from io import StringIO
-import graphviz
+#import graphviz
 from scipy.optimize import brentq
 from functools import cache
 from datetime import date, timedelta
 from typing import List
 import math
 from rich.console import Console
+from decimal import Decimal
 # import plotly.graph_objs as go
 # import plotly.offline as py
 console = Console()
@@ -87,6 +88,70 @@ def pattern_match_commands(s: str) -> int:
             raise ValueError(f'bad command {s}')
 
 
+def parse_lines(xs):
+    '''generator function. parse input lines with space separated values. first line used as key names'''
+    colnames = None
+    for x in xs:
+        ys = x.split()
+        if len(ys) > 0:
+            if colnames:
+                yield {k:v for k,v in zip(colnames, ys)}
+            else:
+                colnames = ys
+
+
+def as_typed_values(x):
+    '''parse string values to types. stateless so can be used with map'''
+    x['start'] = date.fromisoformat(x['start'])
+    x['finish'] = date.fromisoformat(x['finish'])
+    x['price'] = Decimal(x['price'])
+    return x
+
+def parsing_text():
+    '''example of chaining generators together'''
+    s = '''
+    # this file contains comments
+    start finish price
+    2022-04-01	2023-03-31	288.71
+    2022-11-20	2023-03-31	69.70
+    2022-06-01	2023-03-31	240.46
+    2023-04-01	2024-03-31	328.87
+    2023-04-01	2023-06-06	39.00
+    # another comment
+    2022-06-01	2022-11-20	94.85
+    2022-06-01	2023-03-31	-240.00'''
+
+    # start pipeline with a generator that returns lines skipping comments
+    # then add mapping stages line -> dict of string -> dict with types
+    # p = (e for e in StringIO(s) if not e.strip().startswith('#'))
+    # or we can use builtin filter
+    p = filter(lambda e: not e.strip().startswith('#'), StringIO(s))
+    # note parse lines is stateful so cant use map()
+    p1 = parse_lines(p)
+    pipeline = map(as_typed_values, p1)
+    # can use pipeline in a aggregration function
+    # sum(e['price'] for e in pipeline)
+    # or just iterating
+    for x in pipeline:
+        console.print(x, style='green')
+
+
+def check_seq(num1s: int):
+    """generator state machine matches at least num1s followed by 1 or more 2's then a 1"""
+    while True:
+        y = yield False
+        found = 0
+        if y == 1:
+            while y == 1:
+                found += 1
+                y = yield False
+            if y == 2 and found >= num1s:
+                while y == 2:
+                    y = yield False
+                if y == 1:
+                    y = yield True
+
+
 def draw_gantt_chart():
     s = '''start finish task
     2022-04-01	2023-03-31	£288.71
@@ -108,13 +173,13 @@ def draw_gantt_chart():
     # Show the chart
     fig.show()
 
-def draw_diag():
-    g = graphviz.Graph('G', filename='z.gv', format='svg')
-    g.edge('run', 'intr')
-    g.edge('intr', 'runbl')
-    g.edge('runbl', 'run')
-    g.edge('run', 'kernel')
-    g.view()
+# def draw_diag():
+#     g = graphviz.Graph('G', filename='z.gv', format='svg')
+#     g.edge('run', 'intr')
+#     g.edge('intr', 'runbl')
+#     g.edge('runbl', 'run')
+#     g.edge('run', 'kernel')
+#     g.view()
 
 def init_cashflow(drawdown, n, start_date):
   d = start_date.day
@@ -190,3 +255,12 @@ if __name__ == '__main__':
     # draw_gantt_chart()
     #draw_diag()
     example_cashflow()
+
+    parsing_text()
+
+    # create generator and make first call to initialise
+    stm = check_seq(3)
+    stm.send(None)
+    for i in [0,1,2,1,1,1,2,2,1,0,1]:
+        x = stm.send(i)
+        print(f'iter {i} ret {x}')

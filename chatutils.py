@@ -71,7 +71,7 @@ def save_and_execute_python(code: CodeBlock):
     try:
         script_path = save_code('temp.py', code)
 
-        result = subprocess.run(["python", script_path], capture_output=True, text=True, timeout=5)
+        result = subprocess.run(["python", script_path], capture_output=True, text=True, timeout=60)
 
         if len(result.stdout) > 0:
             console.print(result.stdout, style='yellow')

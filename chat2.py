@@ -171,7 +171,7 @@ def load_msg(s: str) -> ChatMessage:
     role = 'assistant' if len(xs) > 2 else 'user'
 
     try:
-        with open(fname, 'r') as f:
+        with open(fname, 'r', encoding='utf-8') as f:
             return ChatMessage(role,  f.read())
     except FileNotFoundError:
         console.print(f'{fname} FileNotFoundError', style='red')

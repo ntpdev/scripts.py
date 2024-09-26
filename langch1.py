@@ -215,7 +215,7 @@ def system_message():
 
 def create_llm(llm_name, temp, tool_use):
     if llm_name == 'pro':
-        llm = ChatVertexAI(model='gemini-1.5-pro-001',  safety_settings=safety_settings, temperature=temp)
+        llm = ChatVertexAI(model='gemini-1.5-pro-002',  safety_settings=safety_settings, temperature=temp)
     if llm_name == 'exp':
         llm = ChatVertexAI(model='gemini-experimental',  safety_settings=safety_settings, temperature=temp)
     elif llm_name == 'haiku':
@@ -223,7 +223,7 @@ def create_llm(llm_name, temp, tool_use):
     elif llm_name == 'sonnet':
         llm = ChatAnthropicVertex(model_name='claude-3-5-sonnet@20240620', location='europe-west1', temperature=temp)
     else:
-        llm = ChatVertexAI(model='gemini-1.5-flash-001',  safety_settings=safety_settings, temperature=temp)
+        llm = ChatVertexAI(model='gemini-1.5-flash-002',  safety_settings=safety_settings, temperature=temp)
 
     if tool_use and llm.model_name.startswith('gemini'):
         console.print('tool calls enabled', style='yellow')

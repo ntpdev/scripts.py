@@ -93,6 +93,27 @@ class ChatToolMessageCall(ChatMessage):
         self.tool_calls = chat_completion.to_dict()['tool_calls']
 
 
+@dataclass
+class Usage:
+    prompt_tokens: int
+    completion_tokens: int
+    prompt_cost: float
+    completion_cost: float
+
+    def __init__(self, prompt_c: float, completion_c: float):
+        self.prompt_tokens = 0
+        self.completion_tokens = 0
+        self.prompt_cost = prompt_c
+        self.completion_cost = completion_c
+    
+    def cost(self) -> float:
+        return (self.prompt_tokens * self.prompt_cost + self.completion_tokens * self.completion_cost) / 1e6
+    
+    def update(self, prompt_c: int, completion_c: int):
+        self.prompt_tokens += prompt_c
+        self.completion_tokens += completion_c
+
+
 class LLM:
     tool_fns = [ {
     "type": "function",
@@ -137,6 +158,7 @@ class LLM:
         else:
             return self.client.chat.completions.create(model=self.model, messages=[asdict(m) for m in messages], temperature=0.7)
 
+tokens = Usage(0.15, 0.60)
 
 def is_toolcall(s: str) -> str:
     start = s.find('<tool_call>')
@@ -236,12 +258,13 @@ def load_http(s: str) -> ChatMessage:
         if result['metadata']['statusCode'] == 200:
             text = result['markdown']
             title = result['metadata']['title']
-            title = re.sub(r'[^a-zA-Z0-9]', '_', title)
+            title = re.sub(r'[<>:"/\\|?*\x00-\x1F]', '_', title)
             title = re.sub('_+', '_', title)
             console.print(f'saving {url}\n to {title}.md', style='red')
             with open(make_fullpath(title + '.md'), 'w', encoding='utf-8') as f:
+                f.write(f'[*source* {result['metadata']['title']}]({url})\n\n')
                 f.write(text)
-            return ChatMessage('user', text)    
+            return ChatMessage('user', text)
         # breakpoint()
         # # Get the content of the web page
         # response = None # requests.get(url)
@@ -320,7 +343,7 @@ def check_and_process_tool_call(client, messages, response):
     '''check for a tool call and process. If there is no tool call then the original response is returned'''
     # https://platform.openai.com/docs/guides/function-calling
     choice = response.choices[0]
-    n = 3
+    n = 5
     while choice.finish_reason == 'tool_calls' and n > 0:
         n -= 1
         # append choice.message to message history
@@ -358,6 +381,9 @@ def check_and_process_code_block(client, messages, response):
             prt(msg2)
             response = client.chat(messages)
             code = extract_code_block_from_response(response)
+            ru = response.usage
+            tokens.update(ru.prompt_tokens, ru.completion_tokens)
+            pprint(tokens)
 
     return response
 
@@ -380,7 +406,7 @@ def process_commands(inp: str, messages: List[ChatMessage]) -> bool:
             messages.append(msg)
             prt(msg)
             next_action = True
-    if inp.startswith('%http'):
+    if inp.startswith('%web'):
         msg = load_http(inp)
         if msg:
             messages.append(msg)
@@ -447,8 +473,9 @@ def chat(llm_name, use_tool):
                 prt(msg)
             
             ru = response.usage
-            c = (ru.prompt_tokens * 5 + ru.completion_tokens * 15)/10000
-            print(f'prompt tokens: {ru.prompt_tokens}, completion tokens: {ru.completion_tokens}, total tokens: {ru.total_tokens} cost: {c:.4f}')
+            tokens.update(ru.prompt_tokens, ru.completion_tokens)
+            pprint(tokens)
+            print(f'prompt tokens: {ru.prompt_tokens}, completion tokens: {ru.completion_tokens}, total tokens: {ru.total_tokens} cost: {tokens.cost():.4f}')
             
     if len(messages) > 2:
         save(messages, make_fullpath(FNAME))

@@ -132,8 +132,8 @@ def print_summary(df):
     export_3lb(df2, make_filename('es-rth-3lb.csv'))
 
 
-df = load_files(make_filename('esu4*.csv'))
+df = load_files('esz4*.csv')
 print_summary(df)
-df['VWAP'] = calc_vwap(df)
+df['vwap'] = calc_vwap(df)
 #exportNinja(df, make_filename('ES 09-22.Last.txt'))
 exportMinVol(df, make_filename('es-minvol.csv'))

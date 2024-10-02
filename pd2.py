@@ -275,9 +275,9 @@ def test_load(fspec):
 if __name__ == '__main__':
 #    whole_day_concat('esm4*.csv', 'zESM4')
     # test_tick()
-    df_es = load_overlapping_files('zesu4*.csv')
+    df_es = load_overlapping_files('zesz4*.csv')
     print_summary(df_es)
-    compare_emas()
+    # compare_emas()
     # df_tick = simple_concat('ztick-nyse*.csv', 'x')
     # di = day_index(df_tick)
     # breakpoint()

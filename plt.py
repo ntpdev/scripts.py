@@ -106,18 +106,18 @@ def add_hilo_labels(df, tms, fig):
         name='local low' ))
 
 def bar_containing(df, dt):
-    return (df['Date'] <= dt) & (df['DateCl'] > dt)
+    return (df['date'] <= dt) & (df['dateCl'] > dt)
 
 # return a high and low range to nearest multiple of n
 def make_yrange(df, op, cl, n):
-    h = df['High'][op:cl].max() + n // 2
-    l = df['Low'][op:cl].min() - n // 2
+    h = df['high'][op:cl].max() + n // 2
+    l = df['low'][op:cl].min() - n // 2
     return  (l // n)*n, ((h // n) + 1)*n
 
 # pair of start_index:end_index suitable for use with iloc[s:e]
 def make_day_index(df):
     # filter by hour > 21 since holidays can have low volume
-    is_first_bar = (df['Date'].diff().fillna(pd.Timedelta(hours=1)) > timedelta(minutes=59)) & (df['Date'].dt.hour > 21)
+    is_first_bar = (df.index.diff().fillna(pd.Timedelta(hours=1)) > timedelta(minutes=59)) & (df.index.hour > 21)
     xs = df[is_first_bar].index.to_list()
     # add index after final bar 
     xs.append(df.shape[0])
@@ -125,9 +125,9 @@ def make_day_index(df):
 
 # return a list of tuples of the op,cl indexes
 def make_rth_index(df, day_index):
-    is_first_bar = (df['Date'].diff().fillna(pd.Timedelta(hours=1)) > timedelta(minutes=59)) & (df['Date'].dt.hour > 21)
-    rth_opens = df[is_first_bar].Date.apply(lambda e: e + np.timedelta64(930 - e.minute, 'm'))
-    rth_closes = df[is_first_bar].Date.apply(lambda e: e + np.timedelta64(1320 - e.minute, 'm'))
+    is_first_bar = (df.index.diff().fillna(pd.Timedelta(hours=1)) > timedelta(minutes=59)) & (df.index.hour > 21)
+    rth_opens = df[is_first_bar].index.apply(lambda e: e + np.timedelta64(930 - e.minute, 'm'))
+    rth_closes = df[is_first_bar].index.apply(lambda e: e + np.timedelta64(1320 - e.minute, 'm'))
 
     # select rows matching time, convert index to a normal col, add col which is date
     ops = df[df.Date.isin(rth_opens)]
@@ -143,10 +143,10 @@ def make_rth_index(df, day_index):
     return [(x,y) for x,y in zip(mrg['index_x'], mrg['index_y'])]
 
 def plot(index):
-    df = pd.read_csv(ts.make_filename('es-minvol.csv'), parse_dates=['Date', 'DateCl'], index_col=0)
+    df = pd.read_csv(ts.make_filename('es-minvol.csv'), parse_dates=['date', 'dateCl'], index_col=0)
 
     # create a string for X labels
-    tm = df['Date'].dt.strftime('%d/%m %H:%M')
+    tm = df.index.strftime('%d/%m %H:%M')
     fig = color_bars(df, tm, 'strat')
 #    fig = go.Figure(data=[go.Candlestick(x=tm, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='ES'),
 #                        go.Scatter(x=tm, y=df['VWAP'], line=dict(color='orange'), name='vwap') ])
@@ -190,8 +190,8 @@ def color_bars(df, tm, opt):
     fig.data[3].decreasing.line.color = 'green'
     fig.data[4].increasing.line.color = 'red'
     fig.data[4].decreasing.line.color = 'red'
-    fig.data[5].increasing.line.color = 'purple'
-    fig.data[5].decreasing.line.color = 'purple'
+    # fig.data[5].increasing.line.color = 'purple'
+    # fig.data[5].decreasing.line.color = 'purple'
     return fig
   else:  
     return go.Figure(data=[go.Candlestick(x=tm, open=df['open'], high=df['high'], low=df['low'], close=df['close'], name='ES'),
@@ -273,6 +273,7 @@ def plot_mongo(symbol, dt, n):
     df = md.load_price_history(symbol, dt, n)
     idx = ts.day_index2(df)
     day_summary_df = md.create_day_summary(df, idx)
+    breakpoint()
     num_days = idx.shape[0]
     # loaded an additional day for hi-lo info but create minVol for display skipping first day
     dfMinVol = ts.aggregateMinVolume(df[idx.iat[1,0]:idx.iat[num_days-1,1]], 5000 if num_days > 3 else 2500)
@@ -423,7 +424,7 @@ def main():
     parser.add_argument('--atr', action='store_true', help='Display ATR')
     parser.add_argument('--tick', action='store_true', help='Display tick')
     parser.add_argument('--days', type=int, default=1, help='Number of days')
-    parser.add_argument('--sym', type=str, default='esu4', help='Index symbol')
+    parser.add_argument('--sym', type=str, default='esz4', help='Index symbol')
 
     argv = parser.parse_args()
     print(argv)
@@ -443,5 +444,5 @@ def main():
 #hilo(df)
 #samp3LB()
 if __name__ == '__main__':
-    #main()
-    compare_emas()
+    main()
+    #compare_emas()

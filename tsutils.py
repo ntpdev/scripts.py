@@ -288,7 +288,8 @@ def make_filename(fname: str) -> Path:
 
 def load_files_as_dict(spec: str) -> dict[Path, pd.DataFrame]:
     '''return a dict of paths and data_frames'''
-    return {x:load_file(x) for x in sorted((Path.home() / 'Documents' / 'data').glob(spec, case_sensitive=False))}
+    xs = (Path.home() / 'Documents' / 'data').glob(spec, case_sensitive=False)
+    return {x:load_file(x) for x in sorted(xs)}
 
 
 def load_files(spec: str) -> pd.DataFrame:

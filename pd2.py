@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from io import StringIO
 from dataclasses import dataclass
-from tsutils import load_file, load_files, day_index2, load_files_as_dict, load_overlapping_files, aggregate_daily_bars, calc_vwap, save_df
+from tsutils import load_file, load_files, day_index, load_files_as_dict, load_overlapping_files, aggregate_daily_bars, calc_vwap, save_df
 import plotly.graph_objects as go
 from rich.console import Console
 
@@ -217,7 +217,7 @@ def plot_hl_times(df, daily_index, start_col, end_col, period = 30):
 
 
 def print_summary(df):
-    di = day_index2(df)
+    di = day_index(df)
     console.print('\n--- Day index ---', style='yellow')
     console.print(di)
     

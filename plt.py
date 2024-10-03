@@ -169,12 +169,6 @@ def color_bars(df, tm, opt):
     dfUp = df.loc[df['btype'] == 1]
     dfDown = df.loc[df['btype'] == 2]
     dfOutside = df.loc[df['btype'] == 3]
-    # find conseq 1 x3 followed by either 2 or 3
-    # s = ''.join(str(i) for i in df['btype'].tolist())
-    # ms = re.finditer('[01]{3,}[23]+1', s)
-    # for m in ms:
-    #     print(f'{df['tm'].iloc[m.span()[0]]} {m.group()}')
-    # breakpoint()
 
     fig = go.Figure(data=[go.Scatter(x=tm, y=df['vwap'], line=dict(color='orange'), name='vwap') ])
     if 'ema' in df:
@@ -190,6 +184,7 @@ def color_bars(df, tm, opt):
     fig.data[3].decreasing.line.color = 'green'
     fig.data[4].increasing.line.color = 'red'
     fig.data[4].decreasing.line.color = 'red'
+    # TODO why does 5 not work??
     # fig.data[5].increasing.line.color = 'purple'
     # fig.data[5].decreasing.line.color = 'purple'
     return fig
@@ -209,7 +204,7 @@ def plot_tick(days :int):
     '''display the last n days'''
     df = ts.load_files(ts.make_filename('zTICK-NYSE*.csv'))
     #  last n days from a dataframe with a datetime index
-    idx = ts.day_index2(df)
+    idx = ts.day_index(df)
     filtered = df[df.index >= idx.first.iloc[-days]]
     hi = filtered['high'].quantile(0.95)
     lo = filtered['low'].quantile(0.05)
@@ -271,9 +266,8 @@ def create_minVol_index(dfMinVol, day_index) -> list[MinVolDay]:
 
 def plot_mongo(symbol, dt, n):
     df = md.load_price_history(symbol, dt, n)
-    idx = ts.day_index2(df)
+    idx = ts.day_index(df)
     day_summary_df = md.create_day_summary(df, idx)
-    breakpoint()
     num_days = idx.shape[0]
     # loaded an additional day for hi-lo info but create minVol for display skipping first day
     dfMinVol = ts.aggregateMinVolume(df[idx.iat[1,0]:idx.iat[num_days-1,1]], 5000 if num_days > 3 else 2500)
@@ -320,7 +314,7 @@ def plot_mongo(symbol, dt, n):
 
 def plot_volp(symbol, dt, n):
     df = md.load_price_history(symbol, dt, n)
-    idx = ts.day_index2(df)
+    idx = ts.day_index(df)
     day_summary_df = md.create_day_summary(df, idx)
     num_days = idx.shape[0]
     s, e = (idx.iat[0, 0], idx.iat[n-1, 1]) if n > 0 else (idx.iat[n, 0], idx.iat[-1, 1])
@@ -372,7 +366,7 @@ def load_trading_days(collection, symbol, minVol):
          {'$sort': {'_id': 1}}] )
     df = pd.DataFrame(list(cursor))
     v = df.volume
-    df['normv'] = (v - v.mean()) / v.std()
+    df['stdvol'] = (v - v.mean()) / v.std()
     df.set_index('_id', inplace=True)
     df.index.rename('date', inplace=True)
 #    print(df)
@@ -403,8 +397,8 @@ def parse_isodate(s):
         return datetime.now().date()
 
 
-def plot_normvol(df):
-    fig = px.bar(df, x=df.index, y='normv')
+def plot_stdvol(df):
+    fig = px.bar(df, x=df.index, y='stdvol')
     fig.show()
 
 

@@ -180,20 +180,17 @@ def calc_hilo(ser):
     return pd.Series(cs, ser.index)
 
 
-def day_index2(df: pd.DataFrame) -> pd.DataFrame:
+def day_index(df: pd.DataFrame) -> pd.DataFrame:
     '''create a df [date, first, last, rth_first, rth_last] for each trading day based on gaps in index'''
     first_bar_selector = df.index.diff() != timedelta(minutes=1)
     last_bar_selector = np.roll(first_bar_selector, -1)
     # contiguous time ranges
     idx = pd.DataFrame({'first': df.index[first_bar_selector], 'last': df.index[last_bar_selector]})
-    # calculate rth range as offset from open
+    # calculate rth start as offset from open
     rth_start = idx['first'] + timedelta(hours=15, minutes=30)
-    rth_end = idx['first'] + timedelta(hours=21, minutes=59)
-    nat = np.datetime64("NaT")
-    s = np.where(idx['last'] > rth_start, rth_start, nat)
-    e = np.where(np.isnat(s), nat, np.minimum(rth_end, idx['last']))
-    idx['rth_first'] = s
-    idx['rth_last'] = e
+    # mask out rth_start if it is after last bar of day and calculate rth_end propogating NaT values
+    idx['rth_first'] = rth_start.mask(idx['last'] < rth_start)
+    idx['rth_last'] = np.minimum(idx['last'], idx['rth_first'] + timedelta(hours=6, minutes=29))
     idx['duration'] = ((idx['last'] - idx['first']).dt.total_seconds()) / 60 + 1
     idx.set_index(idx['last'].dt.date, inplace=True)
     idx.index.name = 'date'

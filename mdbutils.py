@@ -19,7 +19,7 @@ def load_summary(collection):
     cursor = collection.aggregate([
           {"$group": {"_id": "$symbol",
                       "count": {"$sum": 1},
-          			  "start": {"$first": "$timestamp"},
+          			      "start": {"$first": "$timestamp"},
                       "end": {"$last": "$timestamp"}
                      }},                 
           {"$sort" : {"_id": 1}}
@@ -54,11 +54,10 @@ def load_timeseries(collection, symbol, tmStart, tmEnd):
     df = pd.DataFrame(rows)
     df.set_index('date', inplace=True)
     df['ema'] = df.close.ewm(span=87, adjust=False).mean()
-# TODO change tsutils to return lower case column names    df['strat'] = ts.calc_strat(df)
     return df
 
 def load_trading_days(collection, symbol, minVol):
-    """return df of complete trading days. the bars are aggregated by calendar date [date, bar-count, volume, normalised-volume]"""
+    """return df of complete trading days. the bars are aggregated by calendar date [date, bar-count, volume, standardised-volume]"""
     cursor = collection.aggregate(
         [{'$match': {'symbol': symbol}},
          {'$group': {
@@ -69,7 +68,7 @@ def load_trading_days(collection, symbol, minVol):
          {'$sort': {'_id': 1}}] )
     df = pd.DataFrame(list(cursor))
     v = df.volume
-    df['normv'] = (v - v.mean()) / v.std()
+    df['stdvol'] = (v - v.mean()) / v.std()
     df.set_index('_id', inplace=True)
     df.index.rename('date', inplace=True)
     return df
@@ -121,35 +120,40 @@ def load_gaps(collection, symbol, gap_mins):
     return pd.DataFrame(xs)
 
 
-def find_date_range(xs, x, n):
-    '''given a sorted list xs return start,end values for n elements less than or equal to x. If n is negative x will be the last item.'''
-    a,b = find_index_range(xs, x, n)
-    return xs[a], xs[b]
+# def find_date_range(xs, x, n):
+#     '''given a sorted list xs return start,end values for n elements less than or equal to x. If n is negative x will be the last item.'''
+#     a,b = find_index_range(xs, x, n)
+#     return xs[a], xs[b]
 
 
-def find_index_range(xs, x, n):
-    '''given a sorted list xs return start,end index for n elements less than or equal to x. If n is negative x will be the last item.'''
-    i = bisect_right(xs, x)
-    if i < 1:
-        raise ValueError(f'{x} is before first index entry {xs[0]}')
-    i -= 1
-    end = i + int(math.copysign(abs(n)-1, n))
-    if n < 0:
-        i, end = end, i
-    return max(i, 0), min(end, len(xs)-1)
+# def find_index_range(xs, x, n):
+#     '''given a sorted list xs return start,end index for n elements less than or equal to x. If n is negative x will be the last item.'''
+#     i = bisect_right(xs, x)
+#     if i < 1:
+#         raise ValueError(f'{x} is before first index entry {xs[0]}')
+#     i -= 1
+#     end = i + int(math.copysign(abs(n)-1, n))
+#     if n < 0:
+#         i, end = end, i
+#     return max(i, 0), min(end, len(xs)-1)
 
 
-def find_datetime_range(dfTradeDays, day, n):
-    start, end = find_date_range(dfTradeDays.index.tolist(), day, n)
-    return dfTradeDays.at[start, 'start'], dfTradeDays.at[end, 'end']
+def find_datetime_range(df, dt, n):
+    """find start,end interval for n days beginning or ending with dt"""
+    n = n if abs(n) > 1 else 1
+    df_range = df[df.index >= dt][:n] if n > 0 else df[df.index <= dt][n:]
+    # return start of first row and end of last row
+    return df_range.iat[0, 0], df_range.iat[-1, 1]
 
 
-def make_trade_dates(dfSummary, dfGaps, symbol):
-    '''build df of [trade_date, start, end, rth_start] where range is [start, end)'''
-    e = pd.concat([dfGaps['last_bar'], pd.Series(dfSummary.at[symbol,'end'])], ignore_index=True)
-    s = pd.concat([pd.Series(dfSummary.at[symbol, 'start']), dfGaps['first_bar']], ignore_index=True)
-    # rth_end = start + 1320 - the day may end earlier but this is fine if using a query
-    df = pd.DataFrame({'start': s, 'end': e + pd.Timedelta(minutes=1), 'rth_start': s + pd.Timedelta(minutes=930)})
+def make_trade_dates(tmStart, tmEnd, dfGaps):
+    '''build df of [trade_date, start, end, rth_start] where range is [start, end). rth_start may be NaT'''
+    e = pd.concat([dfGaps['last_bar'], pd.Series(tmEnd)], ignore_index=True)
+    s = pd.concat([pd.Series(tmStart), dfGaps['first_bar']], ignore_index=True)
+    rs = s + pd.Timedelta(minutes=930)
+    
+    # mask rth_start values where rth_start is after end
+    df = pd.DataFrame({'start': s, 'end': e + pd.Timedelta(minutes=1), 'rth_start': rs.mask(e < rs)})
     df.set_index(e.dt.date, inplace=True)
     df.index.name = 'date'
     return df
@@ -171,7 +175,6 @@ def calculate_trading_hours(dfTradeDays, dt, range_name):
 
 
 def create_day_summary(df, df_di):
-  console.print(df_di)
   xs = []
   for i,r in df_di.iterrows():
     openTime = r['first']
@@ -208,7 +211,6 @@ def create_day_summary(df, df_di):
 
   day_summary_df = pd.DataFrame(xs)
   day_summary_df.set_index('date', inplace=True)
-  console.print(day_summary_df)
   return day_summary_df
 
 
@@ -216,13 +218,9 @@ def load_price_history(symbol, dt, n = 1):
     client = MongoClient('localhost', 27017)
     collection = client['futures'].m1
     dfSummary = load_summary(collection)
-    # console.print(dfSummary)
     dfGaps = load_gaps(collection, symbol, 30)
-    # console.print(dfGaps)
-    dfTradeDays = make_trade_dates(dfSummary, dfGaps, symbol)
-    # console.print(dfTradeDays)
-    s,e = find_datetime_range(dfTradeDays, dt, n-1 if n < 0 else n)
-    # console.print(s, e)
+    dfTradeDays = make_trade_dates(dfSummary.at[symbol,'start'], dfSummary.at[symbol,'end'], dfGaps)
+    s,e = find_datetime_range(dfTradeDays, dt, n)
     return load_timeseries(collection, symbol, s, e)
 
 
@@ -231,27 +229,41 @@ def main(symbol: str, dt: date = None):
         dt = date.today()
     client = MongoClient('localhost', 27017)
     collection = client['futures'].m1
-    dfDays = load_trading_days(collection, symbol, 100000)
-    console.print(dfDays)
-    console.print(find_index_range(dfDays.index.date.tolist(), date(2024, 7, 8), 1))
-    # console.print(find_index_range(dfDays.index.date.tolist(), date(2024, 7, 8), 3))
-    # console.print(find_date_range(dfDays.index.date.tolist(), date(2024, 7, 8), -2))
+
     dfSummary = load_summary(collection)
+    console.print("--- summary of collection", style="yellow")
     console.print(dfSummary)
+    
+    dfDays = load_trading_days(collection, symbol, 100000)
+    console.print(f"\n\n--- trading days for {symbol}", style="yellow")
+    console.print(dfDays)
+
     dfGaps = load_gaps(collection, symbol, 30)
+    console.print(f"\n\n--- gaps for {symbol}", style="yellow")
     console.print(dfGaps)
-    dfTradeDays = make_trade_dates(dfSummary, dfGaps, symbol)
+
+    # this is like day_index but uses the gaps mdb query
+    dfTradeDays = make_trade_dates(dfSummary.at[symbol,'start'], dfSummary.at[symbol,'end'], dfGaps)
+    console.print(f"\n\n--- trade date index for {symbol}", style="yellow")
     console.print(dfTradeDays)
-    tms,tme = find_datetime_range(dfTradeDays, dt, -3)
+
+    tms,tme = find_datetime_range(dfTradeDays, date(2024,10,3), -5)
     df = load_timeseries(collection, symbol, tms, tme)
     tms, tme = calculate_trading_hours(dfTradeDays, tme.date(), 'rth')
     console.print(df[tms:tme].head())
     console.print(df[tms:tme].tail())
-    df_di = ts.day_index2(df)
+
+    df_di = ts.day_index(df)
+    console.print("\n\n--- day index", style="yellow")
     console.print(df_di)
-    console.print(create_day_summary(df, df_di))
+
+    console.print("\n\n--- day summary", style="yellow")
+    summ = create_day_summary(df, df_di)
+    console.print(summ)
+    console.print(f"\n\n--- last row {summ.index[-1]}", style="yellow")
+    console.print(summ.iloc[-1])
 
 
 if __name__ == '__main__':
 #    whole_day_concat('esm4*.csv', 'zESM4')
-    main('esu4')
+    main('esz4')

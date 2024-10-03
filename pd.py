@@ -3,7 +3,10 @@ from datetime import date, time, timedelta, datetime
 import numpy as np
 import pandas as pd
 import sys
-from tsutils import aggregate, aggregateMinVolume, make_filename, load_files, day_index2, aggregate_daily_bars, calc_vwap, calc_atr, LineBreak
+from tsutils import aggregate, aggregateMinVolume, make_filename, load_files, day_index, aggregate_daily_bars, calc_vwap, calc_atr, LineBreak
+from rich.console import Console
+
+console = Console()
 
 def export_daily(df, fname):
     dt = df.index[-1]
@@ -119,21 +122,37 @@ def fn1():
     print(dfd.tail(19))
 
 def print_summary(df):
-    di = day_index2(df)
-    print('--- Daily bars ---')
+    di = day_index(df)
+    console.print('--- Daily bars ---', style='yellow')
     df2 = aggregate_daily_bars(df, di, 'first', 'last')
     export_daily(df2, 'es-daily')
     print(df2)
 
-    print('--- RTH bars ---')
+    console.print('--- RTH bars ---', style='yellow')
     df2 = aggregate_daily_bars(df, di, 'rth_first', 'rth_last')
     export_daily(df2, 'es-daily-rth')
     print(df2)
     export_3lb(df2, make_filename('es-rth-3lb.csv'))
 
+def test_find(df, dt, n):
+    """return n rows starting or ending with dt"""
+    x = 1 if abs(n) < 2 else n
+    # df[:3] and df.iloc[:3] both return first 3 rows
+    return df[df.index >= dt][:x] if x > 0 else df[df.index <= dt][x:]
 
-df = load_files('esz4*.csv')
-print_summary(df)
-df['vwap'] = calc_vwap(df)
-#exportNinja(df, make_filename('ES 09-22.Last.txt'))
-exportMinVol(df, make_filename('es-minvol.csv'))
+def test():
+    dates = ['2022-09-02', '2022-09-06', '2022-09-07', '2022-09-08', '2022-09-09', '2022-09-12', '2022-09-13', '2022-09-14', '2022-09-15', '2022-09-16']
+    prices = [295.17, 293.05, 298.97, 300.52, 307.09, 310.74, 293.7, 296.03, 291.1, 289.32]
+
+    df = pd.DataFrame({'price':prices}, index=dates)
+    console.print(test_find(df, '2022-09-08', 3))
+    console.print(test_find(df, '2022-09-12', -3))
+
+
+if __name__ == '__main__':
+    test()
+    #df = load_files('esz4*.csv')
+    #print_summary(df)
+    #df['vwap'] = calc_vwap(df)
+    #exportNinja(df, make_filename('ES 09-22.Last.txt'))
+    #exportMinVol(df, make_filename('es-minvol.csv'))

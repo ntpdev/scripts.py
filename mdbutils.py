@@ -174,44 +174,7 @@ def calculate_trading_hours(dfTradeDays, dt, range_name):
     return None
 
 
-def create_day_summary(df, df_di):
-  xs = []
-  for i,r in df_di.iterrows():
-    openTime = r['first']
-    rthOpen = r['rth_first']
-    euClose = min(r['last'], rthOpen - pd.Timedelta(minutes=1))
-    glbx_df = df[openTime:euClose]
-    rth_hi, rth_lo, rth_hi_tm, rth_lo_tm, rth_open, rth_close, rth_fhi, rth_flo = pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA
-    if not pd.isnull(rthOpen):
-      rth_df = df[rthOpen:r['rth_last']]
-      rth_hi = rth_df['high'].max()
-      rth_hi_tm = rth_df['high'].idxmax()
-      rth_lo = rth_df['low'].min()
-      rth_lo_tm = rth_df['low'].idxmin()
-      rth_open = rth_df.iat[0, rth_df.columns.get_loc('open')]
-      rth_close = rth_df.iat[-1, rth_df.columns.get_loc('close')]
 
-      rth_h1_last = rthOpen + pd.Timedelta(minutes=59)
-      rth_h1_df = df[rthOpen:rth_h1_last]
-      rth_fhi = rth_h1_df['high'].max()
-      rth_flo = rth_h1_df['low'].min()
-
-    xs.append({'date' : i,
-      'glbx_high': glbx_df['high'].max(),
-      'glbx_low': glbx_df['low'].min(),
-      'rth_open': rth_open,
-      'rth_high': rth_hi,
-      'rth_low': rth_lo,
-      'close': rth_close,
-      'rth_high_tm': rth_hi_tm,
-      'rth_low_tm': rth_lo_tm,
-      'rth_h1_high': rth_fhi,
-      'rth_h1_low': rth_flo
-    })
-
-  day_summary_df = pd.DataFrame(xs)
-  day_summary_df.set_index('date', inplace=True)
-  return day_summary_df
 
 
 def load_price_history(symbol, dt, n = 1):
@@ -258,7 +221,7 @@ def main(symbol: str, dt: date = None):
     console.print(df_di)
 
     console.print("\n\n--- day summary", style="yellow")
-    summ = create_day_summary(df, df_di)
+    summ = ts.create_day_summary(df, df_di)
     console.print(summ)
     console.print(f"\n\n--- last row {summ.index[-1]}", style="yellow")
     console.print(summ.iloc[-1])

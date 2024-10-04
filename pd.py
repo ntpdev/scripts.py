@@ -121,8 +121,10 @@ def fn1():
     dfd = dfd[dfd.volume > 1000]
     print(dfd.tail(19))
 
+
 def print_summary(df):
     di = day_index(df)
+
     console.print('--- Daily bars ---', style='yellow')
     df2 = aggregate_daily_bars(df, di, 'first', 'last')
     export_daily(df2, 'es-daily')
@@ -132,19 +134,23 @@ def print_summary(df):
     df2 = aggregate_daily_bars(df, di, 'rth_first', 'rth_last')
     export_daily(df2, 'es-daily-rth')
     print(df2)
+
     export_3lb(df2, make_filename('es-rth-3lb.csv'))
 
-def test_find(df, dt, n):
+
+def test_find(df, dt, n: int):
     """return n rows starting or ending with dt"""
+    d = pd.to_datetime(dt, format="ISO8601")
     x = 1 if abs(n) < 2 else n
-    # df[:3] and df.iloc[:3] both return first 3 rows
-    return df[df.index >= dt][:x] if x > 0 else df[df.index <= dt][x:]
+
+    # first slice is by datetime index and is inclusive
+    return df[d:][:x] if x > 0 else df[:d][x:]
 
 def test():
     dates = ['2022-09-02', '2022-09-06', '2022-09-07', '2022-09-08', '2022-09-09', '2022-09-12', '2022-09-13', '2022-09-14', '2022-09-15', '2022-09-16']
     prices = [295.17, 293.05, 298.97, 300.52, 307.09, 310.74, 293.7, 296.03, 291.1, 289.32]
 
-    df = pd.DataFrame({'price':prices}, index=dates)
+    df = pd.DataFrame({'price':prices}, index=pd.to_datetime(dates))
     console.print(test_find(df, '2022-09-08', 3))
     console.print(test_find(df, '2022-09-12', -3))
 

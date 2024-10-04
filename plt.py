@@ -267,7 +267,7 @@ def create_minVol_index(dfMinVol, day_index) -> list[MinVolDay]:
 def plot_mongo(symbol, dt, n):
     df = md.load_price_history(symbol, dt, n)
     idx = ts.day_index(df)
-    day_summary_df = md.create_day_summary(df, idx)
+    day_summary_df = ts.create_day_summary(df, idx)
     num_days = idx.shape[0]
     # loaded an additional day for hi-lo info but create minVol for display skipping first day
     dfMinVol = ts.aggregateMinVolume(df[idx.iat[1,0]:idx.iat[num_days-1,1]], 5000 if num_days > 3 else 2500)
@@ -315,7 +315,7 @@ def plot_mongo(symbol, dt, n):
 def plot_volp(symbol, dt, n):
     df = md.load_price_history(symbol, dt, n)
     idx = ts.day_index(df)
-    day_summary_df = md.create_day_summary(df, idx)
+    day_summary_df = ts.create_day_summary(df, idx)
     num_days = idx.shape[0]
     s, e = (idx.iat[0, 0], idx.iat[n-1, 1]) if n > 0 else (idx.iat[n, 0], idx.iat[-1, 1])
     title = f'volume profile from {s} to {e}'
@@ -346,7 +346,6 @@ def plot_volp(symbol, dt, n):
     )
     
     fig.show()
-
 
 
 def floor_index(df, tm):

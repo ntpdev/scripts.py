@@ -192,10 +192,49 @@ def day_index(df: pd.DataFrame) -> pd.DataFrame:
     idx['rth_first'] = rth_start.mask(idx['last'] < rth_start)
     idx['rth_last'] = np.minimum(idx['last'], idx['rth_first'] + timedelta(hours=6, minutes=29))
     idx['duration'] = ((idx['last'] - idx['first']).dt.total_seconds()) / 60 + 1
-    idx.set_index(idx['last'].dt.date, inplace=True)
+    idx.set_index(pd.to_datetime(idx['last'].dt.date), inplace=True)
     idx.index.name = 'date'
     return idx
 
+
+def create_day_summary(df, df_di):
+    xs = []
+    for i,r in df_di.iterrows():
+        openTime = r['first']
+        rthOpen = r['rth_first']
+        euClose = min(r['last'], rthOpen - pd.Timedelta(minutes=1))
+        glbx_df = df[openTime:euClose]
+        rth_hi, rth_lo, rth_hi_tm, rth_lo_tm, rth_open, rth_close, rth_fhi, rth_flo = pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA
+        if not pd.isnull(rthOpen):
+            rth_df = df[rthOpen:r['rth_last']]
+            rth_hi = rth_df['high'].max()
+            rth_hi_tm = rth_df['high'].idxmax()
+            rth_lo = rth_df['low'].min()
+            rth_lo_tm = rth_df['low'].idxmin()
+            rth_open = rth_df.iat[0, rth_df.columns.get_loc('open')]
+            rth_close = rth_df.iat[-1, rth_df.columns.get_loc('close')]
+
+            rth_h1_last = rthOpen + pd.Timedelta(minutes=59)
+            rth_h1_df = df[rthOpen:rth_h1_last]
+            rth_fhi = rth_h1_df['high'].max()
+            rth_flo = rth_h1_df['low'].min()
+
+        xs.append({'date' : i,
+            'glbx_high': glbx_df['high'].max(),
+            'glbx_low': glbx_df['low'].min(),
+            'rth_open': rth_open,
+            'rth_high': rth_hi,
+            'rth_low': rth_lo,
+            'close': rth_close,
+            'rth_high_tm': rth_hi_tm,
+            'rth_low_tm': rth_lo_tm,
+            'rth_h1_high': rth_fhi,
+            'rth_h1_low': rth_flo
+        })
+
+    day_summary_df = pd.DataFrame(xs)
+    day_summary_df.set_index('date', inplace=True)
+    return day_summary_df
 
 # def day_index(df):
 #     '''create a df [date, openTime, closeTime] for each trading day based on gaps in index'''
@@ -217,7 +256,7 @@ def day_index(df: pd.DataFrame) -> pd.DataFrame:
 def aggregate_daily_bars(df, daily_index, start_col, end_col):
     rows = []
     for i,r in daily_index.dropna(subset=[start_col, end_col]).iterrows():
-        rows.append(aggregate(df, i, r[start_col], r[end_col]))
+        rows.append(aggregate(df, pd.to_datetime(i), r[start_col], r[end_col]))
 
     daily = pd.DataFrame(rows)
     daily.set_index('date', inplace=True)

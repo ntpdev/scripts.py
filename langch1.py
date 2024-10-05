@@ -3,6 +3,7 @@
 import argparse
 from dataclasses import dataclass
 from typing import Union
+from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage, BaseMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import tool
@@ -18,10 +19,9 @@ import platform
 import math
 from rich.console import Console
 from rich.markdown import Markdown
+from rich.pretty import pprint
 from rich import print as rprint
 from chatutils import make_fullpath, extract_code_block, execute_script
-import subprocess
-import os
 from pathlib import Path
 from textwrap import dedent
 
@@ -52,6 +52,29 @@ safety_settings = {
 #             }
 #         }
 #     }]
+
+# models seem to perform same without needing to add reasoning
+class Answer(BaseModel):
+    number: int = Field(description="question number")
+#    reason: str = Field(description="the reasoning for the choice")
+    choice: str = Field(description="the single word choice")
+
+class AnswerSheet(BaseModel):
+    answers: list[Answer] = Field(description="the list of answers")
+    def to_yaml(self) -> str:
+        xs = [f"  - Q{x.number}: {x.choice}" for x in self.answers]
+        return "answers:\n" + "\n".join(xs)
+
+class Marked(BaseModel):
+    number: int = Field(description="question number")
+    answer: str = Field(description="given choice")
+    expected: str = Field(description="correct answer")
+    is_correct: str = Field(description="yes or no")
+
+class MarkSheet(BaseModel):
+    answers: list[Marked] = Field(description="list of marked questions")
+    correct: int = Field(description="count of correct answers")
+
 
 console = Console()
 store = {}
@@ -159,7 +182,7 @@ def load_msg(s: str) -> BaseMessage:
     is_human = len(xs) <= 2
     
     try:
-        with open(fname, 'r') as f:
+        with open(fname, 'r', encoding="utf-8") as f:
             s = f.read()
             return HumanMessage(s) if is_human else AIMessage(s)
     except FileNotFoundError:
@@ -175,13 +198,68 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
         store[session_id] = h
     return store[session_id]
 
+marking_template_q6 = """
+## task
+check the student answers against this list of correct answers. mark each answer and given total correct out of 14.
+
+## student answers
+
+```yaml
+{answers}
+```
+
+## expected answers
+
+```yaml
+answers:
+  - Q1: fearless
+  - Q2: estimate
+  - Q3: value
+  - Q4: learn
+  - Q5: aid
+  - Q6: pleased
+  - Q7: scoop
+  - Q8: band
+  - Q9: flexible
+  - Q10: taut
+  - Q11: shock
+  - Q12: wane
+  - Q13: drench
+  - Q14: curt
+```
+"""
+
+def test_structured_output(llm):
+    # use 2 chains both produce structured output
+    # feed output from first into second
+    # no chat history used
+    prompt = ChatPromptTemplate.from_messages([("system","you are a helpful assistant who is good at english language"), ("human", "{input}")])
+    prompt2 = ChatPromptTemplate.from_messages([("system","you are a helpful assistant who is good at english language"), ("human", marking_template_q6)])
+    question_llm = llm.with_structured_output(AnswerSheet)
+    marking_llm = llm.with_structured_output(MarkSheet)
+    s = ""
+    with open(make_fullpath("q6.md"), 'r', encoding="utf-8") as f:
+        s = f.read()
+    question_chain = prompt | question_llm
+    m = question_chain.invoke({'input': s})
+    pprint(m)
+
+    # feed the answers into the next chain as yaml
+    marking_chain = prompt2 | marking_llm
+    marks = marking_chain.invoke({'answers', m.to_yaml()})
+    pprint(marks)
+    # count number of yes and compare to llm answer
+    total = sum(1 for e in marks.answers if e.is_correct == "yes")
+    console.print(f"llm counted = {marks.correct} actual = {total}", style="yellow")
+
 
 def test_single_message(llm):
     session_id = 'z1'
-    prompt = ChatPromptTemplate.from_messages([MessagesPlaceholder(variable_name="history"), ('human', '**instructions:** write down your thoughts before responding. **question:** {input}')])
+    prompt = ChatPromptTemplate.from_messages([MessagesPlaceholder(variable_name="history"), ('human', '**instructions:** the assistant should write out thoughts before formulating the response. **question:** {input}')])
+#    prompt = ChatPromptTemplate.from_messages([MessagesPlaceholder(variable_name="history"), ('human', '{input}')])
     chain = prompt | llm
     chain_history = RunnableWithMessageHistory(chain, get_session_history, input_messages_key="input", history_messages_key="history")
-    m = chain_history.invoke({'input': 'what is the largest (mass) planet in the solar system'}, config={'configurable': {'session_id': session_id}})
+    m = chain_history.invoke({'input': 'what is the largest (by mass) planet in the solar system'}, config={'configurable': {'session_id': session_id}})
     m = chain_history.invoke({'input': 'and is Pluto the smallest and if not what is'}, config={'configurable': {'session_id': session_id}})
     print_history(session_id)
     # rprint(get_session_history('z1'))
@@ -217,7 +295,7 @@ def create_llm(llm_name, temp, tool_use):
     if llm_name == 'pro':
         llm = ChatVertexAI(model='gemini-1.5-pro-002',  safety_settings=safety_settings, temperature=temp)
     if llm_name == 'exp':
-        llm = ChatVertexAI(model='gemini-experimental',  safety_settings=safety_settings, temperature=temp)
+        llm = ChatVertexAI(model='gemini-pro-experimental',  safety_settings=safety_settings, temperature=temp)
     elif llm_name == 'haiku':
         llm = ChatAnthropicVertex(model_name='claude-3-haiku', location='europe-west1', temperature=temp)
     elif llm_name == 'sonnet':
@@ -232,7 +310,7 @@ def create_llm(llm_name, temp, tool_use):
 
 
 def chat(llm_name, tool_use = False):
-    llm = create_llm(llm_name, 0.2, tool_use)
+    llm = create_llm(llm_name, 0.2 if tool_use else 0.7, tool_use)
     console.print('chat with model: ' + llm.model_name, style='yellow')
     chain = create_llm_with_history(llm)
     session_id = 'xyz'

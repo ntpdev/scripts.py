@@ -10,8 +10,6 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 import tsutils as ts
 import mdbutils as md
-import math
-from bisect import bisect_right
 
 
 @dataclass
@@ -50,15 +48,15 @@ def samp3LB():
     fig.update_xaxes(type='category')
     fig.show()
 
+
 def plot_3lb(fname):
-    dfall = pd.read_csv(fname, delimiter=',', converters={'date': lambda e: datetime.strptime(e, '%Y-%m-%d')})
-    r = len(dfall)-100
-    df = dfall.iloc[r:] if r > 0 else dfall
-    colours = df['dirn'].map({-1: "red", 1: "green"})
-    xs = df['date'].dt.strftime('%m-%d')
-    fig = go.Figure(data=[go.Bar(x = xs, y = df['close']-df['open'], base = df['open'], marker=dict(color = colours))])
-    fig.update_xaxes(type='category')
+    df = pd.read_csv(ts.make_filename(fname), parse_dates=['dt'], index_col=0)
+    df['colour'] = np.where(df['close'] > df['open'], 'green', 'red')
+    df['text'] = df.apply(lambda row: f"{row['open']}<br>{row['close']}" if row['colour'] == "red" else f"{row['close']}<br>{row['open']}", axis=1)
+    df['xlabel'] = df.index.strftime("%d %b")
+    fig = go.Figure(data=[go.Bar(x = df['xlabel'], y = df['close']-df['open'], base = df['open'], marker=dict(color = df['colour']), text=df["text"])])
     fig.show()
+
 
 #        color="LightSeaGreen",
 def draw_daily_lines(df, fig, tms, idxs):
@@ -185,8 +183,8 @@ def color_bars(df, tm, opt):
     fig.data[4].increasing.line.color = 'red'
     fig.data[4].decreasing.line.color = 'red'
     # TODO why does 5 not work??
-    # fig.data[5].increasing.line.color = 'purple'
-    # fig.data[5].decreasing.line.color = 'purple'
+    fig.data[5].increasing.line.color = 'purple'
+    fig.data[5].decreasing.line.color = 'purple'
     return fig
   else:  
     return go.Figure(data=[go.Candlestick(x=tm, open=df['open'], high=df['high'], low=df['low'], close=df['close'], name='ES'),
@@ -270,32 +268,46 @@ def plot_mongo(symbol, dt, n):
     day_summary_df = ts.create_day_summary(df, idx)
     num_days = idx.shape[0]
     # loaded an additional day for hi-lo info but create minVol for display skipping first day
-    dfMinVol = ts.aggregateMinVolume(df[idx.iat[1,0]:idx.iat[num_days-1,1]], 5000 if num_days > 3 else 2500)
+    slice = df[idx.iat[1,0]:idx.iat[num_days-1,1]] if num_days > 1 else df
+    dfMinVol = ts.aggregateMinVolume(slice, 1500)
 
     # create a string for X labels
     tm = dfMinVol.index.strftime('%d/%m %H:%M')
     fig = color_bars(dfMinVol, tm, 'strat')
     add_hilo_labels(dfMinVol, tm, fig)
-    for i in create_minVol_index(dfMinVol, idx):
+    mvds = create_minVol_index(dfMinVol, idx)
+
+    for i in mvds[1:]:
         euOpen = dfMinVol.at[dfMinVol.index[i.euStartBar], 'open']
         fig.add_shape(type='line', x0=tm[i.euStartBar], y0=euOpen, x1=tm[i.euEndBar], y1=euOpen, line=dict(color='LightSeaGreen', dash='dot'))
+        xstart = tm[i.startBar]
+        xend = tm[i.rthEndBar]
         if i.rthStartBar > 0:
-            fig.add_vline(x=tm[i.rthStartBar], line_width=1, line_dash="dash", line_color="blue")
+            xstart_rth = tm[i.rthStartBar]
+            fig.add_vline(x=xstart_rth, line_width=1, line_dash="dash", line_color="blue")
             if i.rthEndBar > 0:
-                fig.add_vline(x=tm[i.rthEndBar], line_width=1, line_dash="dash", line_color="blue")
+                fig.add_vline(x=xend, line_width=1, line_dash="dash", line_color="blue")
             rthOpen = day_summary_df.at[i.tradeDt, 'rth_open']
-            fig.add_shape(type='line', x0=tm[i.rthStartBar], y0=rthOpen, x1=tm[i.rthEndBar], y1=rthOpen, line=dict(color='LightSeaGreen', dash='dot'))
+            fig.add_shape(type='line', x0=xstart_rth, y0=rthOpen, x1=xend, y1=rthOpen, line=dict(color='LightSeaGreen', dash='dot'))
+            fig.add_annotation(text=f"open {rthOpen:.2f}", x=xend, y=rthOpen, showarrow=False)
+            # fig.add_annotation(x=tm[i.rthStartBar], y=rthOpen, text=f"open {rthOpen:.2f}", showarrow=False, font=dict(color="LightSeaGreen"))
             glbxHi = day_summary_df.at[i.tradeDt, 'glbx_high']
-            fig.add_shape(type='line', x0=tm[i.rthStartBar], y0=glbxHi, x1=tm[i.rthEndBar], y1=glbxHi, line=dict(color='Gray', dash='dot'))
+            fig.add_shape(type='line', x0=xstart_rth, y0=glbxHi, x1=xend, y1=glbxHi, line=dict(color='Gray', dash='dot'))
+            fig.add_annotation(text=f"glbx h h {glbxHi:.2f}", x=xend, y=glbxHi, showarrow=False)
             glbxLo = day_summary_df.at[i.tradeDt, 'glbx_low']
-            fig.add_shape(type='line', x0=tm[i.rthStartBar], y0=glbxLo, x1=tm[i.rthEndBar], y1=glbxLo, line=dict(color='Gray', dash='dot'))
+            fig.add_shape(type='line', x0=xstart_rth, y0=glbxLo, x1=xend, y1=glbxLo, line=dict(color='Gray', dash='dot'))
+            fig.add_annotation(text=f"glbx lo {glbxLo:.2f}", x=xend, y=glbxLo, showarrow=False)
 
         # add first hour hi-lo
-        y = day_summary_df.at[i.tradeDt, 'rth_h1_high']
-        if pd.notna(y):
-            fig.add_shape(type='line', x0=tm[i.rthStartBar], y0=y, x1=tm[i.rthEndBar], y1=y, line=dict(color='Gray', dash='dot'))
-            y = day_summary_df.at[i.tradeDt, 'rth_h1_low']
-            fig.add_shape(type='line', x0=tm[i.rthStartBar], y0=y, x1=tm[i.rthEndBar], y1=y, line=dict(color='Gray', dash='dot'))
+        h1Hi = day_summary_df.at[i.tradeDt, 'rth_h1_high']
+        if pd.notna(h1Hi):
+            xstart_rth = tm[i.rthStartBar]
+            fig.add_shape(type='line', x0=xstart_rth, y0=h1Hi, x1=xend, y1=h1Hi, line=dict(color='Gray', dash='dot'))
+            h1Lo = day_summary_df.at[i.tradeDt, 'rth_h1_low']
+            fig.add_shape(type='line', x0=xstart_rth, y0=h1Lo, x1=xend, y1=h1Lo, line=dict(color='Gray', dash='dot'))
+            # breakpoint()
+            fig.add_annotation(text=f"h1 h {h1Hi:.2f}", x=xend, y=h1Hi, showarrow=False)
+            fig.add_annotation(text=f"h1 l {h1Lo:.2f}", x=xend, y=h1Lo, showarrow=False)
 
         # add previous day rth hi-lo-close
         ix = day_summary_df.index.searchsorted(i.tradeDt)
@@ -305,9 +317,12 @@ def plot_mongo(symbol, dt, n):
             prevRthLo = x.rth_low
             prevRthClose = x.close
                 
-            fig.add_shape(type='line', x0=tm[i.startBar], y0=prevRthHi, x1=tm[i.rthEndBar], y1=prevRthHi, line=dict(color='chocolate', dash='dot'))
-            fig.add_shape(type='line', x0=tm[i.startBar], y0=prevRthLo, x1=tm[i.rthEndBar], y1=prevRthLo, line=dict(color='chocolate', dash='dot'))
-            fig.add_shape(type='line', x0=tm[i.startBar], y0=prevRthClose, x1=tm[i.rthEndBar], y1=prevRthClose, line=dict(color='cyan', dash='dot'))
+            fig.add_shape(type='line', x0=xstart, y0=prevRthHi, x1=xend, y1=prevRthHi, line=dict(color='chocolate', dash='dot'))
+            fig.add_shape(type='line', x0=xstart, y0=prevRthLo, x1=xend, y1=prevRthLo, line=dict(color='chocolate', dash='dot'))
+            fig.add_shape(type='line', x0=xstart, y0=prevRthClose, x1=xend, y1=prevRthClose, line=dict(color='cyan', dash='dot'))
+            fig.add_annotation(text=f"yh {prevRthHi:.2f}", x=xend, y=prevRthHi, showarrow=False)
+            fig.add_annotation(text=f"cl {prevRthClose:.2f}", x=xend, y=prevRthClose, showarrow=False)
+            fig.add_annotation(text=f"yl {prevRthLo:.2f}", x=xend, y=prevRthLo, showarrow=False)
     
     fig.show()
 
@@ -368,20 +383,7 @@ def load_trading_days(collection, symbol, minVol):
     df['stdvol'] = (v - v.mean()) / v.std()
     df.set_index('_id', inplace=True)
     df.index.rename('date', inplace=True)
-#    print(df)
     return df
-
-
-def find_index_range(xs, x, n):
-    '''given a sorted list xs return start,end index for n elements less than or equal to x. If n is negative x will be the last item.'''
-    i = bisect_right(xs, x)
-    if i < 1:
-        raise ValueError(f'{x} is before first index entry {xs[0]}')
-    i -= 1
-    end = i + int(math.copysign(abs(n)-1, n))
-    if n < 0:
-        i, end = end, i
-    return max(i, 0), min(end, len(xs)-1)
 
 
 def map_to_date_range(xs, x):
@@ -401,13 +403,6 @@ def plot_stdvol(df):
     fig.show()
 
 
-# df.index.indexer_at_time(datetime(2023,10,19,7,15,0))
-# df.iloc[495]
-# df.loc[datetime(2023,10,19,7,15,0)]
-# find exact match
-# dfMinVol.loc[datetime(2023,10,18,23,54,0)]
-# index of time imm before
-# dfMinVol.index.searchsorted(datetime(2023,10,18,23,54,0), side='right') - 1 
 def main():
     parser = argparse.ArgumentParser(description='Plot daily chart')
     parser.add_argument('--index', type=int, default=-1, help='Index of day to plot e.g. -1 for last')

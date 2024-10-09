@@ -67,7 +67,8 @@ def plot(symbol, df):
 
 
 def plot_3LB(symbol, df):
-    tlb, rev = tsutils.calc_tlb(df.close, 3)
+    tlb2, rev = tsutils.calc_tlb(df.close, 3)
+    tlb = tlb2[-100:]
     tlb['height'] = tlb['close']-tlb['open']
     tlb['dirn'] = np.sign(tlb['height'])
     colours = tlb['dirn'].map({-1: "red", 1: "green"})
@@ -365,7 +366,7 @@ def concat(filename1, filename2, output_name):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Load EoD data from twelvedata.com')
-    parser.add_argument('action', type=str, help='The action to perform [load|view|list|earliest|plot]')
+    parser.add_argument('action', type=str, help='The action to perform [load|view|list|earliest|plot|plot3lb]')
     parser.add_argument('symbol', type=str, help='The symbol to use in the action')
     args = parser.parse_args()
     if args.action == 'load':

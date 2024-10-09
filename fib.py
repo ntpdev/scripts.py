@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+from collections import defaultdict, deque
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -10,6 +11,7 @@ from datetime import date, timedelta
 from typing import List
 import math
 from rich.console import Console
+from rich.pretty import pprint
 from decimal import Decimal
 # import plotly.graph_objs as go
 # import plotly.offline as py
@@ -106,6 +108,7 @@ def as_typed_values(x):
     x['finish'] = date.fromisoformat(x['finish'])
     x['price'] = Decimal(x['price'])
     return x
+
 
 def parsing_text():
     '''example of chaining generators together'''
@@ -224,6 +227,53 @@ def example_cashflow():
     console.print(f'total paid {df["repayment"].sum():.2f} , total interest {df["int_paid"].sum():.2f}, total frac {df["frac_int"].sum()}')
     console.print(df)
 
+
+def topological_sort(graph):
+    """
+    Performs a topological sort of a directed graph.
+
+    Args:
+    graph: A dictionary representing the graph where keys are vertices and values are lists of their neighbors.
+
+    Returns:
+    A list representing the topological sort of the graph, or None if the graph contains a cycle.
+    """
+    in_degree = defaultdict(int)
+    for u in graph:
+        for v in graph[u]:
+            in_degree[v] += 1
+
+    pprint(in_degree)
+    q = deque(u for u in graph if in_degree[u] == 0)
+    sorted_list = []
+
+    while q:
+        pprint(q)
+        u = q.popleft()
+        sorted_list.append(u)
+        for v in graph[u]:
+            in_degree[v] -= 1
+            if in_degree[v] == 0:
+                q.append(v)
+
+    if len(sorted_list) < len(graph):
+        return None  # Graph contains a cycle
+
+    pprint(sorted_list)
+    return sorted_list
+
+# Example usage:
+graph = {
+    'A': ['C'],
+    'B': ['C', 'D'],
+    'C': ['E'],
+    'D': ['F'],
+    'E': ['F', 'H'],
+    'F': ['G'],
+    'G': ['H'],
+    'H': []
+}
+
 if __name__ == '__main__':
     print([fib(x) for x in range(10)])
     
@@ -257,6 +307,8 @@ if __name__ == '__main__':
     example_cashflow()
 
     parsing_text()
+
+    topological_sort(graph)
 
     # create generator and make first call to initialise
     stm = check_seq(3)

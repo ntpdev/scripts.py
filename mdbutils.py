@@ -19,7 +19,7 @@ def load_summary(collection):
     cursor = collection.aggregate([
           {"$group": {"_id": "$symbol",
                       "count": {"$sum": 1},
-          			      "start": {"$first": "$timestamp"},
+          			  "start": {"$first": "$timestamp"},
                       "end": {"$last": "$timestamp"}
                      }},                 
           {"$sort" : {"_id": 1}}
@@ -141,7 +141,8 @@ def load_gaps(collection, symbol, gap_mins):
 def find_datetime_range(df, dt, n):
     """find start,end interval for n days beginning or ending with dt"""
     n = n if abs(n) > 1 else 1
-    df_range = df[df.index >= dt][:n] if n > 0 else df[df.index <= dt][n:]
+    d = min(dt, df.index[-1])
+    df_range = df[df.index >= d][:n] if n > 0 else df[df.index <= d][n:]
     # return start of first row and end of last row
     return df_range.iat[0, 0], df_range.iat[-1, 1]
 
@@ -174,10 +175,8 @@ def calculate_trading_hours(dfTradeDays, dt, range_name):
     return None
 
 
-
-
-
 def load_price_history(symbol, dt, n = 1):
+    """return m1 bars for n days. if n is negative dt is the last day loaded"""
     client = MongoClient('localhost', 27017)
     collection = client['futures'].m1
     dfSummary = load_summary(collection)
@@ -210,11 +209,14 @@ def main(symbol: str, dt: date = None):
     console.print(f"\n\n--- trade date index for {symbol}", style="yellow")
     console.print(dfTradeDays)
 
-    tms,tme = find_datetime_range(dfTradeDays, date(2024,10,3), -5)
+    tms,tme = find_datetime_range(dfTradeDays, date.today(), -5)
     df = load_timeseries(collection, symbol, tms, tme)
     tms, tme = calculate_trading_hours(dfTradeDays, tme.date(), 'rth')
-    console.print(df[tms:tme].head())
-    console.print(df[tms:tme].tail())
+    console.print(f"\n\n--- m1 bars from {tms} to {tme}", style="yellow")
+    rows = df[tms:tme]
+    if not rows.empty:
+        console.print(rows.head())
+        console.print(rows.tail())
 
     df_di = ts.day_index(df)
     console.print("\n\n--- day index", style="yellow")

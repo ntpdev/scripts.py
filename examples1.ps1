@@ -24,10 +24,19 @@ filter fmt { "c{0:d2}d" -f $_ }
 filter Map-ToUrl { $args[0] -f $_ }
 
 1..80 | Map-ToUrl 'https://example.com/images/abc-{0:d}.jpg'
-      | % { Invoke-WebRequest -HttpVersion 2.0 -Uri $_ -OutFile ("C:\temp\bimil\" + $_.split("/")[-1]);
+      | % { Invoke-WebRequest -HttpVersion 2.0 -Uri $_ -OutFile ("C:\temp\files\" + $_.split("/")[-1]);
             echo $_; }
 
-# sums the length property on pipeline objects
+function Get-Latest {
+    param (
+        [string]$Spec = "qqq*.csv"
+    )
+    Get-ChildItem -Path "~\Downloads" -Filter $Spec |
+    Sort-Object -Property LastWriteTime -Descending -Top 1
+}
+
+
+# stateful pipeline function sums the length property on pipeline objects
 function flen { begin { $sum = 0 }; process { $sum = $sum + $_.Length }; end { $sum } }
 
 dir -File | flen

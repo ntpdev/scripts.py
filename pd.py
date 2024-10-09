@@ -3,7 +3,7 @@ from datetime import date, time, timedelta, datetime
 import numpy as np
 import pandas as pd
 import sys
-from tsutils import aggregate, aggregateMinVolume, make_filename, load_files, day_index, aggregate_daily_bars, calc_vwap, calc_atr, LineBreak
+from tsutils import aggregate, aggregateMinVolume, make_filename, load_overlapping_files, load_files, day_index, aggregate_daily_bars, calc_vwap, calc_atr, calc_tlb
 from rich.console import Console
 
 console = Console()
@@ -27,12 +27,9 @@ def exportMinVol(df, outfile):
     df2.to_csv(outfile)
 
 def export_3lb(df, outfile):
-    lb = LineBreak(3)
-    for i,r in df.iterrows():
-        lb.append(r['close'], i)
-    df2 = lb.asDataFrame()
-    print(f'exporting 3lb file {outfile} {len(df2)}')
-    df2.to_csv(outfile)
+    tlb,rev = calc_tlb(df['close'], 3)
+    print(f'exporting 3lb file {outfile} {len(tlb)}')
+    tlb.to_csv(outfile)
 
 # create a new DF which aggregates bars between inclusive indexes
 def aggregate_bars(df, idxs_start, idxs_end):
@@ -125,17 +122,21 @@ def fn1():
 def print_summary(df):
     di = day_index(df)
 
-    console.print('--- Daily bars ---', style='yellow')
+    for i,r in di.iterrows():
+        console.print(df[r['rth_first']:r['rth_last']]['volume'].median())
+
+    console.print('\n--- Daily bars ---', style='yellow')
     df2 = aggregate_daily_bars(df, di, 'first', 'last')
     export_daily(df2, 'es-daily')
-    print(df2)
+    console.print(df2)
 
-    console.print('--- RTH bars ---', style='yellow')
-    df2 = aggregate_daily_bars(df, di, 'rth_first', 'rth_last')
-    export_daily(df2, 'es-daily-rth')
-    print(df2)
+    console.print('\n--- RTH bars ---', style='yellow')
+    df_rth = aggregate_daily_bars(df, di, 'rth_first', 'rth_last')
+    export_daily(df_rth, 'es-daily-rth')
+    console.print(df_rth)
 
-    export_3lb(df2, make_filename('es-rth-3lb.csv'))
+    console.print('\n--- 3LB ---', style='yellow')
+    export_3lb(df_rth, make_filename('es-rth-3lb.csv'))
 
 
 def test_find(df, dt, n: int):
@@ -156,9 +157,9 @@ def test():
 
 
 if __name__ == '__main__':
-    test()
-    #df = load_files('esz4*.csv')
-    #print_summary(df)
+    # test()
+    df = load_overlapping_files('zesz4*.csv')
+    print_summary(df)
     #df['vwap'] = calc_vwap(df)
     #exportNinja(df, make_filename('ES 09-22.Last.txt'))
     #exportMinVol(df, make_filename('es-minvol.csv'))

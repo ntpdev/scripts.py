@@ -460,8 +460,8 @@ class LineBreak:
                     self.lines.append(self.lines[-2])
                 self._appendBlock(x, dt)
     
-    def asDataFrame(self):
-        return pd.DataFrame(self.blocks)
+    # def asDataFrame(self):
+    #     return pd.DataFrame(self.blocks)
 
 # add closing price to lines queue and if there is at least 1 prior line add a block
 # update direction of the last block in self.dirn
@@ -486,8 +486,8 @@ class LineBreak:
         for c in cls:
             self.append(c)
             print(f'{c} {self.lines}')
-        df = self.asDataFrame()
-        print(df)
+        # df = self.asDataFrame()
+        # print(df)
 
 # to reload a module then reload the name/alias of the imported module
 # from importlib import reload

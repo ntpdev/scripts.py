@@ -3,6 +3,7 @@ from dataclasses import dataclass, asdict
 from typing import List
 from dataclasses_json import dataclass_json
 import os
+import re
 import platform
 from pathlib import Path
 from rich.console import Console
@@ -51,11 +52,25 @@ def make_fullpath(fn: str) -> Path:
     return Path.home() / 'Documents' / 'chats' / fn
 
 
-def save_content(msg):
-    filename = make_fullpath('temp.txt')
+def find_file(dir: Path) -> tuple[Path, int]:
+    matching_files = [ (x,int(x.stem[1:])) for x in dir.glob('z*.md') if x.stem[1:].isdigit()]
+
+    if not matching_files:
+        return None, 0
+
+    matching_files.sort(key=lambda e: e[1], reverse=True)
+    fname, n = matching_files[0]
+    return fname, n
+
+
+def save_content(msg: str):
+    fn, n = find_file(Path.home() / 'Documents' / 'chats')
+    next += 1
+    fout = f'z{next:02}.md'
+    filename = make_fullpath(fout)
     with open(filename, 'w', encoding='utf-8') as f:
-        f.write(msg.content)
-    s = f'saved {msg.content if len(msg.content) < 70 else msg.content[:70] + ' ...'}'
+        f.write(msg)
+    s = f'saved {fout} {msg if len(msg) < 70 else msg[:70] + ' ...'}'
     console.print(s, style='red')
 
 
@@ -190,6 +205,16 @@ def translate_latex(s: str) -> str:
     for k,v in latex_to_unicode.items():
         s = s.replace('\\' + k, v)
     return s
+
+
+def input_multi_line() -> str:
+    if (inp := input().strip()) != '{':
+        return inp
+    lines = []
+    while (line := input().strip()) != '}':
+        lines.append(line)
+    
+    return '\n'.join(lines)
 
 
 class TestChat(unittest.TestCase):

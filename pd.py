@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 from datetime import date, time, timedelta, datetime
+from collections import deque, namedtuple
 import numpy as np
 import pandas as pd
 import sys
@@ -7,6 +8,7 @@ from tsutils import aggregate, aggregateMinVolume, make_filename, load_overlappi
 from rich.console import Console
 
 console = Console()
+Price = namedtuple("Price", ["date", "value"])
 
 def export_daily(df, fname):
     dt = df.index[-1]
@@ -139,6 +141,33 @@ def print_summary(df):
     export_3lb(df_rth, make_filename('es-rth-3lb.csv'))
 
 
+def previous_max(xs: pd.Series) -> list[pd.Timestamp]:
+    ys = deque()
+    for i,x in xs.items():
+        while len(ys) > 0 and x > ys[-1].value:
+            ys.pop()
+        if len(ys) == 0 or ys[-1].value != x:
+            ys.append(Price(i,x))
+    return [p.date for p in ys]
+
+def previous_min(xs: pd.Series) -> list[pd.Timestamp]:
+    ys = deque() # deque of tuples pd.Timestamp, float
+    for i,x in xs.items():
+        while len(ys) > 0 and x < ys[-1].value:
+            ys.pop()
+        if len(ys) == 0 or ys[-1].value != x:
+            ys.append(Price(i,x))
+    return [p.date for p in ys]
+
+def select_with_gap(df: pd.DataFrame, xs: list[pd.Timestamp], n: int) -> pd.DataFrame:
+    """return df filtered by list of timestamps"""
+    df2 = df.loc[xs]
+    ser = df2.index.to_series().diff().dt.total_seconds().div(60).fillna(0).astype(int)
+    sel = ser > n
+    sel.iat[0] = True
+    return df.loc[ser[sel].index]
+
+
 def test_find(df, dt, n: int):
     """return n rows starting or ending with dt"""
     d = pd.to_datetime(dt, format="ISO8601")
@@ -158,8 +187,23 @@ def test():
 
 if __name__ == '__main__':
     # test()
-    df = load_overlapping_files('zesz4*.csv')
-    print_summary(df)
+    df = load_overlapping_files('esz4*.csv')
+    # print_summary(df)
+    di = day_index(df)
+    row = di.iloc[-1]
+    day = df[row['rth_first']:row['rth_last']]
+    tms = previous_min(day['low'])
+    lows = select_with_gap(df, tms, 9)
+    console.print("\n--- lows", style="yellow")
+    console.print(lows)
+    tms = previous_max(day['high'])
+    highs = select_with_gap(df, tms, 9)
+    console.print("\n--- highs", style="yellow")
+    console.print(highs)
+
+    # for i,r in day.iterrows():
+
+
     #df['vwap'] = calc_vwap(df)
     #exportNinja(df, make_filename('ES 09-22.Last.txt'))
     #exportMinVol(df, make_filename('es-minvol.csv'))

@@ -21,7 +21,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.pretty import pprint
 from rich import print as rprint
-from chatutils import make_fullpath, extract_code_block, execute_script
+from chatutils import make_fullpath, extract_code_block, execute_script, input_multi_line, save_content
 from pathlib import Path
 from textwrap import dedent
 
@@ -105,7 +105,7 @@ def process_tool_calls(msg):
     messages = []
     for call in msg.tool_calls:
         if 'tool_eval' in call['name'].lower():
-            r = tool_eval(call['args']['expression'])
+            r = tool_eval.invoke(call['args']['expression'])
             messages.append(ToolMessage(r, tool_call_id = call['id']))
         else:
             messages.append(ToolMessage('unknown tool: ' + call['name'], tool_call_id = call['id']))
@@ -264,6 +264,7 @@ def test_single_message(llm):
     print_history(session_id)
     # rprint(get_session_history('z1'))
 
+
 def create_llm_with_history(llm):
     s = """
 **question:**
@@ -272,6 +273,7 @@ def create_llm_with_history(llm):
 
 **instructions:** first write down your thoughts. structure your answer as **thinking:** **answer:**
 """
+    s = "{input}"
     prompt = ChatPromptTemplate.from_messages([MessagesPlaceholder(variable_name="history"), ('human', s)])
     chain = prompt | llm
     return RunnableWithMessageHistory(chain, get_session_history, input_messages_key="input", history_messages_key="history")
@@ -291,22 +293,34 @@ def system_message():
 # #                         """))
 # ]
 
+
 def create_llm(llm_name, temp, tool_use):
+    HumanMessage([])
     if llm_name == 'pro':
-        llm = ChatVertexAI(model='gemini-1.5-pro-002',  safety_settings=safety_settings, temperature=temp)
-    if llm_name == 'exp':
-        llm = ChatVertexAI(model='gemini-pro-experimental',  safety_settings=safety_settings, temperature=temp)
+        llm = ChatVertexAI(model='gemini-1.5-pro-002', safety_settings=safety_settings, temperature=temp)
+    elif llm_name == 'exp':
+        llm = ChatVertexAI(model='gemini-2.0-pro-exp-02-05', safety_settings=safety_settings, temperature=temp)
+    elif llm_name == 'think':
+        llm = ChatVertexAI(model='gemini-2.0-flash-thinking-exp-01-21', safety_settings=safety_settings, temperature=temp)
     elif llm_name == 'haiku':
-        llm = ChatAnthropicVertex(model_name='claude-3-haiku', location='europe-west1', temperature=temp)
+        # llm = ChatAnthropicVertex(model_name='claude-3-haiku', location='europe-west1', temperature=temp)
+        llm = ChatAnthropicVertex(model_name='claude-3-5-haiku@20241022', location='us-east5', temperature=temp)
+        # llm = ChatAnthropicVertex(model_name='claude-3-5-haiku@20241022', location='europe-west1', temperature=temp)
     elif llm_name == 'sonnet':
-        llm = ChatAnthropicVertex(model_name='claude-3-5-sonnet@20240620', location='europe-west1', temperature=temp)
+        llm = ChatAnthropicVertex(model_name='claude-3-5-sonnet-v2@20241022', location='europe-west1', temperature=temp)
     else:
-        llm = ChatVertexAI(model='gemini-1.5-flash-002',  safety_settings=safety_settings, temperature=temp)
+        llm = ChatVertexAI(model='gemini-2.0-flash-001', safety_settings=safety_settings, temperature=temp)
 
     if tool_use and llm.model_name.startswith('gemini'):
         console.print('tool calls enabled', style='yellow')
         llm = llm.bind_tools([tool_eval])
     return llm
+
+
+def save_content_from_history(session_id, i):
+    h = get_session_history(session_id)
+    xs = [m.content for m in h.messages]
+    save_content(xs[i])
 
 
 def chat(llm_name, tool_use = False):
@@ -317,7 +331,7 @@ def chat(llm_name, tool_use = False):
 
     inp = ''
     while (inp != 'x'):
-        inp = input().strip()
+        inp = input_multi_line()
         msg = None
         if len(inp) > 3:
             if inp.startswith('%load'):
@@ -328,6 +342,9 @@ def chat(llm_name, tool_use = False):
                     print_message(msg)
                     continue
                 inp = msg.content
+            elif inp.startswith('%save'):
+                save_content_from_history(session_id, -1)    
+                continue
 
             print_message(HumanMessage(inp))
             msg = chain.invoke({'input': inp}, config={'configurable': {'session_id': session_id}})
@@ -340,7 +357,7 @@ def chat(llm_name, tool_use = False):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Chat with LLMs')
-    parser.add_argument('llm', choices=['flash','pro','exp','haiku','sonnet'], type=str, help='LLM to use [flash|pro|exp|haiku|sonnet]')
+    parser.add_argument('llm', choices=['flash', 'think','pro','exp','haiku','sonnet'], type=str, help='LLM to use [flash|pro|exp|think|haiku|sonnet]')
     parser.add_argument('tool_use', type=str, nargs='?', default='', help='add tool to enable tool calls')
     args = parser.parse_args()
     chat(args.llm, args.tool_use == 'tool')

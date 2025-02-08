@@ -13,6 +13,7 @@ import math
 from rich.console import Console
 from rich.pretty import pprint
 from decimal import Decimal
+import unittest
 # import plotly.graph_objs as go
 # import plotly.offline as py
 console = Console()
@@ -259,7 +260,6 @@ def topological_sort(graph):
     if len(sorted_list) < len(graph):
         return None  # Graph contains a cycle
 
-    pprint(sorted_list)
     return sorted_list
 
 # Example usage:
@@ -274,15 +274,81 @@ graph = {
     'H': []
 }
 
+
+def weekly_df(dt: date, sz: int) -> pd.DataFrame:
+    """Creates a DataFrame with weekly index starting on first monday after dt."""
+
+    dates = pd.date_range(start=dt, periods=sz, freq="W-MON")
+    rnds = np.random.randint(0, 100, size=sz)
+    return pd.DataFrame({"random_ints": rnds}, index=dates)
+
+
+def binary_search(xs, target):
+    """return index of entry"""
+    lo = 0
+    hi = xs.size
+    while hi > lo:
+        mid = (hi + lo) // 2
+        m = xs[mid]
+        if target < m:
+            hi = mid
+        elif target > m:
+            lo = mid + 1
+        else:
+            return mid
+    return -1
+
+
+def np_search(xs, target):
+    # ss returns the left index to insert target <= xs[n] ie xs[n] is the ceiling element
+    n = np.searchsorted(xs, target)
+    return -1 if n >= xs.size or xs[n] != target else n
+
+
+class TestDataFrame(unittest.TestCase):
+    def test_weekly_df(self):
+        df = weekly_df(date(2024, 9, 1), 10)
+        self.assertEqual(df.index[0].date(), date(2024, 9, 2))
+        self.assertEqual(df.index[-1].date(), date(2024, 11, 4))
+
+        xs = df.index.values
+        for i in range(xs.size):
+            self.assertEqual(binary_search(xs, xs[i]), i)
+
+        # same search
+        ys = [binary_search(xs, i) for i in np.arange('2024-10-21', '2024-11-09', dtype='datetime64[D]')]
+        self.assertEqual(ys, [7, -1, -1, -1, -1, -1, -1, 8, -1, -1, -1, -1, -1, -1, 9, -1, -1, -1, -1])
+
+        zs = [np_search(xs, i) for i in np.arange('2024-10-21', '2024-11-09', dtype='datetime64[D]')]
+        self.assertEqual(zs, [7, -1, -1, -1, -1, -1, -1, 8, -1, -1, -1, -1, -1, -1, 9, -1, -1, -1, -1])
+
+
+    def test_fib(self):
+        xs = [fib(x) for x in range(10)]
+        self.assertEqual(xs, [0, 1, 1, 2, 3, 5, 8, 13, 21, 34])
+        
+        f = fibm(20)
+        print(f(9))
+        xs = [f(x) for x in range(11)]
+        self.assertEqual(xs, [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55])
+        
+        print([x for x in fibIter(18)])
+        print(list(collatzIter(27)))
+
+    def test_top_sort(self):
+        xs = topological_sort(graph)
+        # sort is not unique as there are items at same depth
+        self.assertEqual(xs, ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'])
+
+    def test_np_date(self):
+        dates = np.array(['2023-01-01', '2023-02-15', '2023-03-31'], dtype='datetime64')
+        pprint(dates)
+        dt = dates[1].astype(date)
+        self.assertEqual(dt, date(2023,2,15))
+
+
 if __name__ == '__main__':
-    print([fib(x) for x in range(10)])
-    
-    f = fibm(20)
-    print(f(9))
-    print([f(x) for x in range(18)])
-    
-    print([x for x in fibIter(18)])
-    print(list(collatzIter(27)))
+    unittest.main()
     # draw_collatz_seq_length()
 
     xs = [5, -7, 3, 5, 2, -2, 4, -1]
@@ -307,8 +373,6 @@ if __name__ == '__main__':
     example_cashflow()
 
     parsing_text()
-
-    topological_sort(graph)
 
     # create generator and make first call to initialise
     stm = check_seq(3)

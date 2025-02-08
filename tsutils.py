@@ -324,7 +324,8 @@ def make_filename(fname: str) -> Path:
 
 def load_files_as_dict(spec: str) -> dict[Path, pd.DataFrame]:
     '''return a dict of paths and data_frames'''
-    xs = (Path.home() / 'Documents' / 'data').glob(spec, case_sensitive=False)
+    xs = Path('c:////temp//ultra').glob(spec, case_sensitive=False)
+    # xs = (Path.home() / 'Documents' / 'data').glob(spec, case_sensitive=False)
     return {x:load_file(x) for x in sorted(xs)}
 
 
@@ -347,7 +348,8 @@ def load_overlapping_files(spec: str) -> pd.DataFrame:
 
 
 def load_file(fname):
-    df = pd.read_csv(fname, parse_dates=['Date'], index_col='Date')
+    """load csv skipping index and barcount col"""
+    df = pd.read_csv(fname, parse_dates=['Date'], usecols=[1,2,3,4,5,6,7], index_col='Date')
     df.columns = df.columns.str.lower()
     print(f'loaded {fname} {df.shape[0]} {df.shape[1]}')
     return df
@@ -361,10 +363,10 @@ def save_df(df, symbol):
     print(f'saving {fout}')
     # reverse the parsing operations so the saved csv is the same format
     # drop the first col which is 0,1,2 then make the index date time a standard col
-    df2 = df.drop(df.columns[0], axis=1)
-    df2.reset_index(names='Date', inplace=True)
-    df2['Date'] = df2['Date'].dt.strftime("%Y%m%d %H:%M:%S")
-    df2.to_csv(fout)
+#    df2 = df.drop(df.columns[0], axis=1)
+    df.reset_index(names='Date', inplace=True)
+    df['Date'] = df['Date'].dt.strftime("%Y%m%d %H:%M:%S")
+    df.to_csv(fout)
 
 
 def create_volume_profile(df, prominence = 40, smoothing_period = 1):

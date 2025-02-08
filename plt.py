@@ -316,13 +316,15 @@ def plot_mongo(symbol, dt, n):
             prevRthHi = x.rth_high
             prevRthLo = x.rth_low
             prevRthClose = x.close
-                
+            glbxLo = day_summary_df.at[i.tradeDt, 'glbx_low']
+            if prevRthLo > glbxLo:                
+                fig.add_shape(type='line', x0=xstart, y0=prevRthLo, x1=xend, y1=prevRthLo, line=dict(color='chocolate', dash='dot'))
+                fig.add_annotation(text=f"yl {prevRthLo:.2f}", x=xend, y=prevRthLo, showarrow=False)
+
             fig.add_shape(type='line', x0=xstart, y0=prevRthHi, x1=xend, y1=prevRthHi, line=dict(color='chocolate', dash='dot'))
-            fig.add_shape(type='line', x0=xstart, y0=prevRthLo, x1=xend, y1=prevRthLo, line=dict(color='chocolate', dash='dot'))
             fig.add_shape(type='line', x0=xstart, y0=prevRthClose, x1=xend, y1=prevRthClose, line=dict(color='cyan', dash='dot'))
             fig.add_annotation(text=f"yh {prevRthHi:.2f}", x=xend, y=prevRthHi, showarrow=False)
             fig.add_annotation(text=f"cl {prevRthClose:.2f}", x=xend, y=prevRthClose, showarrow=False)
-            fig.add_annotation(text=f"yl {prevRthLo:.2f}", x=xend, y=prevRthLo, showarrow=False)
     
     fig.show()
 

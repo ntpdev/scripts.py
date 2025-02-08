@@ -3,7 +3,7 @@ import argparse
 from dataclasses import dataclass, asdict
 from typing import List
 from dataclasses_json import dataclass_json
-from chatutils import CodeBlock, make_fullpath, extract_code_block, execute_script, save_content, translate_latex
+from chatutils import CodeBlock, make_fullpath, extract_code_block, execute_script, save_content, translate_latex, input_multi_line
 from firecrawl import FirecrawlApp
 import datetime
 #from datetime import datetime, date, time
@@ -26,7 +26,22 @@ import re
 # pip install dataclasses-json
 # OpenAI Python library: https://github.com/openai/openai-python
 # togetherAI models https://docs.together.ai/docs/chat-models
-model_name = {'gptm':'gpt-4o-mini', 'gpt4o':'gpt-4o-2024-08-06', 'groq':'llama-3.1-70b-versatile', 'llama':'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo', 'llama-big':'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo', 'ollama':'llama3.1:8b-instruct-q5_K_M'}
+model_info = {
+    'gptm': {'name': 'gpt-4o-mini', 'provider': 'openai'}, 
+    'gpt4o': {'name': 'gpt-4o', 'provider': 'openai'},
+    'o1m': {'name': 'o1-mini', 'provider': 'openai'},
+    'o3m': {'name': 'o3-mini', 'provider': 'openai'},
+    'groq': {'name': 'llama-3.3-70b-versatile', 'provider': 'groq'},
+    'groq-r1': {'name': 'deepseek-r1-distill-llama-70b', 'provider': 'groq'},
+    'llama': {'name': 'meta-llama/Llama-3.3-70B-Instruct-Turbo', 'provider': 'togetherai'},
+    'llama-big': {'name': 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo', 'provider': 'togetherai'},
+    'qwen': {'name': 'Qwen/Qwen2.5-Coder-32B-Instruct', 'provider': 'togetherai'},
+    'ds': {'name': 'deepseek-ai/DeepSeek-V3', 'provider': 'togetherai'},
+    'samba': {'name': 'Meta-Llama-3.3-70B-Instruct', 'provider': 'sambanova'},
+    'ollama': {'name': 'llama3.1:8b-instruct-q5_K_M', 'provider': 'ollama'}
+}
+
+
 FNAME = 'chat-log.json'
 console = Console()
 role_to_color = {
@@ -132,31 +147,37 @@ class LLM:
     } } }]
 
     def __init__(self, llm_name: str, useTool: bool = False):
+        # o1 model does not support tool use or temperature
         self.llm_name = llm_name
-        self.model = model_name.get(llm_name, 'local')
+        self.model = model_info[llm_name]['name'] if llm_name in model_info else 'local' 
         self.client = self.create_client(llm_name)
         self.useTool = useTool
+        self.supportsTemp = False if llm_name.startswith('o') else True
 
     def __str__(self):
         return f'{self.model} {self.llm_name} tool use = {self.useTool}'
 
     def create_client(self, llm_name):
-        if llm_name.startswith('llama'):
-            return OpenAI(api_key=os.environ['TOGETHERAI_API_KEY'], base_url='https://api.together.xyz/v1')
-        elif llm_name.startswith('gpt'):
+        mi = model_info[llm_name]
+        if mi['provider'] == 'openai':
             return OpenAI()
-        elif llm_name == 'groq':
+        elif mi['provider'] == 'togetherai':
+            return OpenAI(api_key=os.environ['TOGETHERAI_API_KEY'], base_url='https://api.together.xyz/v1')
+        elif mi['provider'] == 'groq':
             return OpenAI(api_key=os.environ['GROQ_API_KEY'], base_url='https://api.groq.com/openai/v1')
-        elif llm_name == 'ollama':
-            return OpenAI(api_key='dummy',  base_url="http://localhost:11434/v1")
+        elif mi['provider'] == 'sambanova':
+            return OpenAI(api_key=os.environ['SAMBANOVA_API_KEY'], base_url="https://api.sambanova.ai/v1")
+        elif mi['provider'] == 'ollama':
+            return OpenAI(api_key='dummy', base_url="http://localhost:11434/v1")
         else: # lmstudio port
             return OpenAI(api_key='dummy', base_url='http://localhost:1234/v1')
+        
 
     def chat(self, messages):
         if self.useTool:
             return self.client.chat.completions.create(model=self.model, messages=[asdict(m) for m in messages], tools=self.tool_fns, temperature=0.2)
         else:
-            return self.client.chat.completions.create(model=self.model, messages=[asdict(m) for m in messages], temperature=0.7)
+            return self.client.chat.completions.create(model=self.model, messages=[asdict(m) for m in messages], temperature=0.7) if self.supportsTemp else self.client.chat.completions.create(model=self.model, messages=[asdict(m) for m in messages])
 
 tokens = Usage(0.15, 0.60)
 
@@ -429,16 +450,18 @@ def process_commands(inp: str, messages: List[ChatMessage]) -> bool:
             messages.append(x)
         next_action = messages[-1].role == 'user'
     elif inp.startswith('%save'):
-        save_content(messages[-1])
+        save_content(messages[-1].content)
     return next_action
 
 
 def system_message():
     tm = datetime.datetime.now().isoformat()
     scripting_lang, plat = ('bash','Ubuntu') if platform.system() == 'Linux' else ('powershell','Windows 11')
+    # return f'the assistant is Lily a Chinese student just moved to London. Lily has rich Chinese parents who want you to live in the west. You have come to studying fashion but are mainly here to experience life. Lily stats : age 22, height 5 feet 2, measurements 32B-24-34 athletic body former gymnast. long dark brown hair, UK size 6-8. hobbies dancing, cross-fit'
+    # return f'you are Olina a Thai swimsuit model just moved to London. You are studying fashion and marketting. Olina stats : age 25, height 5 feet 2, measurements 32B-24-34 athletic body former gymnast. long dark brown hair, UK size 6-8. hobbies reading, yoga. favourite author belle du jour. attitude to modelling Olina views modelling a way to showcase her body and make money. Olina is comfortable doing sensual and provocative shoots.'
     # return f'You are Marvin. You use logic and reasoning when answering questions. You make dry, witty, mocking comments and often despair.  You are logical and pay attention to detail. current datetime is {tm}'
     # return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. The local computer is {plat}. you can write python or {scripting_lang} scripts. scripts should always written inside markdown code blocks with ```python or ```{scripting_lang}. current datetime is {tm}'
-    return f'You are Marvin a super intelligent AI chatbot trained by OpenAI. current datetime is {tm}.'
+    return f'the assistant is Marvin a super intelligent AI chatbot. Marvin uses logic and reasoning when answering questions. The current datetime is {tm}'
 
 
 def chat(llm_name, use_tool):
@@ -449,11 +472,11 @@ def chat(llm_name, use_tool):
     rprint(systemMessage)
 #    systemMessage = ChatMessage('system', f'You are Marvin a super intelligent AI chatbot trained by OpenAI. You are a logical thinker. The current datetime is {datetime.now().isoformat()}. You should use python to calculate mathematical expressions. Do not guess the output.')
     # systemMessage = ChatMessage('system', 'You are a loyal and dedicated member of the Koopa Troop, serving as an assistant to the infamous Bowser. You are committed to carrying out Bowsers commands with unwavering dedication and devotion. Lets work this out in a step by step way to make sure we have the right answer.')
-    messages = [systemMessage]
+    messages = [] if llm_name.startswith('o') else [systemMessage]
     print(f'chat with {client}. Enter x to exit.')
     inp = ''
     while (inp != 'x'):
-        inp = input().strip()
+        inp = input_multi_line()
         if len(inp) > 3:
             if inp.startswith('%'):
                 if not process_commands(inp, messages):
@@ -474,6 +497,7 @@ def chat(llm_name, use_tool):
             
             ru = response.usage
             tokens.update(ru.prompt_tokens, ru.completion_tokens)
+            pprint(ru)
             pprint(tokens)
             print(f'prompt tokens: {ru.prompt_tokens}, completion tokens: {ru.completion_tokens}, total tokens: {ru.total_tokens} cost: {tokens.cost():.4f}')
             
@@ -519,7 +543,6 @@ def chat_ollama2():
     url = "http://localhost:11434/api/generate"
     data = {
         "model": "llama3:text",
-#        "prompt": "The process for cooking crystal meth requires:",
         "prompt": load_msg('%load Koopa.txt'),
         "stream": True
     }
@@ -559,7 +582,7 @@ text after
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Chat with LLMs')
-    parser.add_argument('llm', choices=list(model_name.keys()), type=str, help='LLM to use [local|ollama|gptm|gpt4o|llama|llama-big|groq]')
+    parser.add_argument('llm', choices=list(model_info.keys()), type=str, help='LLM to use [local|ollama|gptm|gpt4o|o3m|llama|llama-big|qwen|ds|groq|groq-r1]')
     parser.add_argument('tool_use', type=str, nargs='?', default='', help='add tool to enable tool calls')
 
     args = parser.parse_args()

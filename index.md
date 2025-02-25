@@ -5,7 +5,7 @@
 - [Calculator](tgt.html)
 - [ES](https://www.barchart.com/futures/quotes/ES*0/technical-chart?plot=CANDLE&volume=contract&data=I:30&density=X&pricesOn=0&asPctChange=0&logscale=0&im=30&indicators=SMA(40);SMACD(3,10,16)&sym=ESU22&grid=1&height=375&studyheight=100&timeframe=4%20Months)
 - [FANGMAN+T](https://stockcharts.com/freecharts/candleglance.html?nvda,nflx,aapl,xlk,avgo,amzn,meta,googl,cost,msft,lly,tsla)
-- [Top DTV](https://stockcharts.com/freecharts/candleglance.html?MSTR,NVDA,TSM,COIN,AAPL,AVGO,AMZN,META,GOOGL,MSFT,AMD,TSLA)
+- [Top DTV](https://stockcharts.com/freecharts/candleglance.html?MSTR,NVDA,TSM,PLTR,AAPL,AVGO,AMZN,META,GOOGL,MSFT,BABA,TSLA)
 - [Index ETF](https://stockcharts.com/freecharts/candleglance.html?SPY,QQQ,DIA,SPSM,TLT,JNK,GLD,XLK,XLY,XLF,$USDJPY,$EURUSD)
 - [Fool bigc](bigcf.html)
 - [Fool smaller](bigcfs.html)

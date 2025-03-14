@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <title>ADVFN Daily</title>
     <style>
         body   { background-color: rgb(243, 246, 250); }
@@ -26,6 +26,13 @@
             </button>
             <br>
             <select id="lb" size="15" width="10em"></select>
+            <div>slideshow</div>
+            <div class="control-group">
+              <input type="number" id="txtDelay" placeholder="Delay secs" min="1" value="5">
+              <button type="button" id="btnToggle">
+                <i class="bi bi-play-circle"></i>
+              </button>
+            </div>
           </div>
           <div class="col-lg-10">
             <img src='' id="c1"/>
@@ -35,7 +42,7 @@
         </div>
     </div>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script>
       'use strict'
       const stocks = ['ISF', 'IUKD', 'SMT', 'VOD', 'MTRO','HMI', 'HE1', 'CREO', 'IEEM', 'ATT', 'EMQQ', 'PCT', 'AAL', 'SSON', 'AFC', 'IGLT', 'IES', 'ITM', 'CWR', 'INRG', 'ATYM', 'CEY', 'EZJ', 'ATG','DARK','MOON','TRST','WISE', 'GSF', 'UKW', 'BP.', 'BRWM', 'CTY', 'FCSS', 'SGLN', 'BGCG', 'TRY','EQQQ','VUSA','OCDO','IITU', 'ICDU', 'INDV', 'ONT', 'CRDA', 'SPOG', 'MTU', 'TRIG'].sort()
@@ -44,12 +51,21 @@
       const btn = document.getElementById("btnGo")
       const chart1 = document.getElementById("c1")
       const chart2 = document.getElementById("c2")
+      const txtDelay = document.getElementById("txtDelay")
+      const btnToggle = document.getElementById("btnToggle")
+      let slideshowTimer = null
 
       function add_items() {
           for (const s of stocks) {
               var opt = document.createElement("option")
               opt.text = s
               lb.appendChild(opt)
+          }
+          // Optionally, select the first item by default.
+          if (lb.options.length > 0) {
+            lb.selectedIndex = 0
+            txt.value = lb.options[0].text
+            btn_onClick()
           }
       }
 
@@ -70,10 +86,50 @@
           }
       }
 
+    function startSlideshow() {
+        console.log("startSlideshow")
+        if (slideshowTimer) return  // Slideshow already running.
+
+        const delaySeconds = parseFloat(txtDelay.value)
+        if (isNaN(delaySeconds) || delaySeconds <= 0) {
+            alert("Please enter a valid positive delay in seconds")
+            return
+        }
+
+        slideshowTimer = setInterval(function() {
+            // Move to the next ticker; if at the end, cycle back to the first.
+            let nextIndex = lb.selectedIndex + 1
+            if (nextIndex >= lb.options.length) {
+                nextIndex = 0
+            }
+            lb.selectedIndex = nextIndex
+            lb_onChange()  // update the text input and charts.
+        }, delaySeconds * 1000)
+        btnToggle.innerHTML = '<i class="bi bi-stop-circle"></i>'
+    }
+
+    function stopSlideshow() {
+      console.log("stopSlideshow")
+      if (slideshowTimer) {
+            clearInterval(slideshowTimer)
+            slideshowTimer = null
+            btnToggle.innerHTML = '<i class="bi bi-play-circle"></i>'
+        }
+    }
+
+    function toggleSlideshow() {
+      if (slideshowTimer) {
+        stopSlideshow();
+        } else {
+          startSlideshow();
+        }
+      }
+
       function init() {
         btn.addEventListener('click', btn_onClick )
         txt.addEventListener('keyup', txt_onKeyUp )
         lb.addEventListener('change', lb_onChange )
+        btnToggle.addEventListener('click', toggleSlideshow )
         add_items()
       }
 

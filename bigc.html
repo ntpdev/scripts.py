@@ -10,10 +10,8 @@
     <title>Bigcharts Intraday</title>
     <style>
         body   { background-color: rgb(243, 246, 250); }
-        select { width: 8em; margin-top: 1em; }
+        select { width: 8em; }
         input  { width: 5em; }
-        button { margin-left: 0.5em; }
-        img    { margin-bottom: 1em; }
     </style>
   </head>
   <body>
@@ -21,21 +19,28 @@
         <div class="row">
           <div class="col-lg-2">
             <input type="text" id="txtSymbol">
-            <button type="button" id="btnGo">
-              <i class="bi bi-search"></i>
-            </button>
-            <br>
-            <select id="lb" size="15" width="10em"></select>
+            <button type="button" id="btnGo" class="ms-3"><i class="bi bi-search"></i></button>
+            <div class="my-3">
+              <select id="lb" size="15" width="10em"></select>
+            </div>
+            <div>slideshow</div>
+            <div class="control-group">
+              <input type="number" id="txtDelay" placeholder="Delay secs" min="1" value="5">
+              <button type="button" id="btnToggle" class="ms-3"><i class="bi bi-play-circle"></i></button>
+            </div>
           </div>
           <div class="col-lg-10">
-            <img src="https://api.wsj.net/api/kaavio/charts/big.chart?nosettings=1&symb=SPY&uf=0&type=4&size=3&sid=9864&style=320&freq=7&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=3&rand=1050503780&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1" id="c1"/>
-            <br>
-            <img src="https://api.wsj.net/api/kaavio/charts/big.chart?nosettings=1&symb=SPY&uf=0&type=4&size=3&sid=9864&style=320&freq=6&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=2&rand=733821331&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1" id="c2"/>
+            <div class="mb-3">
+            <img src="https://api.wsj.net/api/kaavio/charts/big.chart?nosettings=1&symb=SPY&uf=0&type=4&size=3&sid=9864&style=320&freq=7&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=3&rand=1050503780&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1" id="c1" height="510" width="720" alt="5 day 15 min"/>
+          </div>
+          <div class="mb-3">
+            <img src="https://api.wsj.net/api/kaavio/charts/big.chart?nosettings=1&symb=SPY&uf=0&type=4&size=3&sid=9864&style=320&freq=6&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=2&rand=733821331&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1" id="c2" height="510" width="720" alt="2 day 5 min"/>
+          </div>
           </div>  
         </div>
     </div>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script>
       'use strict'
       const stocks = ['spy', 'qqq','fxi','meta','amzn','nvda','goog','msft','aapl','tsla','coin', 'pltr'].sort()
@@ -44,12 +49,22 @@
       const btn = document.getElementById("btnGo")
       const chart1 = document.getElementById("c1")
       const chart2 = document.getElementById("c2")
+      const txtDelay = document.getElementById("txtDelay")
+      const btnToggle = document.getElementById("btnToggle")
+      let slideshowTimer = null
 
       function add_items() {
+        const fragment = document.createDocumentFragment()
           for (const s of stocks) {
-              var opt = document.createElement("option")
+          const opt = document.createElement("option")
               opt.text = s
-              lb.appendChild(opt)
+          fragment.appendChild(opt)
+        }
+        lb.appendChild(fragment)
+        if (lb.options.length > 1) {
+          lb.selectedIndex = lb.options.length-2
+          txt.value = lb.options[lb.options.length-2].text
+          btn_onClick()
           }
       }
 
@@ -67,17 +82,57 @@
               const url = "https://api.wsj.net/api/kaavio/charts/big.chart?nosettings=1&symb="
               chart1.src = url + txt.value + "&uf=0&type=4&size=3&style=320&freq=7&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=3&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1"
               chart2.src = url + txt.value + "&uf=0&type=4&size=3&style=320&freq=6&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=2&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1"
+            }
+      }
+
+      function startSlideshow() {
+        console.log("startSlideshow")
+        if (slideshowTimer) return  // Slideshow already running.
+
+        const delaySeconds = parseFloat(txtDelay.value)
+        if (isNaN(delaySeconds) || delaySeconds <= 0) {
+          alert("Please enter a valid positive delay in seconds")
+          return
+        }
+
+        slideshowTimer = setInterval(function() {
+        // Move to the next ticker; if at the end, cycle back to the first.
+          let nextIndex = lb.selectedIndex + 1
+          if (nextIndex >= lb.options.length) {
+            nextIndex = 0
           }
+          lb.selectedIndex = nextIndex
+          lb_onChange()  // update the text input and charts.
+          }, delaySeconds * 1000)
+        btnToggle.innerHTML = '<i class="bi bi-stop-circle"></i>'
+      }
+
+      function stopSlideshow() {
+        console.log("stopSlideshow")
+        if (slideshowTimer) {
+          clearInterval(slideshowTimer)
+          slideshowTimer = null
+          btnToggle.innerHTML = '<i class="bi bi-play-circle"></i>'
+        }
+      }
+
+      function toggleSlideshow() {
+        if (slideshowTimer) {
+          stopSlideshow();
+        } else {
+            startSlideshow();
+        }
       }
 
       function init() {
         btn.addEventListener('click', btn_onClick )
         txt.addEventListener('keyup', txt_onKeyUp )
         lb.addEventListener('change', lb_onChange )
+        btnToggle.addEventListener('click', toggleSlideshow )
         add_items()
       }
 
       window.addEventListener('DOMContentLoaded', init )
   </script>
-</body>
+  </body>
 </html>

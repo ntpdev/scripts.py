@@ -10,10 +10,8 @@
     <title>ADVFN Daily</title>
     <style>
         body   { background-color: rgb(243, 246, 250); }
-        select { width: 8em; margin-top: 1em; }
+        select { width: 8em; }
         input  { width: 5em; }
-        button { margin-left: 0.5em; }
-        img    { margin-bottom: 1em; }
     </style>
   </head>
   <body>
@@ -21,23 +19,23 @@
         <div class="row">
           <div class="col-lg-2">
             <input type="text" id="txtSymbol">
-            <button type="button" id="btnGo">
-              <i class="bi bi-search"></i>
-            </button>
-            <br>
-            <select id="lb" size="15" width="10em"></select>
+            <button type="button" id="btnGo" class="ms-3"><i class="bi bi-search"></i></button>
+            <div class="my-3"> 
+              <select id="lb" size="15" width="10em"></select>
+            </div>
             <div>slideshow</div>
             <div class="control-group">
               <input type="number" id="txtDelay" placeholder="Delay secs" min="1" value="5">
-              <button type="button" id="btnToggle">
-                <i class="bi bi-play-circle"></i>
-              </button>
+              <button type="button" id="btnToggle" class="ms-3"><i class="bi bi-play-circle"></i></button>
             </div>
           </div>
           <div class="col-lg-10">
-            <img src='' id="c1"/>
-            <br>
-            <img src='' id="c2"/>
+            <div class="mb-3">
+              <img src='' id="c1" alt="2 year chart" height="660" width="620"/>
+            </div>
+            <div class="mb-3">
+            <img src='' id="c2" alt="6 month chart" height="660" width="620"/>
+            </div>
           </div>  
         </div>
     </div>
@@ -45,7 +43,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script>
       'use strict'
-      const stocks = ['ISF', 'IUKD', 'SMT', 'VOD', 'MTRO','HMI', 'HE1', 'CREO', 'IEEM', 'ATT', 'EMQQ', 'PCT', 'AAL', 'SSON', 'AFC', 'IGLT', 'IES', 'ITM', 'CWR', 'INRG', 'ATYM', 'CEY', 'EZJ', 'ATG','DARK','MOON','TRST','WISE', 'GSF', 'UKW', 'BP.', 'BRWM', 'CTY', 'FCSS', 'SGLN', 'BGCG', 'TRY','EQQQ','VUSA','OCDO','IITU', 'ICDU', 'INDV', 'ONT', 'CRDA', 'SPOG', 'MTU', 'TRIG'].sort()
+      const stocks = ['ISF', 'IUKD', 'SMT', 'VOD', 'MTRO','HMI', 'HE1', 'CREO', 'IEEM', 'ATT', 'EMQQ', 'PCT', 'AAL', 'SSON', 'AFC', 'IGLT', 'IES', 'ITM', 'CWR', 'INRG', 'ATYM', 'EZJ', 'ATG','MOON','TRST','WISE', 'GSF', 'UKW', 'BP.', 'BRWM', 'CTY', 'FCSS', 'SGLN', 'BGCG', 'TRY','EQQQ','VUSA','OCDO','IITU', 'ICDU', 'INDV', 'ONT', 'CRDA', 'SPOG', 'MTU', 'TRIG'].sort()
       const lb = document.getElementById("lb")
       const txt = document.getElementById("txtSymbol")
       const btn = document.getElementById("btnGo")
@@ -56,22 +54,23 @@
       let slideshowTimer = null
 
       function add_items() {
-          for (const s of stocks) {
-              var opt = document.createElement("option")
-              opt.text = s
-              lb.appendChild(opt)
-          }
-          // Optionally, select the first item by default.
-          if (lb.options.length > 0) {
-            lb.selectedIndex = 0
-            txt.value = lb.options[0].text
-            btn_onClick()
-          }
+        const fragment = document.createDocumentFragment()
+        for (const s of stocks) {
+          const opt = document.createElement("option")
+          opt.text = s
+          fragment.appendChild(opt)
+        }
+        lb.appendChild(fragment)
+        if (lb.options.length > 0) {
+          lb.selectedIndex = 0
+          txt.value = lb.options[0].text
+          btn_onClick()
+        }
       }
 
       function lb_onChange() {
-          txt.value = lb.options[lb.selectedIndex].text
-          btn_onClick()
+        txt.value = lb.options[lb.selectedIndex].text
+        btn_onClick()
       }
 
       function txt_onKeyUp(event) {
@@ -79,33 +78,33 @@
       }
 
       function btn_onClick() {
-          if (txt.value) {
-              const url = "https://uk.advfn.com/p.php?pid=legacydaily&epic=L^"
-              chart1.src = url + txt.value + '&type=1&size=2&period=6&ind_type1=4&ind1_1=14&ind2_1=&olx_1=3&ma_type1=1&o_1maday1=150&o_2maday1=&o_colour1=2&scheme=&delay_indices=DELAYED_INDICES'
-              chart2.src = url + txt.value + '&type=4&size=2&period=4&ind_type1=1&ind1_1=&ind2_1=&olx_1=3&ma_type1=1&o_1maday1=50&o_2maday1=&o_colour1=2&scheme=&delay_indices=DELAYED_INDICES'
-          }
+        if (txt.value) {
+          const url = "https://uk.advfn.com/p.php?pid=legacydaily&epic=L^"
+          chart1.src = url + txt.value + '&type=1&size=2&period=6&ind_type1=4&ind1_1=14&ind2_1=&olx_1=3&ma_type1=1&o_1maday1=150&o_2maday1=&o_colour1=2&scheme=&delay_indices=DELAYED_INDICES'
+          chart2.src = url + txt.value + '&type=4&size=2&period=4&ind_type1=1&ind1_1=&ind2_1=&olx_1=3&ma_type1=1&o_1maday1=50&o_2maday1=&o_colour1=2&scheme=&delay_indices=DELAYED_INDICES'
+        }
       }
 
     function startSlideshow() {
-        console.log("startSlideshow")
-        if (slideshowTimer) return  // Slideshow already running.
+      console.log("startSlideshow")
+      if (slideshowTimer) return  // Slideshow already running.
 
-        const delaySeconds = parseFloat(txtDelay.value)
-        if (isNaN(delaySeconds) || delaySeconds <= 0) {
-            alert("Please enter a valid positive delay in seconds")
-            return
+      const delaySeconds = parseFloat(txtDelay.value)
+      if (isNaN(delaySeconds) || delaySeconds <= 0) {
+        alert("Please enter a valid positive delay in seconds")
+        return
+      }
+
+      slideshowTimer = setInterval(function() {
+      // Move to the next ticker; if at the end, cycle back to the first.
+        let nextIndex = lb.selectedIndex + 1
+        if (nextIndex >= lb.options.length) {
+          nextIndex = 0
         }
-
-        slideshowTimer = setInterval(function() {
-            // Move to the next ticker; if at the end, cycle back to the first.
-            let nextIndex = lb.selectedIndex + 1
-            if (nextIndex >= lb.options.length) {
-                nextIndex = 0
-            }
-            lb.selectedIndex = nextIndex
-            lb_onChange()  // update the text input and charts.
+        lb.selectedIndex = nextIndex
+        lb_onChange()  // update the text input and charts.
         }, delaySeconds * 1000)
-        btnToggle.innerHTML = '<i class="bi bi-stop-circle"></i>'
+      btnToggle.innerHTML = '<i class="bi bi-stop-circle"></i>'
     }
 
     function stopSlideshow() {

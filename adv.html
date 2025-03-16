@@ -85,44 +85,44 @@
         }
       }
 
-    function startSlideshow() {
-      console.log("startSlideshow")
-      if (slideshowTimer) return  // Slideshow already running.
+      function startSlideshow() {
+        console.log("startSlideshow")
+        if (slideshowTimer) return  // Slideshow already running.
 
-      const delaySeconds = parseFloat(txtDelay.value)
-      if (isNaN(delaySeconds) || delaySeconds <= 0) {
-        alert("Please enter a valid positive delay in seconds")
-        return
+        const delaySeconds = parseFloat(txtDelay.value)
+        if (isNaN(delaySeconds) || delaySeconds <= 0) {
+          alert("Please enter a valid positive delay in seconds")
+          return
+        }
+
+        slideshowTimer = setInterval(function() {
+        // Move to the next ticker; if at the end, cycle back to the first.
+          let nextIndex = lb.selectedIndex + 1
+          if (nextIndex >= lb.options.length) {
+            nextIndex = 0
+          }
+          lb.selectedIndex = nextIndex
+          lb_onChange()  // update the text input and charts.
+          }, delaySeconds * 1000)
+        btnToggle.innerHTML = '<i class="bi bi-stop-circle"></i>'
       }
 
-      slideshowTimer = setInterval(function() {
-      // Move to the next ticker; if at the end, cycle back to the first.
-        let nextIndex = lb.selectedIndex + 1
-        if (nextIndex >= lb.options.length) {
-          nextIndex = 0
-        }
-        lb.selectedIndex = nextIndex
-        lb_onChange()  // update the text input and charts.
-        }, delaySeconds * 1000)
-      btnToggle.innerHTML = '<i class="bi bi-stop-circle"></i>'
-    }
-
-    function stopSlideshow() {
-      console.log("stopSlideshow")
-      if (slideshowTimer) {
-            clearInterval(slideshowTimer)
-            slideshowTimer = null
-            btnToggle.innerHTML = '<i class="bi bi-play-circle"></i>'
-        }
-    }
-
-    function toggleSlideshow() {
-      if (slideshowTimer) {
-        stopSlideshow();
-        } else {
-          startSlideshow();
-        }
+      function stopSlideshow() {
+        console.log("stopSlideshow")
+        if (slideshowTimer) {
+              clearInterval(slideshowTimer)
+              slideshowTimer = null
+              btnToggle.innerHTML = '<i class="bi bi-play-circle"></i>'
+          }
       }
+
+      function toggleSlideshow() {
+        if (slideshowTimer) {
+          stopSlideshow();
+          } else {
+            startSlideshow();
+          }
+        }
 
       function init() {
         btn.addEventListener('click', btn_onClick )
@@ -133,6 +133,6 @@
       }
 
       window.addEventListener('DOMContentLoaded', init )
-  </script>
-</body>
+    </script>
+  </body>
 </html>

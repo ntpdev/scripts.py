@@ -9,7 +9,7 @@
     <link rel="icon" type="image/x-icon" href="calculator.ico">
     <title>Slider Example</title>
     <style>
-        body   { background-color: rgb(243, 246, 250); }
+        body   { background-color: #fdf6e3; }
         select { width: 8em; margin-top: 1em; }
         input  { width: 5em; }
         button { margin-left: 0.5em; }
@@ -18,66 +18,72 @@
 </head>
 <body>
 
-<div class="container-lg">
+  <div class="container-lg">
     <div class="row">
-        <div class="col-lg-4">
-            <label for="txtTarget">Target</label>
-            <input type="number" id="txtTarget" class="w-25">
-            <label for="txtStop">Stop</label>
-            <input type="number" id="txtStop" class="w-25">
-            <button type="button" id="btnCalc" class="btn btn-primary">
-                <i class="bi bi-calculator"></i>
-            </button>
+        <div class="col-lg-6">
+            <div class="mb-3">
+                <label for="txtTarget">target</label>
+                <input type="number" id="txtTarget" style="width: 100px;">
+                <label for="txtStop" class="ms-3">stop</label>
+                <input type="number" id="txtStop" style="width: 100px;">
+                <button type="button" id="btnCalc" class="btn btn-primary"><i class="bi bi-calculator"></i></button>
+            </div>
+            
+            <div class="mb-3">
+                <input type="range" class="form-control-range" id="customSlider" min="0" max="12" step="0.25" value="0">
+                <button id="sliderDecrement" class="btn btn-primary"><i class="bi bi-arrow-left-square"></i></button>
+                <button id="sliderIncrement" class="btn btn-primary"><i class="bi bi-arrow-right-square"></i></button>
+                <input type="number" id="sliderValue" class="ms-3" style="width: 100px;">
+            </div>
         </div>
-        <div class="col-lg-4">
-            <input type="range" class="form-control-range" id="customSlider" min="0" max="12" step="0.25" value="0">
-            <button id="sliderDecrement" class="btn btn-primary">
-                <i class="bi bi-arrow-left-square"></i>
-            </button>
-            <button id="sliderIncrement" class="btn btn-primary">
-                <i class="bi bi-arrow-right-square"></i>
-            </button>
-            <input type="number" id="sliderValue" class="w-25">
+        
+        <div class="col-lg-6">
+            <div style="max-width: 300px;">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">Trade analysis</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th scope="col">#</th>
+                                    <th scope="col">Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">Target</th>
+                                    <td id="tgt"></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Scale</th>
+                                    <td id="scl"></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Entry</th>
+                                    <td id="ent"></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Stop</th>
+                                    <td id="stp"></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Risk</th>
+                                    <td id="rsk"></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">R:R</th>
+                                    <td id="rr"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="col-lg-4">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th scope="col">#</th>
-                  <th scope="col">Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <th scope="row">Target</th>
-                  <td id="tgt"></td>
-                </tr>
-                <tr>
-                  <th scope="row">Scale</th>
-                  <td id="scl"></td>
-                </tr>
-                <tr>
-                  <th scope="row">Entry</th>
-                  <td id="ent"></td>
-                </tr>
-                <tr>
-                  <th scope="row">Stop</th>
-                  <td id="stp"></td>
-                </tr>
-                <tr>
-                  <th scope="row">Risk</th>
-                  <td id="rsk"></td>
-                </tr>
-                <tr>
-                    <th scope="row">R:R</th>
-                    <td id="rr"></td>
-                  </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+    </div>
 </div>
-
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 <script>
@@ -152,43 +158,39 @@
 
         // Update the text field based on slider's value
         slider.addEventListener('input', function() {
-            sliderValue.value = slider.value
+          sliderValue.value = slider.value
         });
 
         // Increment slider value
         slideInc.addEventListener('click', function() {
-            let newValue = parseFloat(slider.value) + 0.25;
-            if (newValue > parseFloat(slider.max)) newValue = parseFloat(slider.max);
-            slider.value = newValue;
-            slider.dispatchEvent(new Event('input'));
-            calc2()
+          let newValue = parseFloat(slider.value) + 0.25;
+          if (newValue > parseFloat(slider.max)) newValue = parseFloat(slider.max);
+          slider.value = newValue;
+          slider.dispatchEvent(new Event('input'));
+          calc2()
         });
 
         // Decrement slider value
         slideDec.addEventListener('click', function() {
-            let newValue = parseFloat(slider.value) - 0.25;
-            if (newValue < parseFloat(slider.min)) newValue = parseFloat(slider.min);
-            slider.value = newValue;
-            slider.dispatchEvent(new Event('input'));
-            calc2()
+          let newValue = parseFloat(slider.value) - 0.25;
+          if (newValue < parseFloat(slider.min)) newValue = parseFloat(slider.min);
+          slider.value = newValue;
+          slider.dispatchEvent(new Event('input'));
+          calc2()
         });
 
         // Update slider from the text field
         sliderValue.addEventListener('input', function() {
-            let val = parseFloat(sliderValue.value);
-            val = isNaN(val) ? 0 : val;
-            val = val < parseFloat(slider.min) ? parseFloat(slider.min) : (val > parseFloat(slider.max) ? parseFloat(slider.max) : val);
-            slider.value = val;
-            slider.dispatchEvent(new Event('input'));
+          let val = parseFloat(sliderValue.value);
+          val = isNaN(val) ? 0 : val;
+          val = val < parseFloat(slider.min) ? parseFloat(slider.min) : (val > parseFloat(slider.max) ? parseFloat(slider.max) : val);
+          slider.value = val;
+          slider.dispatchEvent(new Event('input'));
         });
 
         btnCalc.addEventListener('click', calc)        
-        txtTarget.addEventListener('keyup', function() {
-            if (event.key === 'Enter') { calc() }
-        })
-        txtStop.addEventListener('keyup', function() {
-            if (event.key === 'Enter') { calc() }
-        })
+        txtTarget.addEventListener('keyup', (event) => { if (event.key === 'Enter') { calc() } })
+        txtStop.addEventListener('keyup', (event) => { if (event.key === 'Enter') { calc() } })
     }
 
     document.addEventListener('DOMContentLoaded', init)

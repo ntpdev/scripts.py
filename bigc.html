@@ -26,7 +26,7 @@
             <div>slideshow</div>
             <div class="control-group">
               <input type="number" id="txtDelay" placeholder="Delay secs" min="1" value="5">
-              <button type="button" id="btnToggle" class="ms-3"><i class="bi bi-play-circle"></i></button>
+              <button type="button" id="btnToggle" class="ms-3"><i id="iconToggle" class="bi bi-play-circle"></i></button>
             </div>
           </div>
           <div class="col-lg-10">
@@ -50,6 +50,7 @@
       const chart2 = document.getElementById("c2")
       const txtDelay = document.getElementById("txtDelay")
       const btnToggle = document.getElementById("btnToggle")
+      const iconToggle = document.getElementById("iconToggle")
       let slideshowTimer = null
 
       function add_items(stocks, defaultStock) {
@@ -72,9 +73,8 @@
 
       function updateCharts() {
         if (txt.value) {
-          const url = "https://api.wsj.net/api/kaavio/charts/big.chart?nosettings=1&symb="+ txt.value 
-          chart1.src = url + "&uf=0&type=4&size=3&style=320&freq=7&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=3&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1"
-          chart2.src = url + "&uf=0&type=4&size=3&style=320&freq=6&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=2&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1"
+          chart1.src = `https://api.wsj.net/api/kaavio/charts/big.chart?nosettings=1&symb=${txt.value}&uf=0&type=4&size=3&style=320&freq=7&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=3&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1`
+          chart2.src = `https://api.wsj.net/api/kaavio/charts/big.chart?nosettings=1&symb=${txt.value}&uf=0&type=4&size=3&style=320&freq=6&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=2&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1`
         }
       }
 
@@ -87,7 +87,6 @@
       }
 
       function startSlideshow() {
-        console.log("startSlideshow")
         if (slideshowTimer) return  // Slideshow already running.
 
         const delaySeconds = parseFloat(txtDelay.value)
@@ -97,31 +96,31 @@
         }
 
         slideshowTimer = setInterval(function() {
-        // Move to the next ticker; if at the end, cycle back to the first.
-          let nextIndex = lb.selectedIndex + 1
-          if (nextIndex >= lb.options.length) {
-            nextIndex = 0
-          }
-          lb.selectedIndex = nextIndex
+          // Move to the next ticker; if at the end, cycle back to the first.
+          lb.selectedIndex = (lb.selectedIndex + 1) % lb.options.length
           lb_onChange()  // update the text input and charts.
           }, delaySeconds * 1000)
-        btnToggle.innerHTML = '<i class="bi bi-stop-circle"></i>'
+        updateToggleButtonUI(true)
       }
 
       function stopSlideshow() {
-        console.log("stopSlideshow")
         if (slideshowTimer) {
               clearInterval(slideshowTimer)
               slideshowTimer = null
-              btnToggle.innerHTML = '<i class="bi bi-play-circle"></i>'
+              updateToggleButtonUI(false)  
           }
       }
 
+      function updateToggleButtonUI(isPlaying) {
+        const iconClass = isPlaying ? "bi-stop-circle" : "bi-play-circle"
+        iconToggle.className = `bi ${iconClass}`
+      }
+
       document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('btnGo').addEventListener('click', () => updateCharts() )
-        document.getElementById('txtSymbol').addEventListener('keyup', (event) => {if (event.key === 'Enter') { updateCharts() }} )
-        document.getElementById('lb').addEventListener('change', () => lb_onChange() )
-        document.getElementById('btnToggle').addEventListener('click', () => toggleSlideshow() )
+        btn.addEventListener('click', () => updateCharts() )
+        txt.addEventListener('keyup', (event) => {if (event.key === 'Enter') { updateCharts() }} )
+        lb.addEventListener('change', () => lb_onChange() )
+        btnToggle.addEventListener('click', () => toggleSlideshow() )
         add_items(us_stocks, 'spy')
       })
   </script>

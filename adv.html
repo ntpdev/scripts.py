@@ -26,7 +26,7 @@
             <div>slideshow</div>
             <div class="control-group">
               <input type="number" id="txtDelay" placeholder="Delay secs" min="1" value="5">
-              <button type="button" id="btnToggle" class="ms-3"><i class="bi bi-play-circle"></i></button>
+              <button type="button" id="btnToggle" class="ms-3"><i id="iconToggle" class="bi bi-play-circle"></i></button>
             </div>
           </div>
           <div class="col-lg-10">
@@ -50,9 +50,10 @@
       const chart2 = document.getElementById("c2")
       const txtDelay = document.getElementById("txtDelay")
       const btnToggle = document.getElementById("btnToggle")
+      const iconToggle = document.getElementById("iconToggle")
       let slideshowTimer = null
 
-      function add_items(stocks, defaultStock) {
+      function addItems(stocks, defaultStock) {
         const fragment = document.createDocumentFragment()
         for (const s of stocks) {
           const opt = document.createElement("option")
@@ -62,19 +63,18 @@
         lb.appendChild(fragment)
         const defaultIndex = Array.from(lb.options).findIndex(option => option.text === defaultStock);
         lb.selectedIndex = Math.max(defaultIndex, 0);
-        lb_onChange()
+        lbOnChange()
       }
 
-      function lb_onChange() {
+      function lbOnChange() {
         txt.value = lb.options[lb.selectedIndex].text
         updateCharts()
       }
 
       function updateCharts() {
         if (txt.value) {
-          const url = "https://uk.advfn.com/p.php?pid=legacydaily&epic=L^" + txt.value
-          chart1.src = url + '&type=1&size=2&period=6&ind_type1=4&ind1_1=14&ind2_1=&olx_1=3&ma_type1=1&o_1maday1=150&o_2maday1=&o_colour1=2&scheme=&delay_indices=DELAYED_INDICES'
-          chart2.src = url + '&type=4&size=2&period=4&ind_type1=1&ind1_1=&ind2_1=&olx_1=3&ma_type1=1&o_1maday1=50&o_2maday1=&o_colour1=2&scheme=&delay_indices=DELAYED_INDICES'
+          chart1.src = `https://uk.advfn.com/p.php?pid=legacydaily&epic=L^${txt.value}&type=1&size=2&period=6&ind_type1=4&ind1_1=14&ind2_1=&olx_1=3&ma_type1=1&o_1maday1=150&o_2maday1=&o_colour1=2&scheme=&delay_indices=DELAYED_INDICES`
+          chart2.src = `https://uk.advfn.com/p.php?pid=legacydaily&epic=L^${txt.value}&type=4&size=2&period=4&ind_type1=1&ind1_1=&ind2_1=&olx_1=3&ma_type1=1&o_1maday1=50&o_2maday1=&o_colour1=2&scheme=&delay_indices=DELAYED_INDICES`
         }
       }
 
@@ -87,7 +87,6 @@
       }
 
       function startSlideshow() {
-        console.log("startSlideshow")
         if (slideshowTimer) return  // Slideshow already running.
 
         const delaySeconds = parseFloat(txtDelay.value)
@@ -97,15 +96,11 @@
         }
 
         slideshowTimer = setInterval(function() {
-        // Move to the next ticker; if at the end, cycle back to the first.
-          let nextIndex = lb.selectedIndex + 1
-          if (nextIndex >= lb.options.length) {
-            nextIndex = 0
-          }
-          lb.selectedIndex = nextIndex
-          lb_onChange()  // update the text input and charts.
+          // Move to the next ticker; if at the end, cycle back to the first.
+          lb.selectedIndex = (lb.selectedIndex + 1) % lb.options.length
+          lbOnChange()  // update the text input and charts.
           }, delaySeconds * 1000)
-        btnToggle.innerHTML = '<i class="bi bi-stop-circle"></i>'
+        updateToggleButtonUI(true)
       }
 
       function stopSlideshow() {
@@ -113,17 +108,22 @@
         if (slideshowTimer) {
               clearInterval(slideshowTimer)
               slideshowTimer = null
-              btnToggle.innerHTML = '<i class="bi bi-play-circle"></i>'
+              updateToggleButtonUI(false)  
           }
+      }
+
+      function updateToggleButtonUI(isPlaying) {
+        const iconClass = isPlaying ? "bi-stop-circle" : "bi-play-circle"
+        iconToggle.className = `bi ${iconClass}`
       }
 
       // wire event handlers
       document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('btnGo').addEventListener('click', () => updateCharts() )
-        document.getElementById('txtSymbol').addEventListener('keyup', (event) => {if (event.key === 'Enter') { updateCharts() }} )
-        document.getElementById('lb').addEventListener('change', () => lb_onChange() )
-        document.getElementById('btnToggle').addEventListener('click', () => toggleSlideshow() )
-        add_items(ftse_stocks, 'ISF')
+        btn.addEventListener('click', updateCharts )
+        txt.addEventListener('keyup', (event) => {if (event.key === 'Enter') { updateCharts() }} )
+        lb.addEventListener('change', lbOnChange )
+        btnToggle.addEventListener('click', toggleSlideshow )
+        addItems(ftse_stocks, 'ISF')
       })
   </script>
   </body>

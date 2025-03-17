@@ -78,6 +78,14 @@
         }
       }
 
+      function toggleSlideshow() {
+        if (slideshowTimer) {
+          stopSlideshow();
+        } else {
+          startSlideshow();
+        }
+      }
+
       function startSlideshow() {
         console.log("startSlideshow")
         if (slideshowTimer) return  // Slideshow already running.
@@ -113,13 +121,7 @@
         document.getElementById('btnGo').addEventListener('click', () => updateCharts() )
         document.getElementById('txtSymbol').addEventListener('keyup', (event) => {if (event.key === 'Enter') { updateCharts() }} )
         document.getElementById('lb').addEventListener('change', () => lb_onChange() )
-        document.getElementById('btnToggle').addEventListener('click', () => {
-          if (slideshowTimer) {
-          stopSlideshow();
-          } else {
-            startSlideshow();
-          }
-        } )
+        document.getElementById('btnToggle').addEventListener('click', () => toggleSlideshow() )
         add_items(us_stocks, 'spy')
       })
   </script>

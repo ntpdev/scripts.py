@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <title>Bigcharts Intraday</title>
     <style>
         body   { background-color: rgb(243, 246, 250); }
@@ -20,7 +20,7 @@
           <div class="col-lg-2">
             <input type="text" id="txtSymbol">
             <button type="button" id="btnGo" class="ms-3"><i class="bi bi-search"></i></button>
-            <div class="my-3">
+            <div class="my-3"> 
               <select id="lb" size="15" width="10em"></select>
             </div>
             <div>slideshow</div>
@@ -31,19 +31,18 @@
           </div>
           <div class="col-lg-10">
             <div class="mb-3">
-            <img src="https://api.wsj.net/api/kaavio/charts/big.chart?nosettings=1&symb=SPY&uf=0&type=4&size=3&sid=9864&style=320&freq=7&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=3&rand=1050503780&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1" id="c1" height="510" width="720" alt="5 day 15 min"/>
-          </div>
-          <div class="mb-3">
-            <img src="https://api.wsj.net/api/kaavio/charts/big.chart?nosettings=1&symb=SPY&uf=0&type=4&size=3&sid=9864&style=320&freq=6&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=2&rand=733821331&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1" id="c2" height="510" width="720" alt="2 day 5 min"/>
-          </div>
+              <img src='' id="c1" alt="2 year chart" height="510" width="720"/>
+            </div>
+            <div class="mb-3">
+            <img src='' id="c2" alt="6 month chart" height="510" width="720"/>
+            </div>
           </div>  
         </div>
     </div>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script>
       'use strict'
-      const stocks = ['spy', 'qqq','fxi','meta','amzn','nvda','goog','msft','aapl','tsla','coin', 'pltr'].sort()
+      const us_stocks = ['spy', 'qqq','fxi','meta','amzn','nvda','goog','msft','aapl','tsla','coin', 'pltr', 'spsm'].sort()
       const lb = document.getElementById("lb")
       const txt = document.getElementById("txtSymbol")
       const btn = document.getElementById("btnGo")
@@ -53,36 +52,30 @@
       const btnToggle = document.getElementById("btnToggle")
       let slideshowTimer = null
 
-      function add_items() {
+      function add_items(stocks, defaultStock) {
         const fragment = document.createDocumentFragment()
-          for (const s of stocks) {
+        for (const s of stocks) {
           const opt = document.createElement("option")
-              opt.text = s
+          opt.text = s
           fragment.appendChild(opt)
         }
         lb.appendChild(fragment)
-        if (lb.options.length > 1) {
-          lb.selectedIndex = lb.options.length-2
-          txt.value = lb.options[lb.options.length-2].text
-          btn_onClick()
-          }
+        const defaultIndex = Array.from(lb.options).findIndex(option => option.text === defaultStock);
+        lb.selectedIndex = Math.max(defaultIndex, 0);
+        lb_onChange()
       }
 
       function lb_onChange() {
-          txt.value = lb.options[lb.selectedIndex].text
-          btn_onClick()
+        txt.value = lb.options[lb.selectedIndex].text
+        updateCharts()
       }
 
-      function txt_onKeyUp(event) {
-        if (event.key === 'Enter') { btn_onClick() } 
-      }
-
-      function btn_onClick() {
-          if (txt.value) {
-              const url = "https://api.wsj.net/api/kaavio/charts/big.chart?nosettings=1&symb="
-              chart1.src = url + txt.value + "&uf=0&type=4&size=3&style=320&freq=7&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=3&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1"
-              chart2.src = url + txt.value + "&uf=0&type=4&size=3&style=320&freq=6&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=2&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1"
-            }
+      function updateCharts() {
+        if (txt.value) {
+          const url = "https://api.wsj.net/api/kaavio/charts/big.chart?nosettings=1&symb="+ txt.value 
+          chart1.src = url + "&uf=0&type=4&size=3&style=320&freq=7&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=3&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1"
+          chart2.src = url + "&uf=0&type=4&size=3&style=320&freq=6&entitlementtoken=0c33378313484ba9b46b8e24ded87dd6&time=2&compidx=aaaaa%3a0&ma=2&maval=19&lf=1&lf2=0&lf3=0&height=510&width=720&mocktick=1"
+        }
       }
 
       function startSlideshow() {
@@ -110,29 +103,25 @@
       function stopSlideshow() {
         console.log("stopSlideshow")
         if (slideshowTimer) {
-          clearInterval(slideshowTimer)
-          slideshowTimer = null
-          btnToggle.innerHTML = '<i class="bi bi-play-circle"></i>'
-        }
+              clearInterval(slideshowTimer)
+              slideshowTimer = null
+              btnToggle.innerHTML = '<i class="bi bi-play-circle"></i>'
+          }
       }
 
-      function toggleSlideshow() {
-        if (slideshowTimer) {
+      document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('btnGo').addEventListener('click', () => updateCharts() )
+        document.getElementById('txtSymbol').addEventListener('keyup', (event) => {if (event.key === 'Enter') { updateCharts() }} )
+        document.getElementById('lb').addEventListener('change', () => lb_onChange() )
+        document.getElementById('btnToggle').addEventListener('click', () => {
+          if (slideshowTimer) {
           stopSlideshow();
-        } else {
+          } else {
             startSlideshow();
-        }
-      }
-
-      function init() {
-        btn.addEventListener('click', btn_onClick )
-        txt.addEventListener('keyup', txt_onKeyUp )
-        lb.addEventListener('change', lb_onChange )
-        btnToggle.addEventListener('click', toggleSlideshow )
-        add_items()
-      }
-
-      window.addEventListener('DOMContentLoaded', init )
+          }
+        } )
+        add_items(us_stocks, 'spy')
+      })
   </script>
   </body>
 </html>

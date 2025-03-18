@@ -9,6 +9,8 @@
     <link rel="icon" type="image/x-icon" href="calculator.ico">
     <title>Trade calculator</title>
   <style>
+    body { background-color: #fdf6e3; }
+
     .form-container { padding: 20px; }
     
     .form-row {
@@ -18,74 +20,39 @@
       margin-bottom: 15px;
     }
     
-    .control-group {
-      display: inline-flex;
-      align-items: center;
-      margin-right: 15px;
-      margin-bottom: 10px;
-    }
+    .control-group { display: inline-flex; align-items: center; }
     
-    .control-group label {
-      margin-right: 5px;
-      margin-bottom: 0;
-      white-space: nowrap;
-    }
+    .control-group label { white-space: nowrap; }
     
-    .form-control {
-      width: 6em !important;
-    }
-    
-    .btn {
-      width: 6em !important;
-      padding-left: 0.5rem;
-      padding-right: 0.5rem;
-    }
-    
-    .btn-lg {
-      width: auto !important;
-      padding-left: 1rem;
-      padding-right: 1rem;
-    }
-    
+    .form-control { width: 6em; }   
+   
     .slider-container {
       display: flex;
       align-items: center;
       margin-right: 10px;
     }
     
-    .form-range {
-      width: 10em !important;
-    }
+    .form-range { width: 10em; }
     
     .card {
       height: fit-content;
-      max-width: 24em !important;
+      max-width: 24em;
       width: 100%;
     }
     
-    /* Fix for slider buttons */
-    #sliderDecrement, #sliderIncrement {
-      width: 3em !important;
-      padding-left: 0.5rem;
-      padding-right: 0.5rem;
-      display: inline-flex;
-      justify-content: center;
-      align-items: center;
-    }
-    
-    @media (max-width: 991px) {
-      .form-card-container {
-        flex-direction: column;
-      }
+   
+    @media (max-width: 800px) {
+      .form-card-container { flex-direction: column; }
       
-      .form-section {
-        margin-bottom: 20px;
-      }
+      /* Mobile specific styles */
+      body { font-size: 16px; }
+      
+      .card { max-width: 100%; }
     }
   </style>
 </head>
 <body>
-  <div class="container form-container">
+  <div class="container-fluid form-container">
     <div class="row form-card-container">
       <!-- Form Section -->
       <div class="col-lg-6 form-section">
@@ -93,19 +60,17 @@
           <!-- First Row -->
           <div class="form-row">
             <div class="control-group">
-              <label for="txtTarget" class="form-label mb-0">Target</label>
-              <input type="number" id="txtTarget" class="form-control" />
+              <label for="txtTarget" class="form-label">Target</label>
+              <input type="number" id="txtTarget" class="form-control mx-3" />
             </div>
             
             <div class="control-group">
-              <label for="txtStop" class="form-label mb-0">Stop</label>
-              <input type="number" id="txtStop" class="form-control" />
+              <label for="txtStop" class="form-label">Stop</label>
+              <input type="number" id="txtStop" class="form-control ms-3" />
             </div>
             
             <div class="control-group">
-              <button type="button" id="btnCalc" class="btn btn-primary btn-lg">
-                <i class="bi bi-calculator"></i>
-              </button>
+              <button type="button" id="btnCalc" class="btn btn-primary ms-3"><i class="bi bi-calculator"></i></button>
             </div>
           </div>
           
@@ -116,15 +81,11 @@
             </div>
             
             <div class="control-group">
-              <button id="sliderDecrement" type="button" class="btn btn-primary">
-                <i class="bi bi-arrow-left-square"></i>
-              </button>
+              <button id="sliderDecrement" type="button" class="btn btn-primary"><i class="bi bi-arrow-left-square"></i></button>
             </div>
             
             <div class="control-group">
-              <button id="sliderIncrement" type="button" class="btn btn-primary">
-                <i class="bi bi-arrow-right-square"></i>
-              </button>
+              <button id="sliderIncrement" type="button" class="btn btn-primary mx-3"><i class="bi bi-arrow-right-square"></i></button>
             </div>
             
             <div class="control-group">

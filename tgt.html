@@ -77,7 +77,7 @@
           <!-- Second Row -->
           <div class="form-row">
             <div class="slider-container control-group">
-              <input id="slider" type="range" class="form-range" min="0" max="12" step="0.25" value="0" />
+              <input id="slider" type="range" class="form-range" min="2" max="12" step="0.25" value="0" />
             </div>
             
             <div class="control-group">
@@ -168,7 +168,7 @@
       const range = target - stop
       const ratio = calc_ratio(3,rr)
       const x = calc_stop_size(range, ratio)
-      return {stop: stop, target: target, entry: tick(stop + x), scale: tick(stop + 2*x), stop_sz: tick(x), risk_reward: rr }
+      return {stop, target, entry: tick(stop + x), scale: tick(stop + 2*x), stop_sz: tick(x), risk_reward: rr }
     }
 
     function calc_risk_reward(stop, target, stop_pts) {
@@ -176,7 +176,7 @@
         stop_pts = -stop_pts
       }
       const rr= calc_rr(3, target - stop, stop_pts)
-      return {stop: stop, target: target, entry: tick(stop + stop_pts), scale: tick(stop + 2*stop_pts), stop_sz: stop_pts, risk_reward: rr }
+      return {stop, target, entry: tick(stop + stop_pts), scale: tick(stop + 2*stop_pts), stop_sz: stop_pts, risk_reward: rr }
     }
 
     function calcEntry() {
@@ -204,53 +204,41 @@
       clTgt.innerHTML = target.toFixed(2)
       clScl.innerHTML = scale.toFixed(2)
       clEnt.innerHTML = entry.toFixed(2)
-      clRsk.innerHTML = stop_sz.toFixed(2)
+      const rsk = Math.abs(stop_sz)
+      clRsk.innerHTML = rsk.toFixed(2)
       clStp.innerHTML = stop.toFixed(2)
       clRr.innerHTML = risk_reward.toFixed(2)
-      updateSlider(stop_sz)
+      slider.value = rsk
+      sliderTxt.value = rsk
     }
 
-    function updateSlider(value) {
+    function processRiskChange(value) {
       // sync slider and input field
-      const v = Math.abs(value)
+      let v = Math.min(value, parseFloat(slider.max))
+      v = Math.max(v, parseFloat(slider.min))
       slider.value = v
       sliderTxt.value = v
-      slider.dispatchEvent(new Event('input'))
+      calcRiskReward()
     }
 
-    function init() {
-        slider.addEventListener('input', () => sliderTxt.value = slider.value )
+    document.addEventListener('DOMContentLoaded', () => {
+        // slider changed
+        slider.addEventListener('input', () => processRiskChange(slider.value) )
 
         // Increment slider value
-        slideInc.addEventListener('click', function() {
-          let newValue = parseFloat(sliderTxt.value) + 0.25
-          if (newValue > parseFloat(slider.max)) newValue = parseFloat(slider.max)
-          updateSlider(newValue)
-          calcRiskReward()
-        })
+        slideInc.addEventListener('click', () => processRiskChange(parseFloat(sliderTxt.value) + 0.25) )
 
         // Decrement slider value
-        slideDec.addEventListener('click', function() {
-          let newValue = parseFloat(sliderTxt.value) - 0.25
-          if (newValue < parseFloat(slider.min)) newValue = parseFloat(slider.min)
-          updateSlider(newValue)
-          calcRiskReward()
-        })
+        slideDec.addEventListener('click', () => processRiskChange(parseFloat(sliderTxt.value) - 0.25) )
 
         // Update slider from the text field
-        sliderTxt.addEventListener('input', function() {
-          let val = parseFloat(sliderTxt.value)
-          val = isNaN(val) ? 0 : val
-          val = val < parseFloat(slider.min) ? parseFloat(slider.min) : (val > parseFloat(slider.max) ? parseFloat(slider.max) : val)
-          updateSlider(val)
-        })
+        sliderTxt.addEventListener('keyup', (event) => event.key === 'Enter' && processRiskChange(parseFloat(sliderTxt.value)) )
 
         btnCalc.addEventListener('click', calcEntry)        
-        txtTarget.addEventListener('keyup', (event) => { if (event.key === 'Enter') calcEntry() })
-        txtStop.addEventListener('keyup', (event) => { if (event.key === 'Enter') calcEntry() })
-    }
+        txtTarget.addEventListener('keyup', (event) => event.key === 'Enter' && calcEntry() )
+        txtStop.addEventListener('keyup', (event) => event.key === 'Enter' && calcEntry() )
+    })
 
-    document.addEventListener('DOMContentLoaded', init)
 </script>
 </body>
 </html>

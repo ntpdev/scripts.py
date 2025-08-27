@@ -1,0 +1,586 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI-Powered Software Development</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=keyboard_arrow_down,keyboard_arrow_up" />
+    
+    <style>
+      :root {
+        --solarized-bg: #002b36;
+        --solarized-text: #839496;
+        --solarized-header: #93a1a1;
+        --solarized-accent: #268bd2;
+      }
+
+      body {
+        background-color: var(--solarized-bg);
+        color: var(--solarized-text);
+      }
+
+      h1, h2, h3, h4, h5, h6 {
+        color: var(--solarized-header);
+      }
+
+      a {
+        color: var(--solarized-accent);
+      }
+
+      button {
+        color: var(--solarized-header);
+      }
+
+      .material-symbols-outlined {
+        font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24;
+        transition: transform 0.2s ease;
+      }
+
+
+      /* details/summary styling for native accordions */
+      summary {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        font-weight: 600;
+        font-size: 1.125rem; /* text-lg */
+        cursor: pointer;
+        list-style: none;
+      }
+      summary::-webkit-details-marker {
+        display: none;
+      }
+      summary .material-symbols-outlined {
+        font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24;
+        transition: transform 0.2s ease;
+      }
+      summary .material-symbols-outlined::before {
+        content: 'keyboard_arrow_down';
+      }
+      details[open] summary .material-symbols-outlined::before {
+        content: 'keyboard_arrow_up';
+      }
+      summary:focus {
+        outline: 2px solid var(--solarized-accent);
+        outline-offset: 2px;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen p-6">
+    <div class="max-w-3xl mx-auto">
+      <h1 id="liu" class="text-3xl font-bold text-center mb-8">10 Laws on AI-Powered Software Development</h1>
+
+      
+      <div class="border-b border-gray-700 py-4">
+        <details>
+          <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+            <span>1. The Valley of AI Skepticism</span>
+            <span class="material-symbols-outlined"></span>
+          </summary>
+          <div class="mt-2">
+            You have to push through initial skepticism about AI coding tools. Most engineers resist because they think they can code faster themselves, but they're not measuring the actual time it takes to ship something complete.
+          </div>
+        </details>
+      </div>
+
+      
+      <div class="border-b border-gray-700 py-4">
+        <details>
+          <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+            <span>2. Context Engineering Over Prompt Engineering</span>
+            <span class="material-symbols-outlined"></span>
+          </summary>
+          <div class="mt-2">
+            The real skill isn't crafting perfect prompts but providing the right context. Think of it as building up a relevant knowledge window for the AI rather than perfecting magical instructions. Most models are good enough now that even imperfect prompts work if the context is right.
+          </div>
+        </details>
+      </div>
+
+      
+      <div class="border-b border-gray-700 py-4">
+        <details>
+          <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+            <span>3. The Three-Step Framework</span>
+            <span class="material-symbols-outlined"></span>
+          </summary>
+          <div class="mt-2">
+            Approach AI-assisted coding as Explore (gather context and investigate options), Plan (create detailed step-by-step instructions), and Build (execute the plan with validation). This shifts engineering from typing code to orchestrating its creation.
+          </div>
+        </details>
+      </div>
+
+      
+      <div class="border-b border-gray-700 py-4">
+        <details>
+          <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+            <span>4. Test-Driven Development Renaissance</span>
+            <span class="material-symbols-outlined"></span>
+          </summary>
+          <div class="mt-2">
+            AI tools make TDD practical when most engineers avoided it before. Write tests first, then use them as context when asking the AI to implement the code. The AI's job becomes simply "make these tests pass" – a clear, measurable goal.
+          </div>
+        </details>    
+      </div>
+
+      
+      <div class="border-b border-gray-700 py-4">
+        <details>
+          <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+            <span>5. The Plan File Revolution</span>
+            <span class="material-symbols-outlined"></span>
+          </summary>
+          <div class="mt-2">
+            Create detailed Markdown plan files that outline exactly what needs to be built. Check these into your branch so reviewers understand your approach. This allows you to resume work later, switch models mid-task, and maintain clarity throughout the development process.
+          </div>
+        </details>
+      </div>
+
+      
+      <div class="border-b border-gray-700 py-4">
+        <details>
+          <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+            <span>6. Monoliths Beat Microservices</span>
+            <span class="material-symbols-outlined"></span>
+          </summary>
+          <div class="mt-2">
+            AI tools work better with monolithic codebases than distributed microservices. When dependencies are spread across separate repos, the AI struggles to understand relationships between components. Consider mono-repos even if maintaining microservice architecture.
+          </div>
+        </details>
+      </div>
+
+      
+      <div class="border-b border-gray-700 py-4">
+        <details>
+          <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+            <span>7. The 90% Threshold</span>
+            <span class="material-symbols-outlined"></span>
+          </summary>
+          <div class="mt-2">
+          When you get comfortable with these tools, 90% of your code can be AI-generated. This isn't about removing engineers but amplifying their capabilities – shifting from typing code to making technical decisions and understanding product trade-offs.
+          </div>
+        </details>
+      </div>
+
+      
+      <div class="border-b border-gray-700 py-4">
+        <details>
+          <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+            <span>8. Commit Early and Often</span>
+            <span class="material-symbols-outlined"></span>
+          </summary>
+          <div class="mt-2">
+            When people complain AI tools "mess up and waste time," it's usually because they're not committing to Git frequently enough. If you keep going without saving state, you'll eventually hit a point where the AI makes a mistake and you lose all progress.
+          </div>
+        </details>
+      </div>
+
+      
+      <div class="border-b border-gray-700 py-4">
+        <details>
+          <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+            <span>9. Staff Engineers Unleashed</span>
+            <span class="material-symbols-outlined"></span>
+          </summary>
+          <div class="mt-2">
+            These tools are most valuable for your most senior engineers, not juniors. Your staff engineers understand the system best but have limited time – AI tools let them implement exploratory features, load testing, and complex integrations they'd otherwise deprioritize.
+          </div>
+        </details>
+      </div>
+
+      
+      <div class="border-b border-gray-700 py-4">
+        <details>
+          <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+            <span>10. Value Over Code Volume</span>
+            <span class="material-symbols-outlined"></span>
+          </summary>
+          <div class="mt-2">
+            The skill of an engineer is shifting from "how much code can you output" to "how much value can you produce." Technical decisions, product trade-offs, and communication skills become more valuable as code generation becomes accessible to everyone with the right training.
+          </div>
+        </details>
+      </div>
+
+      <div class="mt-8 text-center text-sm text-gray-500">
+        <a href="https://x.com/jxnlco">Jason Liu on X. August 2025</a>
+      </div>
+
+      <section class="mt-12 space-y-4" aria-labelledby="how-i-10x-title">
+        <h1 id="klaassen" class="text-3xl font-bold text-center mb-8">Summary: How I 10x My Engineering With AI</h1>
+
+        <div class="border-b border-gray-700 py-4">
+          <details>
+            <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+              <span>Core Philosophy</span>
+              <span class="material-symbols-outlined"></span>
+            </summary>
+            <div class="mt-2">
+              <p>
+                The key insight is rejecting "magic prompt" solutions in favor of matching AI workflows to different types of cognitive load. What used to take weeks of coding now happens in hours through strategic tool selection rather than universal solutions.
+              </p>
+
+              <p><strong>Productivity metrics achieved:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>What took a full week now happens in hours</li>
+                <li>100% of pull requests opened by AI tools</li>
+                <li>AI handles 30% of code reviews and debugs half of encountered bugs</li>
+              </ul>
+            </div>
+          </details>
+        </div>
+
+        <div class="border-b border-gray-700 py-4">
+          <details>
+            <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+              <span>Workflow 1: Flow-State Coding (Clear-Intent Implementation)</span>
+              <span class="material-symbols-outlined"></span>
+            </summary>
+            <div class="mt-2">
+              <p><strong>When to use:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>You know exactly what "done" looks like</li>
+                <li>Tasks are small, clear, and well-scoped</li>
+                <li>Stakes are low and direction is clear</li>
+                <li>Working on single, focused tasks without breaking flow</li>
+              </ul>
+
+              <p><strong>Tools:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>Windsurf/Cursor paired with "thinking models" (Claude Sonnet 4, Gemini 2.5 Pro)</li>
+              </ul>
+
+              <p><strong>Method:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>Describe precise edits in plain English</li>
+                <li>AI implements across files while you maintain architectural control</li>
+                <li>You are the thinker, AI is the executor</li>
+                <li>Keep all design decisions to yourself</li>
+              </ul>
+
+              <p><strong>Key distinction from "vibe coding":</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>Works "inside-out": You know both destination and route, AI translates decisions into syntax</li>
+                <li>NOT "outside-in": Telling AI what you want and letting it figure out how</li>
+                <li>AI acts as your hands, not your brain</li>
+              </ul>
+
+              <p><strong>Benefits:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>Speed without sacrificing quality or intent</li>
+                <li>Minimal context switching</li>
+                <li>Feels like pair programming with a tireless partner</li>
+              </ul>
+
+              <p><strong>Guardrails:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>Keep diffs small and review everything</li>
+                <li>Don't outsource design decisions</li>
+                <li>Maintain complete architectural control</li>
+              </ul>
+            </div>
+          </details>
+        </div>
+
+        <div class="border-b border-gray-700 py-4">
+          <details>
+            <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+              <span>Workflow 2: Architecture/Discovery (Research and Reasoning)</span>
+              <span class="material-symbols-outlined"></span>
+            </summary>
+            <div class="mt-2">
+              <p><strong>When to use:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>Blank canvas situations</li>
+                <li>Unclear "done" state</li>
+                <li>Complex interdependencies</li>
+                <li>Need to explore and discover approaches you wouldn't consider</li>
+              </ul>
+
+              <p><strong>Tools:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>ChatGPT with o3 + tools</li>
+                <li>RepoPrompt or Claude Code agentic search (for full codebase context)</li>
+                <li>Multiple models in parallel (Claude 4 Opus, Gemini 2.5 Pro, o3)</li>
+              </ul>
+
+              <p><strong>Systematic methodology:</strong></p>
+              <ol class="list-decimal ml-6 space-y-1">
+                <li>Start broad with open questions ("What are my options under X constraints?")</li>
+                <li>Run same prompts across multiple models</li>
+                <li>Compare their different takes and framings</li>
+                <li>Probe trade-offs and explore approaches</li>
+                <li>Gradually narrow from exploration → plan → tasks</li>
+                <li>Converge to a PRD/implementation plan</li>
+              </ol>
+
+              <p><strong>Benefits:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>Surfaces approaches you wouldn't consider</li>
+                <li>Accelerates problem shaping</li>
+                <li>Each model provides different perspectives (ChatGPT: implementation difficulty, Claude: performance focus, Gemini: stability concerns)</li>
+              </ul>
+
+              <p><strong>Process notes:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>Embrace AI as true thought partner</li>
+                <li>Start with ambiguity, avoid over-specification early</li>
+                <li>Goal is to be surprised by new solutions</li>
+                <li>Treat responses as rough drafts to synthesize</li>
+                <li>Validate with docs/tests before building</li>
+              </ul>
+            </div>
+          </details>
+        </div>
+
+        <div class="border-b border-gray-700 py-4">
+          <details>
+            <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+              <span>Workflow 3: Parallel Agents (CTO Method)</span>
+              <span class="material-symbols-outlined"></span>
+            </summary>
+            <div class="mt-2">
+              <p><strong>When to use:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>Multiple independent tasks with crisp specs and boundaries</li>
+                <li>Architecture already decided</li>
+                <li>Components don't depend on each other to build</li>
+              </ul>
+
+              <p><strong>Tools:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>Devin (creates full pull requests)</li>
+                <li>Claude Code with git worktrees</li>
+                <li>OpenAI's Codex (agent)</li>
+                <li>Cursor Background Agents</li>
+              </ul>
+
+              <p><strong>Implementation:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>Break work into independent specifications</li>
+                <li>Spin up agents per task/branch using git worktrees for isolation</li>
+                <li>Rotate through reviews and feedback iteratively</li>
+                <li>Merge work streams progressively</li>
+              </ul>
+
+              <p><strong>Required skills:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li><strong>Product Manager abilities:</strong> Breaking down features into clear, actionable specs with defined boundaries</li>
+                <li><strong>Tech Lead skills:</strong> Reviewing code efficiently, spotting architectural issues, providing clear technical direction</li>
+                <li>Strong context-switching discipline</li>
+              </ul>
+
+              <p><strong>Benefits:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>Compresses weeks into days via true parallelism</li>
+                <li>5-10x productivity multiplier potential when mastered</li>
+              </ul>
+
+              <p><strong>Critical challenges:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>Context switching is the main difficulty</li>
+                <li>Requires strong PM/tech lead discipline</li>
+                <li>Need to avoid hidden dependencies</li>
+                <li>Must enforce style/tests/CI gates</li>
+                <li>Tools and practices still evolving (experimental workflow)</li>
+              </ul>
+            </div>
+          </details>
+        </div>
+
+        <div class="border-b border-gray-700 py-4">
+          <details>
+            <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+              <span>Quick Decision Framework</span>
+              <span class="material-symbols-outlined"></span>
+            </summary>
+            <div class="mt-2">
+              <ul class="list-disc ml-6 space-y-1">
+                <li><strong>Well-scoped, low risk task?</strong> → Flow-state coding (Cursor/Windsurf)</li>
+                <li><strong>Fuzzy goal or architectural challenge?</strong> → Research mode (o3/Claude/Gemini + repo search) → produce PRD</li>
+                <li><strong>Multiple independent, spec'd tasks?</strong> → Parallel agents with separate branches and tight review loops</li>
+              </ul>
+            </div>
+          </details>
+        </div>
+
+        <div class="border-b border-gray-700 py-4">
+          <details>
+            <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+              <span>Essential Practices</span>
+              <span class="material-symbols-outlined"></span>
+            </summary>
+            <div class="mt-2">
+              <p><strong>Quality control:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>Keep diffs small and reviewable</li>
+                <li>Insist on tests and benchmark checks in AI-generated PRs</li>
+                <li>Define "definition of done" for all agent work</li>
+                <li>Maintain input/output contracts and guardrails</li>
+                <li>Enforce lint, unit/integration tests, and CI gates</li>
+              </ul>
+
+              <p><strong>Research optimization:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>Run same research prompt across 2-3 models to expose blind spots</li>
+                <li>Compare different framings and synthesize comprehensive approaches</li>
+                <li>Start wide, then gradually narrow to actionable plans</li>
+              </ul>
+
+              <p><strong>Project management:</strong></p>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>Maintain evolving scratchpad/PRD: exploration → plan → tasks</li>
+                <li>For parallel work, ensure clear boundaries and no hidden dependencies</li>
+                <li>Rotate review cycles efficiently to maintain momentum</li>
+              </ul>
+            </div>
+          </details>
+        </div>
+
+        <div class="border-b border-gray-700 py-4">
+          <details>
+            <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+              <span>Meta-Principle</span>
+              <span class="material-symbols-outlined"></span>
+            </summary>
+            <div class="mt-2">
+              <p>
+                The goal isn't to automate thinking but to clear space for deeper thinking. By matching workflow to cognitive load type, you can leverage engineering experience while offloading mechanical development tasks. This creates space to focus on what requires actual thought and creativity.
+              </p>
+              <p>
+                The approach is anti-hype: no magic prompts or one-size-fits-all solutions, just strategic tool selection based on the specific type of cognitive work required.
+              </p>
+            </div>
+          </details>
+        </div>
+      </section>
+      <div class="mt-8 text-center text-sm text-gray-500">
+        <a href="https://every.to/source-code/the-three-ways-i-work-with-llms">Kieran Klaassen from every.to . June 2025</a>
+      </div>
+
+      
+      <section class="mt-12 space-y-4" aria-labelledby="simon-willison-title">
+        <h1 id="willison" class="text-3xl font-bold text-center mb-8">Summary: Here’s how I use LLMs to help me write code</h1>
+
+        
+        <div class="border-b border-gray-700 py-4">
+          <details>
+            <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+              <span>1. The Over-Confident Intern Model</span>
+              <span class="material-symbols-outlined"></span>
+            </summary>
+            <div class="mt-2">
+              Treat LLMs as lightning-fast, over-confident pair programming assistants who excel at tedious tasks and looking things up, but will make inhuman mistakes. Don't anthropomorphize their failures—they're tools, not humans.
+            </div>
+          </details>
+        </div>
+
+        
+        <div class="border-b border-gray-700 py-4">
+          <details>
+            <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+              <span>2. Context Engineering Trumps All</span>
+              <span class="material-symbols-outlined"></span>
+            </summary>
+            <div class="mt-2">
+              Master context management over prompt crafting. Success comes from feeding the right existing code, examples, and conversation history rather than perfecting magical instructions. When conversations stop working, wipe the slate clean.
+            </div>
+          </details>
+        </div>
+
+        
+        <div class="border-b border-gray-700 py-4">
+          <details>
+            <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+              <span>3. The Research-Then-Dictate Pattern</span>
+              <span class="material-symbols-outlined"></span>
+            </summary>
+            <div class="mt-2">
+              Start exploratory with "what are my options?" to leverage the LLM's breadth, then switch to authoritarian mode with exact specifications like function signatures. Be the architect, let the LLM be the typist.
+            </div>
+          </details>
+        </div>
+
+        
+        <div class="border-b border-gray-700 py-4">
+          <details>
+            <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+              <span>4. Training Cutoffs Shape Tool Selection</span>
+              <span class="material-symbols-outlined"></span>
+            </summary>
+            <div class="mt-2">
+              Consider model training dates when choosing libraries. Stick with stable, well-documented tools that were popular before the cutoff date, or be prepared to feed the LLM recent examples as context.
+            </div>
+          </details>
+        </div>
+
+        
+        <div class="border-b border-gray-700 py-4">
+          <details>
+            <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+              <span>5. Test Everything, Trust Nothing</span>
+              <span class="material-symbols-outlined"></span>
+            </summary>
+            <div class="mt-2">
+              You cannot outsource testing to the machine. If you haven't seen it run, it's not working code. The human responsibility is delivering working systems—manual QA is non-negotiable.
+            </div>
+          </details>
+        </div>
+
+        
+        <div class="border-b border-gray-700 py-4">
+          <details>
+            <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+              <span>6. Conversations Beat One-Shots</span>
+              <span class="material-symbols-outlined"></span>
+            </summary>
+            <div class="mt-2">
+              Expect multiple iterations. A bad initial result isn't failure—it's a starting point. Use follow-ups like "write that better" or "break out that repetitive code" to refine toward what you actually want.
+            </div>
+          </details>
+        </div>
+
+        
+        <div class="border-b border-gray-700 py-4">
+          <details>
+            <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+              <span>7. Sandboxed Execution Changes Everything</span>
+              <span class="material-symbols-outlined"></span>
+            </summary>
+            <div class="mt-2">
+              Choose tools that can safely run and iterate on code (ChatGPT Code Interpreter, Claude Artifacts). The run-code-in-a-loop pattern is so powerful it should drive your tool selection.
+            </div>
+          </details>
+        </div>
+
+        
+        <div class="border-b border-gray-700 py-4">
+          <details>
+            <summary class="flex justify-between items-center w-full text-left font-semibold text-lg">
+              <span>8. Speed Unlocks Ambition</span>
+              <span class="material-symbols-outlined"></span>
+            </summary>
+            <div class="mt-2">
+              The biggest win isn't faster completion of planned work—it's building projects you wouldn't have justified spending time on at all. LLMs make throwaway experiments and learning accelerators economically viable.
+            </div>
+          </details>
+        </div>
+
+      </section>
+      <div class="mt-8 text-center text-sm text-gray-500">
+        <a href="https://simonwillison.net/2025/Mar/11/using-llms-for-code/">Simon Willison - Here’s how I use LLMs to help me write code. March 2025</a>
+      </div>
+
+    </div>
+
+  </body>
+</html>

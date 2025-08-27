@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>LLM Model Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+      
+      * {
+        font-family: 'Inter', sans-serif;
+      }
+      
+      body {
+        background-color: #fdf6e3; /* solarized base3 */
+        color: #657b83; /* solarized base00 */
+        min-height: 100vh;
+        position: relative;
+        overflow-x: hidden;
+      }
+      
+      body::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+          radial-gradient(circle at 20% 50%, rgba(181, 137, 0, 0.1) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, rgba(38, 139, 210, 0.1) 0%, transparent 50%),
+          radial-gradient(circle at 40% 80%, rgba(42, 161, 152, 0.1) 0%, transparent 50%);
+        pointer-events: none;
+      }
+      
+      .glass-container {
+        background: #eee8d5; /* solarized base2 */
+        border: 1px solid #93a1a1; /* solarized base1 */
+        border-radius: 20px;
+        box-shadow: 0 8px 25px rgba(0, 43, 54, 0.1);
+      }
+      
+      .card {
+        background: #eee8d5; /* solarized base2 */
+        border: 1px solid #93a1a1; /* solarized base1 */
+        border-radius: 16px;
+        box-shadow: 0 4px 16px rgba(0, 43, 54, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #268bd2, #2aa198, #b58900); /* solarized accents */
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+      }
+      
+      .card:hover::before {
+        transform: translateX(0);
+      }
+      
+      .card:hover {
+        transform: translateY(-8px);
+        cursor: pointer;
+        box-shadow: 0 12px 24px rgba(0, 43, 54, 0.15);
+      }
+      
+      .select-wrapper {
+        position: relative;
+        background: #eee8d5; /* solarized base2 */
+        border-radius: 12px;
+        border: 1px solid #93a1a1; /* solarized base1 */
+        box-shadow: 0 4px 16px rgba(0, 43, 54, 0.1);
+        max-width: 320px; /* Limit width for ~20 chars */
+      }
+      
+      select {
+        background: transparent;
+        border: none;
+        outline: none;
+        width: 100%;
+        padding: 16px 24px; /* Increased left/right padding for rounded corners */
+        font-size: 16px;
+        font-weight: 500;
+        color: #073642; /* solarized base02 */
+        appearance: none;
+        cursor: pointer;
+      }
+      
+      .select-wrapper::after {
+        content: '▼';
+        position: absolute;
+        right: 24px; /* Adjusted to match new padding */
+        top: 50%;
+        transform: translateY(-50%);
+        color: #268bd2; /* solarized blue */
+        pointer-events: none;
+        transition: transform 0.3s ease;
+      }
+      
+      .select-wrapper:hover::after {
+        transform: translateY(-50%) rotate(180deg);
+      }
+      
+      .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      
+      .modal.show {
+        opacity: 1;
+      }
+      
+      .modal-content {
+        background: #fdf6e3; /* solarized base3 */
+        padding: 2rem;
+        border-radius: 20px;
+        max-width: 600px;
+        width: 90%;
+        border: 1px solid #93a1a1; /* solarized base1 */
+        box-shadow: 0 25px 50px rgba(0, 43, 54, 0.2);
+        transform: scale(0.9);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      
+      .modal.show .modal-content {
+        transform: scale(1);
+      }
+      
+      .close-btn {
+        background: linear-gradient(135deg, #dc322f, #cb4b16); /* solarized red/orange */
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(220, 50, 47, 0.3);
+      }
+      
+      .close-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(220, 50, 47, 0.4);
+      }
+      
+      .price-badge {
+        background: linear-gradient(135deg, #268bd2, #2aa198); /* solarized blue/cyan */
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        display: inline-block;
+        margin: 2px 0;
+      }
+      
+      .grid-enter {
+        opacity: 0;
+        transform: translateY(20px);
+        animation: gridEnter 0.5s ease-out forwards;
+      }
+      
+      @keyframes gridEnter {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      
+      .floating-shapes {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: -1;
+      }
+      
+      .shape {
+        position: absolute;
+        opacity: 0.1;
+        animation: float 25s infinite linear;
+      }
+      
+      .shape.solarized-yellow { background-color: #b58900; }
+      .shape.solarized-blue { background-color: #268bd2; }
+      .shape.solarized-cyan { background-color: #2aa198; }
+      .shape.solarized-green { background-color: #859900; }
+      
+      @keyframes float {
+        from {
+          transform: translateY(100vh) rotate(0deg);
+        }
+        to {
+          transform: translateY(-100px) rotate(360deg);
+        }
+      }
+      
+      .title-gradient {
+        background: linear-gradient(135deg, #268bd2 0%, #2aa198 100%); /* solarized blue/cyan */
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      
+      .loading-spinner {
+        border: 3px solid #93a1a1; /* solarized base1 */
+        border-radius: 50%;
+        border-top: 3px solid #268bd2; /* solarized blue */
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body class="p-6">
+    <!-- Floating Background Shapes -->
+    <div class="floating-shapes">
+      <div class="shape w-4 h-4 solarized-yellow rounded-full" style="left: 10%; animation-delay: 0s;"></div>
+      <div class="shape w-6 h-6 solarized-blue rounded-full" style="left: 20%; animation-delay: 5s;"></div>
+      <div class="shape w-3 h-3 solarized-cyan rounded-full" style="left: 30%; animation-delay: 2s;"></div>
+      <div class="shape w-5 h-5 solarized-green rounded-full" style="left: 40%; animation-delay: 8s;"></div>
+      <div class="shape w-4 h-4 solarized-cyan rounded-full" style="left: 60%; animation-delay: 3s;"></div>
+      <div class="shape w-6 h-6 solarized-yellow rounded-full" style="left: 70%; animation-delay: 6s;"></div>
+      <div class="shape w-3 h-3 solarized-blue rounded-full" style="left: 80%; animation-delay: 1s;"></div>
+      <div class="shape w-5 h-5 solarized-green rounded-full" style="left: 90%; animation-delay: 4s;"></div>
+    </div>
+
+    <div class="max-w-6xl mx-auto relative z-10">
+      <!-- Header -->
+      <div class="glass-container p-8 mb-8 text-center">
+        <h1 class="text-4xl font-bold mb-2 title-gradient">LLM Model Viewer</h1>
+        <p class="text-base01 text-lg" style="color: #586e75;">Explore and compare language model pricing across providers</p>
+      </div>
+
+      <!-- Provider Selection -->
+      <div class="glass-container p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4" style="color: #586e75;">Select Provider</h2>
+        <div class="select-wrapper">
+          <select id="providerSelect">
+            <option value="">Choose a provider to view models...</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="loadingState" class="glass-container p-8 text-center hidden">
+        <div class="loading-spinner"></div>
+        <p style="color: #586e75;" class="mt-4">Loading models...</p>
+      </div>
+
+      <!-- Model Grid -->
+      <div id="modelGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modelModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="flex justify-between items-start mb-4">
+          <div></div>
+          <button id="closeModal" class="close-btn">✕</button>
+        </div>
+        <div id="modalBody"></div>
+      </div>
+    </div>
+
+    <script>
+      let modelsData = [];
+      let providerMap = {};
+
+      function formatPrice(value) {
+        if (value == null) return "N/A";
+        return (value * 1_000_000).toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      }
+
+      function formatDate(timestamp) {
+        if (!timestamp) return "N/A";
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+      }
+
+      async function loadData() {
+        try {
+          const res = await fetch("models.json");
+          const json = await res.json();
+          modelsData = json.data;
+
+          // Filter models released in 2025
+          const filteredModels = modelsData.filter(m => {
+            const date = new Date(m.created * 1000);
+            return date.getFullYear() === 2025;
+          });
+
+          providerMap = {};
+          filteredModels.forEach((m) => {
+            let provider = "";
+            let modelName = m.name || m.id;
+
+            if (modelName.includes(":")) {
+              const parts = modelName.split(":");
+              provider = parts[0].trim();
+              modelName = parts[1].trim();
+            }
+
+            if (!providerMap[provider]) providerMap[provider] = [];
+            providerMap[provider].push({
+              id: m.id,
+              description: m.description,
+              created: m.created,
+              promptPrice: m.pricing?.prompt ? parseFloat(m.pricing.prompt) : null,
+              completionPrice: m.pricing?.completion ? parseFloat(m.pricing.completion) : null,
+              displayName: modelName,
+            });
+          });
+
+          // Sort models by created date (latest first)
+          Object.keys(providerMap).forEach((p) => {
+            providerMap[p].sort((a, b) => b.created - a.created);
+          });
+
+          // Remove providers with no models
+          Object.keys(providerMap).forEach((p) => {
+            if (providerMap[p].length === 0) delete providerMap[p];
+          });
+
+          // Populate provider dropdown
+          const providerSelect = document.getElementById("providerSelect");
+          const providers = Object.keys(providerMap).sort();
+          
+          providers.filter((p) => p).forEach((p) => {
+            const opt = document.createElement("option");
+            opt.value = p;
+            opt.textContent = p.charAt(0).toUpperCase() + p.slice(1);
+            providerSelect.appendChild(opt);
+          });
+          
+          if (providers.includes("")) {
+            const opt = document.createElement("option");
+            opt.value = "";
+            opt.textContent = "(Uncategorized)";
+            providerSelect.appendChild(opt);
+          }
+        } catch (error) {
+          console.error('Error loading data:', error);
+          const grid = document.getElementById("modelGrid");
+          grid.innerHTML = `
+            <div class="glass-container p-8 text-center col-span-full">
+              <p style="color: #586e75;">Error loading model data. Please make sure models.json is available.</p>
+            </div>
+          `;
+        }
+      }
+
+      function updateModelGrid(provider) {
+        const grid = document.getElementById("modelGrid");
+        
+        if (!provider) {
+          grid.innerHTML = "";
+          return;
+        }
+
+        grid.innerHTML = "";
+        
+        if (!providerMap[provider]) return;
+
+        providerMap[provider].forEach((m) => {
+          const card = document.createElement("div");
+          card.className = "card p-6";
+          
+          card.innerHTML = `
+            <div class="mb-4">
+              <h3 class="font-semibold text-lg leading-tight" style="color: #073642;">${m.id}</h3>
+            </div>
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="text-sm" style="color: #586e75;">Prompt</span>
+                <span class="price-badge">${formatPrice(m.promptPrice)}</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm" style="color: #586e75;">Completion</span>
+                <span class="price-badge">${formatPrice(m.completionPrice)}</span>
+              </div>
+            </div>
+          `;
+          
+          card.addEventListener("click", () => showModelModal(m));
+          grid.appendChild(card);
+        });
+      }
+
+      function showModelModal(model) {
+        const modal = document.getElementById("modelModal");
+        const body = document.getElementById("modalBody");
+
+        body.innerHTML = `
+          <div class="text-center mb-6">
+            <h2 class="text-2xl font-bold title-gradient mb-2">${model.id}</h2>
+            <p class="leading-relaxed" style="color: #657b83;">${model.description || "No description available."}</p>
+          </div>
+          
+          <div class="space-y-4">
+            <div class="p-4 rounded-lg" style="background: #eee8d5; border: 1px solid #93a1a1;">
+              <h3 class="font-semibold mb-3" style="color: #073642;">Model Details</h3>
+              <div class="grid grid-cols-1 gap-3">
+                <div class="flex justify-between items-center">
+                  <span style="color: #586e75;">Created</span>
+                  <span class="font-medium" style="color: #073642;">${formatDate(model.created)}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span style="color: #586e75;">Prompt Price (per 1M tokens)</span>
+                  <span class="price-badge">${formatPrice(model.promptPrice)}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span style="color: #586e75;">Completion Price (per 1M tokens)</span>
+                  <span class="price-badge">${formatPrice(model.completionPrice)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        modal.classList.remove("hidden");
+        setTimeout(() => modal.classList.add("show"), 10);
+      }
+
+      function closeModal() {
+        const modal = document.getElementById("modelModal");
+        modal.classList.remove("show");
+        setTimeout(() => modal.classList.add("hidden"), 300);
+      }
+
+      document.getElementById("providerSelect").addEventListener("change", (e) => {
+        updateModelGrid(e.target.value);
+      });
+
+      document.getElementById("closeModal").addEventListener("click", closeModal);
+      
+      document.getElementById("modelModal").addEventListener("click", (e) => {
+        if (e.target === e.currentTarget) closeModal();
+      });
+
+      loadData();
+    </script>
+  </body>
+</html>
+

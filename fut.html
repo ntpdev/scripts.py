@@ -3,47 +3,60 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="icon" type="image/x-icon" href="candle.ico">
     <title>Index Futures</title>
     <style>
-        body {background-color: rgb(243, 246, 250);}
+      body {background-color: rgb(243, 246, 250);}
     </style>
   </head>
   <body>
     <div class="container">
-        <div class="row">
-          <div class="col-lg-4">
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=%40ES&tf=i5&s=linear&ct=candle_stick" class="p-1"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=%40ES&tf=h&s=linear&ct=candle_stick" class="p-1"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=%40ES&tf=d&s=linear&ct=candle_stick" class="p-1"/>
-            <br>
-            <a href="https://www.cmegroup.com/apps/cmegroup/widgets/productLibs/esignal-charts.html?type=p&code=ES&title=Chart+-+Dec+2025+E-mini+S%26P+500&venue=0&monthYear=Z5&year=2025&exchangeCode=XCME&interval=30">ES on CME</a>
-          </div>
-          <div class="col-lg-4">
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=%40NQ&tf=i5&s=linear&ct=candle_stick" class="p-1"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=%40NQ&tf=h&s=linear&ct=candle_stick" class="p-1"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=%40NQ&tf=d&s=linear&ct=candle_stick" class="p-1"/>
-            <br>
-            <a href="https://www.cmegroup.com/apps/cmegroup/widgets/productLibs/esignal-charts.html?type=p&code=NQ&title=Chart+-+Dec+2025+E-mini+Nasdaq-100&venue=0&monthYear=Z5&year=2025&exchangeCode=XCME&interval=30">NQ on CME</a>
-          </div>  
-          <div class="col-lg-4">
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=%40ER2&tf=i5&s=linear&ct=candle_stick" class="p-1"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=%40ER2&tf=h&s=linear&ct=candle_stick" class="p-1"/>
-            <br>
-            <img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=%40ER2&tf=d&s=linear&ct=candle_stick" class="p-1"/>
-            <br>
-            <a href="https://www.cmegroup.com/apps/cmegroup/widgets/productLibs/esignal-charts.html?type=p&code=RTY&title=Chart+-+Dec+2025+E-mini++Russell+2000+Index&venue=0&monthYear=Z5&year=2025&exchangeCode=XCME&interval=30">RTY on CME</a>
-          </div>  
-        </div>
+      <div class="row">
+        <div class="col-lg-4" data-product="ES"></div>
+        <div class="col-lg-4" data-product="NQ"></div>
+        <div class="col-lg-4" data-product="RTY"></div>
+      </div>
     </div>
+
+    <script>
+      const CONTRACT = {
+        monthYear: 'Z5',
+        year: '2025',
+        monthName: 'Dec'
+      };
+
+      const PRODUCTS = {
+        ES: { name: 'E-mini S&P 500', finviz: 'ES' },
+        NQ: { name: 'E-mini Nasdaq-100', finviz: 'NQ' },
+        RTY: { name: 'E-mini Russell 2000 Index', finviz: 'ER2' }
+      };
+
+      document.querySelectorAll('[data-product]').forEach(col => {
+        const cme = col.dataset.product;
+        const { name, finviz } = PRODUCTS[cme];
+        
+        col.innerHTML = `
+          ${['i5', 'h', 'd'].map(tf => 
+            `<img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=%40${finviz}&tf=${tf}&s=linear&ct=candle_stick" class="p-1"/>`
+          ).join('<br>')}
+          <br>
+          <a href="https://www.cmegroup.com/apps/cmegroup/widgets/productLibs/esignal-charts.html?${
+            new URLSearchParams({
+              type: 'p',
+              code: cme,
+              title: `Chart - ${CONTRACT.monthName} ${CONTRACT.year} ${name}`,
+              venue: '0',
+              monthYear: CONTRACT.monthYear,
+              year: CONTRACT.year,
+              exchangeCode: 'XCME',
+              interval: '30'
+            })
+          }">${cme} on CME</a>
+        `;
+      });
+    </script>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
   </body>
 </html>

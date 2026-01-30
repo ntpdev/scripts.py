@@ -11,11 +11,11 @@
 - [SPY](https://schrts.co/vmqqNvAC)
 - [AAII bull bear](https://schrts.co/kfTVkXkg)
 - [SPY 15m 5d sma](https://www.barchart.com/etfs-funds/quotes/SPY/technical-chart?plot=CANDLE&volume=total&data=I:15&density=M60&pricesOn=0&asPctChange=0&logscale=0&im=15&indicators=SMA(130);DASH(472.16,wk)&sym=SPY&grid=1&height=375&studyheight=100)
-- [Fool](https://stockcharts.com/freecharts/candleglance.html?swav,prct,crwd,snow,veev,anet,abnb,meli,ttd,stem,arry,extr)
-- [Crypto](https://stockcharts.com/freecharts/candleglance.html?ARBK,COIN,MARA,MSTR,RIOT,XYZ,IBIT,$BTCUSD,$ETHUSD,$ADAUSD,$SOLUSD,$DOTUSD)
+- [fool](https://stockcharts.com/freecharts/candleglance.html?swav,prct,crwd,snow,veev,anet,abnb,meli,ttd,stem,arry,extr)
+- [crypto](https://stockcharts.com/freecharts/candleglance.html?BMNR,COIN,MARA,MSTR,RIOT,XYZ,IBIT,$BTCUSD,$ETHUSD,$ADAUSD,$SOLUSD,$SUIUSD)
 - [zombie](https://stockcharts.com/freecharts/candleglance.html?UBER,DASH,PTON,SHAK,AFRM,SNAP,BYND,HOOD,CVNA,RIVN,CHWY,TLRY)
 - [watch](watch.html)
-- [finviz change from open](https://finviz.com/screener.ashx?v=171&o=-changeopen&t=SPY,XLY,XLC,XLK,XLI,XLB,XLE,XLP,XLV,XLU,XLF,GLD,JNK,QQQ,IWM,GLD,IBIT,TLT,REM,UUP,SMH)
+- [finviz change from open](chgopen.html)
 - [finviz >100](https://finviz.com/screener.ashx?v=211&t=AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,ASML,PYPL,NFLX,NOW,XLK&o=-low52w) [finviz 25-100](https://finviz.com/screener.ashx?v=211&t=team,snow,snps,meli,crwd,sq,shop,wday,ftnt,anet,ddog,dxcm,ilmn,veev,ttd,vrtx,abnb&o=-low52w) [finviz 10-25](https://finviz.com/screener.ashx?v=211&t=zm,zs,payc,spot,ttwo,hubs,tyl,pins,u,twlo,docu,path,roku,swav,axon&o=-low52w) [finviz 10](https://finviz.com/screener.ashx?v=211&t=masi,cflt,cgnx,iivi,txrh,docn,appn,vrns,upst,lmnd,fvrr,mttr,sfix,brze,om&o=-low52w) [IPO](https://finviz.com/screener.ashx?v=211&t=ALGM,GFS,ASX,PWSC,VERX,RBLX,INMD,EXTR,ROIV,ARRY,MAXN,SHLS,NOVA,PACB,EXAS,STEM&o=-rsi)
 
 You can use the [editor on GitHub](https://github.com/ntpdev/scripts.py/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.

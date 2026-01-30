@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finviz Screener - Change from Open</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --color-positive: #198754;
+            --color-negative: #dc3545;
+            --color-rsi-high: #198754;
+            --color-rsi-low: #dc3545;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            padding: 2rem 1rem;
+        }
+
+        .screener-container {
+            max-width: fit-content;
+            margin: 0 auto;
+        }
+
+        .screener-title {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: #212529;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            overflow: hidden;
+        }
+
+        .screener-table {
+            margin-bottom: 0;
+        }
+
+        .screener-table thead {
+            background-color: #212529;
+            color: white;
+        }
+
+        .screener-table th {
+            font-weight: 600;
+            border: none;
+            white-space: nowrap;
+            width: 10em;
+        }
+
+        .screener-table td {
+            width: 10em;
+        }
+
+        .screener-table td {
+            vertical-align: middle;
+        }
+
+        .ticker-cell {
+            font-weight: 600;
+            color: #0dcaf0;
+            white-space: nowrap;
+        }
+
+        .number-cell {
+            text-align: right;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .positive {
+            color: var(--color-positive);
+        }
+
+        .negative {
+            color: var(--color-negative);
+        }
+
+        .rsi-high {
+            color: var(--color-rsi-high);
+            font-weight: 600;
+        }
+
+        .rsi-low {
+            color: var(--color-rsi-low);
+            font-weight: 600;
+        }
+
+        .rsi-normal {
+            color: inherit;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+
+        .btn-refresh {
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="screener-container">
+        <h1 class="screener-title">Sector change from Open</h1>
+        
+        <div id="loadingOverlay" class="loading-overlay">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Fetching data from Finviz...</p>
+        </div>
+
+        <div id="errorMessage" class="error-message d-none">
+            <div class="alert alert-danger" role="alert">
+                <h4 class="alert-heading">Error Loading Data</h4>
+                <p id="errorText">Unable to fetch data from Finviz.</p>
+                <hr>
+                <p class="mb-0">This may be due to CORS restrictions. Try using a CORS proxy or run this page via a local server.</p>
+            </div>
+            <button class="btn btn-primary btn-refresh" onclick="app.loadData()">Retry</button>
+        </div>
+
+        <div id="tableContainer" class="table-container d-none">
+            <table class="table table-hover screener-table">
+                <thead>
+                    <tr>
+                        <th>Ticker</th>
+                        <th class="text-end">Price $</th>
+                        <th class="text-end">RSI</th>
+                        <th class="text-end">Change %</th>
+                        <th class="text-end">Chg Open %</th>
+                        <th class="text-end">DTV ($M)</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+            <div id="sourceFooter" class="source-footer text-end text-muted small p-2"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        const ETF_TICKERS = ['SPY', 'XLY', 'XLC', 'XLK', 'XLI', 'XLB', 'XLE', 'XLP', 'XLV', 'XLU', 'XLF', 'XLRE', 'GLD', 'JNK', 'QQQ', 'IWM', 'IBIT', 'TLT', 'SMH', 'EEM'];
+
+        const parseNumber = (text) => {
+            const cleaned = text?.toString().trim().replace(/[% ,]/g, '') ?? '0';
+            return cleaned === '-' ? 0 : parseFloat(cleaned) || 0;
+        };
+
+        const parseIntValue = (text) => {
+            const cleaned = text?.toString().trim().replace(/[,]/g, '') ?? '0';
+            return parseInt(cleaned, 10) || 0;
+        };
+
+        const formatSignedPercent = (value) => {
+            const sign = value >= 0 ? '+' : '';
+            const className = value >= 0 ? 'positive' : 'negative';
+            return `<span class="${className}">${sign}${value.toFixed(2)}</span>`;
+        };
+
+        const formatRSI = (value) => {
+            const rounded = Math.round(value);
+            if (rounded >= 70) return `<span class="rsi-high">${rounded}</span>`;
+            if (rounded <= 30) return `<span class="rsi-low">${rounded}</span>`;
+            return `<span class="rsi-normal">${rounded}</span>`;
+        };
+
+        const extractTechnicalData = (html) => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const table = doc.querySelector('table.screener_table');
+            
+            if (!table) return [];
+
+            const tbody = table.querySelector('tbody');
+            const rows = tbody 
+                ? tbody.querySelectorAll('tr')
+                : table.querySelectorAll('tr:not(:first-child)');
+
+            const results = [];
+
+            for (const row of rows) {
+                const cells = row.querySelectorAll('td');
+                if (cells.length < 15) continue;
+
+                const values = Array.from(cells).map(cell => cell.textContent.trim());
+
+                results.push({
+                    no: parseIntValue(values[0]),
+                    ticker: values[1],
+                    beta: parseNumber(values[2]),
+                    atr: parseNumber(values[3]),
+                    sma20: parseNumber(values[4]),
+                    sma50: parseNumber(values[5]),
+                    sma200: parseNumber(values[6]),
+                    high52w: parseNumber(values[7]),
+                    low52w: parseNumber(values[8]),
+                    rsi: parseNumber(values[9]),
+                    price: parseNumber(values[10]),
+                    change: parseNumber(values[11]),
+                    changeFromOpen: parseNumber(values[12]),
+                    gap: parseNumber(values[13]),
+                    volume: parseIntValue(values[14])
+                });
+            }
+
+            return results;
+        };
+
+        const makeTechnicalUrl = (tickers) => {
+            return `https://finviz.com/screener.ashx?v=171&o=-changeopen&t=${tickers.join(',')}`;
+        };
+
+        const createTableRow = (row) => {
+            const dollarVolumeM = (row.price * row.volume) / 1_000_000;
+
+            return `
+                <tr>
+                    <td class="ticker-cell">${row.ticker}</td>
+                    <td class="number-cell">${row.price.toFixed(2)}</td>
+                    <td class="number-cell">${formatRSI(row.rsi)}</td>
+                    <td class="number-cell">${formatSignedPercent(row.change)}</td>
+                    <td class="number-cell">${formatSignedPercent(row.changeFromOpen)}</td>
+                    <td class="number-cell">${dollarVolumeM.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+                </tr>
+            `;
+        };
+
+        const renderTable = (data) => {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = data.map(createTableRow).join('');
+        };
+
+        const updateSourceFooter = () => {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const footer = document.getElementById('sourceFooter');
+            footer.textContent = `source Finviz ${hours}:${minutes}`;
+        };
+
+        const showLoading = (show) => {
+            document.getElementById('loadingOverlay').classList.toggle('d-none', !show);
+        };
+
+        const showError = (show, message = '') => {
+            const errorEl = document.getElementById('errorMessage');
+            const tableEl = document.getElementById('tableContainer');
+            
+            errorEl.classList.toggle('d-none', !show);
+            tableEl.classList.toggle('d-none', show);
+            
+            if (message) {
+                document.getElementById('errorText').textContent = message;
+            }
+        };
+
+        const showTable = () => {
+            document.getElementById('tableContainer').classList.remove('d-none');
+        };
+
+        const fetchWithProxy = async (url) => {
+            const proxies = [
+                `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+            ];
+
+            for (const proxyUrl of proxies) {
+                try {
+                    const response = await fetch(proxyUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                        }
+                    });
+
+                    if (response.ok) {
+                        return await response.text();
+                    }
+                } catch {
+                    continue;
+                }
+            }
+
+            throw new Error('All proxy attempts failed');
+        };
+
+        const loadData = async () => {
+            showLoading(true);
+            showError(false);
+
+            try {
+                const url = makeTechnicalUrl(ETF_TICKERS);
+                const html = await fetchWithProxy(url);
+                const data = extractTechnicalData(html);
+
+                if (data.length === 0) {
+                    throw new Error('No data found in response');
+                }
+
+                renderTable(data);
+                updateSourceFooter();
+                showTable();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError(true, error.message);
+            } finally {
+                showLoading(false);
+            }
+        };
+
+        const app = { loadData };
+        globalThis.app = app;
+
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>

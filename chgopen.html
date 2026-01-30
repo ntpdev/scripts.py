@@ -239,7 +239,7 @@
 
             return `
                 <tr>
-                    <td class="ticker-cell">${row.ticker}</td>
+                    <td class="ticker-cell"><a href="https://stockcharts.com/freecharts/gallery.html?${row.ticker}" target="_blank" style="color: inherit; text-decoration: none;">${row.ticker}</a></td>
                     <td class="number-cell">${row.price.toFixed(2)}</td>
                     <td class="number-cell">${formatRSI(row.rsi)}</td>
                     <td class="number-cell">${formatSignedPercent(row.change)}</td>

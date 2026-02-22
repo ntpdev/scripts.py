@@ -8,7 +8,7 @@
 - [Top DTV](https://stockcharts.com/freecharts/candleglance.html?SNDK,MU,NVDA,AVGO,AAPL,META,TSLA,AMD,PLTR,MSFT,AMZN,GOOGL)
 - [Index ETF](https://stockcharts.com/freecharts/candleglance.html?SPY,QQQ,DIA,SPSM,TLT,JNK,GLD,XLK,XLY,XLF,$USDJPY,$EURUSD)
 - [Fool large small cap](bigcf.html)
-- [SPY](https://schrts.co/vmqqNvAC)
+- [SPY](https://schrts.co/UiRyAjVN)
 - [AAII bull bear](https://schrts.co/kfTVkXkg)
 - [SPY 15m 5d sma](https://www.barchart.com/etfs-funds/quotes/SPY/technical-chart?plot=CANDLE&volume=total&data=I:15&density=M60&pricesOn=0&asPctChange=0&logscale=0&im=15&indicators=SMA(130);DASH(472.16,wk)&sym=SPY&grid=1&height=375&studyheight=100)
 - [fool](https://stockcharts.com/freecharts/candleglance.html?COST,SBUX,ZM,MELI,RKT,CRWD,SHOP,OKTA,UPST,AXON,ETSY,TTD)

@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stock Charts Gallery</title>
+  <!-- Tailwind CSS v4 via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <!-- GLightbox CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/glightbox/dist/css/glightbox.min.css" />
+  <style>
+    /* Prevent horizontal scroll when lightbox is open */
+    body.glightbox-open {
+      overflow: hidden !important;
+    }
+
+    /* Keep the slide from becoming scrollable */
+    .glightbox-clean .gslide-inner-content {
+      overflow: hidden !important;
+    }
+
+    /* Center the image and constrain to viewport */
+    .glightbox-clean .gslide-image {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      overflow: hidden !important;
+    }
+
+    /* Scale the image to fit within the available viewport space */
+    .glightbox-clean .gslide-image img {
+      max-width: calc(100vw - 4rem) !important;
+      max-height: calc(100vh - 8rem) !important;
+      object-fit: contain !important;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gray-900 text-gray-100 p-4 md:p-6 lg:p-8">
+  <div class="max-w-7xl mx-auto">
+    <!-- Page Title -->
+    <h1 class="text-3xl md:text-4xl font-bold text-center mb-6 text-white">Stock Charts Gallery</h1>
+
+    <!-- Controls -->
+    <div class="mb-8 flex flex-col sm:flex-row gap-4 items-end justify-start">
+      <div class="flex-1 w-full sm:max-w-md">
+        <label for="symbolsInput" class="block text-sm font-medium text-gray-300 mb-1">Symbols</label>
+        <input
+          type="text"
+          id="symbolsInput"
+          class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="Enter symbols separated by spaces"
+        >
+      </div>
+      <button
+        id="updateBtn"
+        class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+      >
+        Update
+      </button>
+      <div class="w-full sm:w-48">
+        <label for="groupsSelect" class="block text-sm font-medium text-gray-300 mb-1">Groups</label>
+        <select
+          id="groupsSelect"
+          class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="">Select a group...</option>
+          <option value="index">Index</option>
+          <option value="fangman">FANGMAN+T</option>
+          <option value="crypto">Crypto</option>
+          <option value="popular">Popular</option>
+          <option value="nuclear">Nuclear</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Chart Gallery Grid -->
+    <div id="chartGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    </div>
+  </div>
+
+  <!-- GLightbox JS -->
+  <script src="https://cdn.jsdelivr.net/gh/mcstudios/glightbox/dist/js/glightbox.min.js"></script>
+  <script>
+    const CHART_BASE_URL = 'https://charts2-node.finviz.com/chart.ashx?cs=&t=SYMBOL&tf=d&s=linear&pm=240&am=1200&ct=candle_stick&tm=d&o[0][ot]=sma&o[0][op]=50&o[0][oc]=FF8F33C6&o[1][ot]=sma&o[1][op]=200&o[1][oc]=DCB3326D&o[2][ot]=patterns&o[2][op]=&o[2][oc]=000&sf=2';
+
+    let lightbox = null;
+
+    const initLightbox = () => {
+      lightbox = GLightbox({
+        selector: '.glightbox',
+        openEffect: 'zoom',
+        closeEffect: 'zoom',
+        cssEfects: {
+          fade: { in: 'fadeIn', out: 'fadeOut' },
+          zoom: { in: 'zoomIn', out: 'zoomOut' }
+        },
+        loop: true
+      });
+    };
+
+    const addStockCharts = (symbols) => {
+      if (!Array.isArray(symbols)) {
+        console.error('symbols must be an array');
+        return;
+      }
+
+      const chartGrid = document.getElementById('chartGrid');
+      if (!chartGrid) {
+        console.error('Chart grid container not found');
+        return;
+      }
+
+      chartGrid.replaceChildren();
+
+      const fragment = document.createDocumentFragment();
+
+      for (const symbol of symbols) {
+        if (typeof symbol !== 'string') {
+          console.warn(`Skipping non-string symbol: ${symbol}`);
+          continue;
+        }
+
+        const upperSymbol = symbol.toUpperCase();
+        const chartUrl = CHART_BASE_URL.replace('SYMBOL', upperSymbol);
+
+        // Create anchor for GLightbox
+        const anchor = document.createElement('a');
+        anchor.href = chartUrl;
+        anchor.className = 'glightbox group block relative aspect-[4/3] overflow-hidden rounded-lg bg-gray-800';
+        anchor.setAttribute('data-gallery', 'stock-charts');
+
+        // Create thumbnail image
+        const img = document.createElement('img');
+        img.src = chartUrl;
+        img.alt = `${upperSymbol} Chart`;
+        img.className = 'w-full h-full object-contain transition-transform duration-300 ease-in-out group-hover:scale-105';
+        img.loading = 'lazy';
+
+        // Symbol label overlay
+        const label = document.createElement('div');
+        label.className = 'absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2';
+        label.innerHTML = `<span class="text-sm font-semibold text-white">${upperSymbol}</span>`;
+
+        anchor.append(img, label);
+        fragment.append(anchor);
+      }
+
+      chartGrid.append(fragment);
+
+      // Reinitialize GLightbox after adding new elements
+      if (lightbox) {
+        lightbox.reload();
+      }
+    };
+
+    const parseSymbols = (input) => {
+      return input
+        .trim()
+        .split(/\s+/)
+        .filter(symbol => symbol.length > 0);
+    };
+
+    const handleUpdate = () => {
+      const input = document.getElementById('symbolsInput');
+      if (!input) {
+        console.error('Symbols input not found');
+        return;
+      }
+
+      const symbols = parseSymbols(input.value);
+      if (symbols.length === 0) {
+        console.warn('No symbols provided');
+        return;
+      }
+
+      addStockCharts(symbols);
+    };
+
+    const handleGroupChange = (event) => {
+      const select = event.target;
+      const selectedValue = select.value;
+
+      if (!selectedValue) {
+        return;
+      }
+
+      const groupSymbols = {
+        fangman: 'AAPL LLY GOOGL AVGO AMZN XLK TSLA META COST NVDA MSFT NFLX',
+        crypto: 'BMNR COIN MARA MSTR RIOT XYZ IBIT',
+        index: 'SPY QQQ DIA SPSM TLT JNK GLD XLK XLY XLF',
+        popular: 'SNDK MU NVDA AVGO AAPL META TSLA AMD PLTR MSFT AMZN GOOGL',
+        nuclear: 'OKLO VST SMR NNE LEU UEC CCJ NXE UUUU URG UROY NLR'
+      };
+
+      const symbols = groupSymbols[selectedValue];
+
+      if (symbols) {
+        const input = document.getElementById('symbolsInput');
+        if (input) {
+          input.value = symbols;
+          handleUpdate();
+        }
+      }
+    };
+
+    globalThis.addStockCharts = addStockCharts;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Initialize GLightbox
+      initLightbox();
+
+      const updateBtn = document.getElementById('updateBtn');
+      if (updateBtn) {
+        updateBtn.addEventListener('click', handleUpdate);
+      }
+
+      const symbolsInput = document.getElementById('symbolsInput');
+      if (symbolsInput) {
+        symbolsInput.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') {
+            handleUpdate();
+          }
+        });
+      }
+
+      const groupsSelect = document.getElementById('groupsSelect');
+      if (groupsSelect) {
+        groupsSelect.addEventListener('change', handleGroupChange);
+      }
+    });
+  </script>
+</body>
+</html>

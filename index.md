@@ -15,6 +15,7 @@
 - [crypto](https://stockcharts.com/freecharts/candleglance.html?BMNR,COIN,MARA,MSTR,RIOT,XYZ,IBIT,$BTCUSD,$ETHUSD,$ADAUSD,$SOLUSD,$SUIUSD)
 - [zombie](https://stockcharts.com/freecharts/candleglance.html?UBER,DASH,PTON,SHAK,AFRM,SNAP,BYND,HOOD,CVNA,RIVN,CHWY,TLRY)
 - [watch](watch.html)
+- [finviz charts](fnzcharts.html)
 - [finviz change from open](chgopen.html)
 - [finviz >100](https://finviz.com/screener.ashx?v=211&t=AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,ASML,PYPL,NFLX,NOW,XLK&o=-low52w) [finviz 25-100](https://finviz.com/screener.ashx?v=211&t=team,snow,snps,meli,crwd,sq,shop,wday,ftnt,anet,ddog,dxcm,ilmn,veev,ttd,vrtx,abnb&o=-low52w) [finviz 10-25](https://finviz.com/screener.ashx?v=211&t=zm,zs,payc,spot,ttwo,hubs,tyl,pins,u,twlo,docu,path,roku,swav,axon&o=-low52w) [finviz 10](https://finviz.com/screener.ashx?v=211&t=masi,cflt,cgnx,iivi,txrh,docn,appn,vrns,upst,lmnd,fvrr,mttr,sfix,brze,om&o=-low52w) [IPO](https://finviz.com/screener.ashx?v=211&t=ALGM,GFS,ASX,PWSC,VERX,RBLX,INMD,EXTR,ROIV,ARRY,MAXN,SHLS,NOVA,PACB,EXAS,STEM&o=-rsi)
 

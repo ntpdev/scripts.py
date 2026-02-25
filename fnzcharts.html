@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stock Charts Gallery</title>
+  <title>Finviz Gallery</title>
   <!-- Tailwind CSS v4 via CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <!-- GLightbox CSS -->
@@ -13,32 +13,12 @@
     body.glightbox-open {
       overflow: hidden !important;
     }
-
-    /* Keep the slide from becoming scrollable */
-    .glightbox-clean .gslide-inner-content {
-      overflow: hidden !important;
-    }
-
-    /* Center the image and constrain to viewport */
-    .glightbox-clean .gslide-image {
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      overflow: hidden !important;
-    }
-
-    /* Scale the image to fit within the available viewport space */
-    .glightbox-clean .gslide-image img {
-      max-width: calc(100vw - 4rem) !important;
-      max-height: calc(100vh - 8rem) !important;
-      object-fit: contain !important;
-    }
   </style>
 </head>
 <body class="min-h-screen bg-gray-900 text-gray-100 p-4 md:p-6 lg:p-8">
   <div class="max-w-7xl mx-auto">
     <!-- Page Title -->
-    <h1 class="text-3xl md:text-4xl font-bold text-center mb-6 text-white">Stock Charts Gallery</h1>
+    <h1 class="text-3xl md:text-4xl font-bold text-center mb-6 text-white">Finviz Gallery</h1>
 
     <!-- Controls -->
     <div class="mb-8 flex flex-col sm:flex-row gap-4 items-end justify-start">
@@ -68,6 +48,7 @@
           <option value="fangman">FANGMAN+T</option>
           <option value="crypto">Crypto</option>
           <option value="popular">Popular</option>
+          <option value="ipo">IPO</option>
           <option value="nuclear">Nuclear</option>
         </select>
       </div>
@@ -94,7 +75,9 @@
           fade: { in: 'fadeIn', out: 'fadeOut' },
           zoom: { in: 'zoomIn', out: 'zoomOut' }
         },
-        loop: true
+        loop: true,
+        width: '928px',
+        height: '460px'
       });
     };
 
@@ -187,8 +170,9 @@
       const groupSymbols = {
         fangman: 'AAPL LLY GOOGL AVGO AMZN XLK TSLA META COST NVDA MSFT NFLX',
         crypto: 'BMNR COIN MARA MSTR RIOT XYZ IBIT',
-        index: 'SPY QQQ DIA SPSM TLT JNK GLD XLK XLY XLF',
+        index: 'SPY QQQ DIA SPSM TLT JNK GLD XLK XLY XLF EZU IBIT',
         popular: 'SNDK MU NVDA AVGO AAPL META TSLA AMD PLTR MSFT AMZN GOOGL',
+        ipo: 'ARM BMNR CRCL CRWV FIG FIGR NAVN RKLB SERV VG',
         nuclear: 'OKLO VST SMR NNE LEU UEC CCJ NXE UUUU URG UROY NLR'
       };
 

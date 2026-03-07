@@ -57,6 +57,11 @@
     <!-- Chart Gallery Grid -->
     <div id="chartGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
     </div>
+    
+    <!-- Finviz Link -->
+    <div class="mt-6 text-center">
+      <a id="lnk_finviz" href="https://finviz.com" target="_blank" class="text-blue-400 hover:text-blue-300 underline">finviz</a>
+    </div>
   </div>
 
   <!-- GLightbox JS -->
@@ -96,6 +101,11 @@
       chartGrid.replaceChildren();
 
       const fragment = document.createDocumentFragment();
+      
+      const lnk_finviz = document.getElementById('lnk_finviz');
+      if (lnk_finviz) {
+        lnk_finviz.href = 'https://finviz.com/screener.ashx?v=171&t=' + symbols.join(',') + '&o=-rsi';
+      }
 
       for (const symbol of symbols) {
         if (typeof symbol !== 'string') {

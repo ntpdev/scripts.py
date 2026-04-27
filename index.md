@@ -4,8 +4,8 @@
 - [ADVFN](adv.html)
 - [Calculator](tgt.html)
 - [ES](https://www.barchart.com/futures/quotes/ES*0/technical-chart?plot=CANDLE&volume=contract&data=I:30&density=X&pricesOn=0&asPctChange=0&logscale=0&im=30&indicators=SMA(40);SMACD(3,10,16)&sym=ESU22&grid=1&height=375&studyheight=100&timeframe=4%20Months)
-- [FANGMAN+T](https://stockcharts.com/freecharts/candleglance.html?NFLX,COST,AMZN,AAPL,AVGO,NVDA,TSLA,XLK,LLY,GOOGL,META,MSFT)
-- [Top DTV](https://stockcharts.com/freecharts/candleglance.html?SNDK,MU,NVDA,AVGO,AAPL,META,TSLA,AMD,PLTR,MSFT,AMZN,GOOGL)
+- [Top SCTR](https://stockcharts.com/freecharts/candleglance.html?SNDK,LITE,WDC,CIEN,TER,TTMI,AMKR,INTC,STX,BE,COHR,ASX)
+- [Top DTV](https://stockcharts.com/freecharts/candleglance.html?SNDK,INTC,MU,AMD,AVGO,GOOGL,AMZN,NVDA,AAPL,META,MSFT,TSLA)
 - [Index ETF](https://stockcharts.com/freecharts/candleglance.html?SPY,QQQ,DIA,SPSM,TLT,JNK,GLD,XLK,XLY,XLF,$USDJPY,$EURUSD)
 - [Fool large small cap](bigcf.html) **broken**
 - [SPY with 5% dd](https://schrts.co/dgcVdKbd)

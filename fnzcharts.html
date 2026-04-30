@@ -149,7 +149,7 @@
     const parseSymbols = (input) => {
       return input
         .trim()
-        .split(/\s+/)
+        .split(/[,\s]+/)
         .filter(symbol => symbol.length > 0);
     };
 
@@ -178,12 +178,15 @@
       }
 
       const groupSymbols = {
-        fangman: 'AAPL LLY GOOGL AVGO AMZN XLK TSLA META COST NVDA MSFT NFLX',
-        crypto: 'BMNR COIN MARA MSTR RIOT XYZ IBIT',
+        dtv: 'NVDA INTC MU AMZN TSLA AMD MSFT GOOGL SNDK META AAPL STX',
+        crypto: 'BMNR COIN CRCL IREN MARA MSTR RIOT XYZ IBIT',
         index: 'SPY QQQ DIA SPSM TLT JNK GLD XLK XLY XLF EZU IBIT',
         popular: 'SNDK MU NVDA AVGO AAPL META TSLA AMD PLTR MSFT AMZN GOOGL',
-        ipo: 'ARM BMNR CRCL CRWV FIG FIGR NAVN RKLB SERV VG',
-        nuclear: 'OKLO VST SMR NNE LEU UEC CCJ NXE UUUU URG UROY NLR'
+        ipo: 'ARM BMNR CRCL CRWV FIG FIGR IREN NAVN RKLB SERV VG',
+        nuclear: 'OKLO VST SMR NNE LEU UEC CCJ NXE UUUU URG UROY NLR',
+        sctr: 'SNDK WDC INTC STX MU MRVL GEV AMD TXN VRT GLW ADI',
+        sctr2: 'LITE,BE,CIEN,RVMD,TTMI,ASX,STM,TSEM,AMKR,ON,ONTO,COHR',
+        eft: 'SPY QQQ XLK XLY XLF GLD EEM SMH GDX PBW TLT JNK'
       };
 
       const symbols = groupSymbols[selectedValue];

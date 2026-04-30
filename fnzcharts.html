@@ -45,11 +45,13 @@
         >
           <option value="">Select a group...</option>
           <option value="index">Index</option>
-          <option value="fangman">FANGMAN+T</option>
+          <option value="dtv">Top DTV</option>
           <option value="crypto">Crypto</option>
           <option value="popular">Popular</option>
           <option value="ipo">IPO</option>
           <option value="nuclear">Nuclear</option>
+          <option value="sctr">Top SCTR large</option>
+          <option value="sctr2">Top SCTR medium</option>
         </select>
       </div>
     </div>
@@ -180,13 +182,12 @@
       const groupSymbols = {
         dtv: 'NVDA INTC MU AMZN TSLA AMD MSFT GOOGL SNDK META AAPL STX',
         crypto: 'BMNR COIN CRCL IREN MARA MSTR RIOT XYZ IBIT',
-        index: 'SPY QQQ DIA SPSM TLT JNK GLD XLK XLY XLF EZU IBIT',
+        index: 'SPY QQQ SPSM SMH TLT JNK GLD XLK XLY XLF EZU IBIT',
         popular: 'SNDK MU NVDA AVGO AAPL META TSLA AMD PLTR MSFT AMZN GOOGL',
         ipo: 'ARM BMNR CRCL CRWV FIG FIGR IREN NAVN RKLB SERV VG',
         nuclear: 'OKLO VST SMR NNE LEU UEC CCJ NXE UUUU URG UROY NLR',
         sctr: 'SNDK WDC INTC STX MU MRVL GEV AMD TXN VRT GLW ADI',
         sctr2: 'LITE,BE,CIEN,RVMD,TTMI,ASX,STM,TSEM,AMKR,ON,ONTO,COHR',
-        eft: 'SPY QQQ XLK XLY XLF GLD EEM SMH GDX PBW TLT JNK'
       };
 
       const symbols = groupSymbols[selectedValue];

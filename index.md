@@ -14,6 +14,7 @@
 - [SPY 15m 5d sma](https://www.barchart.com/etfs-funds/quotes/SPY/technical-chart?plot=CANDLE&volume=total&data=I:15&density=M60&pricesOn=0&asPctChange=0&logscale=0&im=15&indicators=SMA(130);DASH(472.16,wk)&sym=SPY&grid=1&height=375&studyheight=100)
 - [fool](https://stockcharts.com/freecharts/candleglance.html?COST,SBUX,ZM,MELI,RKT,CRWD,SHOP,OKTA,UPST,AXON,ETSY,TTD)
 - [crypto](https://stockcharts.com/freecharts/candleglance.html?BMNR,COIN,CRCL,MARA,MSTR,RIOT,IBIT,$BTCUSD,$ETHUSD,$ADAUSD,$SOLUSD,$SUIUSD)
+- [space](https://stockcharts.com/freecharts/candleglance.html?PL,LUNR,BKSY,RKLB,RDW,LHX,BBAI,LMT,LDOS,ASTS,JOBY)
 - [zombie](https://stockcharts.com/freecharts/candleglance.html?UBER,DASH,PTON,SHAK,AFRM,SNAP,BYND,HOOD,CVNA,RIVN,CHWY,TLRY)
 - [watch](watch.html)
 - [finviz charts](fnzcharts.html)

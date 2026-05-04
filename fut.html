@@ -38,7 +38,7 @@
         
         col.innerHTML = `
           ${['i5', 'h', 'd'].map(tf => 
-            `<img src="https://charts2-node.finviz.com/chart.ashx?cs=m&t=%40${finviz}&tf=${tf}&s=linear&ct=candle_stick" class="p-1"/>`
+            `<img srcset="https://charts2-node.finviz.com/chart?w=324&amp;h=219&amp;bw=2&amp;bm=1&amp;bb=1&amp;t=%40${finviz}&amp;tf=${tf}&amp;s=linear&amp;pm=0&amp;am=0&amp;ct=candle_stick&amp 1x, https://charts2-node.finviz.com/chart?w=324&amp;h=219&amp;bw=2&amp;bm=1&amp;bb=1&amp;t=%40${finviz}&amp;tf=${tf}&amp;s=linear&amp;pm=0&amp;am=0&amp;ct=candle_stick&amp;sf=2&amp 2x" width="324" height="219" class="p-1"/>`
           ).join('<br>')}
           <br>
           <a href="https://www.cmegroup.com/apps/cmegroup/widgets/productLibs/esignal-charts.html?${

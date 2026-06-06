@@ -7,10 +7,10 @@
 - [Top SCTR](https://stockcharts.com/freecharts/candleglance.html?SNDK,LITE,WDC,CIEN,TER,TTMI,AMKR,INTC,STX,BE,COHR,ASX)
 - [Top DTV](https://stockcharts.com/freecharts/candleglance.html?AAPL,MU,SNDK,AMD,MSFT,GOOGL,NVDA,INTC,META,TSLA,AVGO,AMZN)
 - [Index ETF](https://stockcharts.com/freecharts/candleglance.html?SPY,QQQ,DIA,SPSM,TLT,JNK,GLD,XLK,XLY,XLF,$USDJPY,$EURUSD)
-- [Volatilty Breadth](https://stockcharts.com/freecharts/candleglance.html?$VIX,$MOVE,$NYMO,$SPXA50R,$UST2Y,$UST10Y,$USD,$CRB,$BTCUSD,GLD,$SPX,$NDX|B|null)
+- [Volatilty & Breadth](https://stockcharts.com/freecharts/candleglance.html?$VIX,$MOVE,$NYMO,$SPXA50R,$UST2Y,$UST10Y,$USD,$CRB,$BTCUSD,GLD,$SPX,$NDX)
 - [Fool large small cap](bigcf.html) **broken**
 - [SPY with 5% dd](https://schrts.co/REPfqVMJ)
-- [QQQ with 10% dd](https://schrts.co/ThqDbrXF)
+- [QQQ with 10% dd](https://schrts.co/cyPVkCQs)
 - [AAII bull bear](https://schrts.co/kfTVkXkg)
 - [SPY 15m 5d sma](https://www.barchart.com/etfs-funds/quotes/SPY/technical-chart?plot=CANDLE&volume=total&data=I:15&density=M60&pricesOn=0&asPctChange=0&logscale=0&im=15&indicators=SMA(130);DASH(472.16,wk)&sym=SPY&grid=1&height=375&studyheight=100)
 - [fool](https://stockcharts.com/freecharts/candleglance.html?OKTA,AXON,DOCN,ETSY,CRWD,ZM,SHOP,UPST,COST,MELI,TTD,RKT)

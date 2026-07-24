@@ -12,41 +12,44 @@
     body { background-color: #fdf6e3; }
 
     .form-container { padding: 20px; }
-    
+
     .form-row {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       margin-bottom: 15px;
     }
-    
+
     .control-group { display: inline-flex; align-items: center; }
-    
+
     .control-group label { white-space: nowrap; }
-    
-    .form-control { width: 6em; }   
-   
+
+    .form-control { width: 6em; }
+    #txtStop { width: 7em; }
+
     .slider-container {
       display: flex;
       align-items: center;
       margin-right: 10px;
     }
-    
+
     .form-range { width: 9em; }
-    
+
     .card {
       height: fit-content;
-      max-width: 24em;
+      max-width: 32em;
       width: 100%;
     }
-    
-   
+
+    .targets-table input { width: 100%; }
+    .targets-table .cell-num input { text-align: right; }
+
     @media (max-width: 800px) {
       .form-card-container { flex-direction: column; }
-      
+
       /* Mobile specific styles */
       body { font-size: 16px; }
-      
+
       .card { max-width: 100%; }
     }
   </style>
@@ -57,49 +60,91 @@
       <!-- Form Section -->
       <div class="col-lg-6 form-section">
         <form id="tradeForm">
-          <!-- First Row -->
+          <!-- Stop + quick target row -->
           <div class="form-row">
-            <div class="control-group">
-              <label for="txtTarget" class="form-label">Target</label>
-              <input type="number" id="txtTarget" class="form-control mx-2" />
-            </div>
-            
             <div class="control-group">
               <label for="txtStop" class="form-label">Stop</label>
-              <input type="number" id="txtStop" class="form-control ms-2" />
+              <input type="number" id="txtStop" class="form-control mx-2" step="0.25" />
             </div>
-            
+
             <div class="control-group">
-              <button type="button" id="btnCalc" class="btn btn-primary ms-2"><i class="bi bi-calculator"></i></button>
+              <label for="txtQuickTarget" class="form-label">Target</label>
+              <input type="number" id="txtQuickTarget" class="form-control mx-2" step="0.25" />
+            </div>
+
+            <div class="control-group">
+              <button type="button" id="btnSet" class="btn btn-success"><i class="bi bi-check2-circle"></i> Set</button>
             </div>
           </div>
-          
-          <!-- Second Row -->
+
+          <!-- Target ratio row -->
+          <div class="form-row">
+            <div class="control-group">
+              <label for="txtRatio" class="form-label">Target R:R</label>
+              <input type="number" id="txtRatio" class="form-control mx-2" step="0.05" value="2.75" />
+            </div>
+          </div>
+
+          <!-- Targets table -->
+          <div class="form-row">
+            <div class="control-group flex-grow-1">
+              <table class="table table-sm targets-table" id="targetsTable">
+                <thead>
+                  <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col" class="cell-num">Price</th>
+                    <th scope="col" class="cell-num">Contracts</th>
+                    <th scope="col"></th>
+                  </tr>
+                </thead>
+                <tbody id="targetsBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <button type="button" id="btnAddTarget" class="btn btn-sm btn-outline-secondary">+ Add target</button>
+          </div>
+
+          <!-- Slider row (distance mode) -->
           <div class="form-row">
             <div class="slider-container control-group">
-              <input id="slider" type="range" class="form-range" min="2" max="12" step="0.25" value="0" />
+              <label for="slider" class="form-label me-2">Distance</label>
+              <input id="slider" type="range" class="form-range" min="0.25" max="50" step="0.25" value="0.25" />
             </div>
-            
+
             <div class="control-group">
               <button id="sliderDecrement" type="button" class="btn btn-primary"><i class="bi bi-arrow-left-square"></i></button>
             </div>
-            
+
             <div class="control-group">
               <button id="sliderIncrement" type="button" class="btn btn-primary mx-2"><i class="bi bi-arrow-right-square"></i></button>
             </div>
-            
+
             <div class="control-group">
-              <input id="sliderTxt" type="number" class="form-control" />
+              <input id="sliderTxt" type="number" class="form-control" step="0.25" />
             </div>
+          </div>
+
+          <!-- Calc row -->
+          <div class="form-row">
+            <div class="control-group">
+              <button type="button" id="btnCalc" class="btn btn-primary"><i class="bi bi-calculator"></i> Calc</button>
+            </div>
+          </div>
+
+          <div class="form-row" id="errorRow" style="display:none;">
+            <div class="alert alert-danger py-2 mb-0" id="errorMsg" role="alert"></div>
           </div>
         </form>
       </div>
-      
+
       <!-- Card Section -->
       <div class="col-lg-6">
         <div class="card">
-          <div class="card-header bg-primary text-white">
+          <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">Trade prices</h5>
+            <span class="badge bg-light text-dark" id="directionBadge">—</span>
           </div>
           <div class="card-body p-0">
             <table class="table table-striped mb-0">
@@ -107,34 +152,12 @@
                 <tr>
                   <th scope="col">#</th>
                   <th scope="col">Price</th>
+                  <th scope="col" class="text-end">Offset</th>
+                  <th scope="col" class="text-end">Contracts</th>
+                  <th scope="col" class="text-end">Value</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr>
-                  <th scope="row">Target</th>
-                  <td id="tgt"></td>
-                </tr>
-                <tr>
-                  <th scope="row">Scale</th>
-                  <td id="scl"></td>
-                </tr>
-                <tr>
-                  <th scope="row">Entry</th>
-                  <td id="ent"></td>
-                </tr>
-                <tr>
-                  <th scope="row">Stop</th>
-                  <td id="stp"></td>
-                </tr>
-                <tr>
-                  <th scope="row">Risk</th>
-                  <td id="rsk"></td>
-                </tr>
-                <tr>
-                  <th scope="row">R:R</th>
-                  <td id="rr"></td>
-                </tr>
-              </tbody>
+              <tbody id="resultBody"></tbody>
             </table>
           </div>
         </div>
@@ -145,75 +168,323 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 <script>
     "use strict"
+    const STEP = 0.25
+    const LONG = "long"
+    const SHORT = "short"
+
     const slider = document.getElementById('slider');
     const sliderTxt = document.getElementById('sliderTxt');
     const slideInc = document.getElementById('sliderIncrement');
     const slideDec = document.getElementById('sliderDecrement');
-    const txtTarget = document.getElementById("txtTarget")
     const txtStop = document.getElementById("txtStop")
+    const txtQuickTarget = document.getElementById("txtQuickTarget")
+    const txtRatio = document.getElementById("txtRatio")
     const btnCalc = document.getElementById("btnCalc")
-    const clTgt = document.getElementById("tgt")
-    const clScl = document.getElementById("scl")
-    const clEnt = document.getElementById("ent")
-    const clStp = document.getElementById("stp")
-    const clRsk = document.getElementById("rsk")
-    const clRr = document.getElementById("rr")
+    const btnSet = document.getElementById("btnSet")
+    const btnAddTarget = document.getElementById("btnAddTarget")
+    const targetsBody = document.getElementById("targetsBody")
+    const resultBody = document.getElementById("resultBody")
+    const directionBadge = document.getElementById("directionBadge")
+    const errorRow = document.getElementById("errorRow")
+    const errorMsg = document.getElementById("errorMsg")
 
-    const tick = x => Math.round(x*4)/4
-    const calc_ratio = (n, r) => (r*n-1)/(n-1)
-    const calc_stop_size = (rng, ratio) => rng / (1 + ratio)
-    const calc_rr = (n, rng, stop_sz) => (stop_sz + (n-1) * (rng - stop_sz)) / (n * stop_sz)
+    // --- grid snap (round-half-up) ---
+    const tick = x => Math.round(x * 4) / 4
 
-    function calc_entry(stop, target, rr) {
-      const range = target - stop
-      const ratio = calc_ratio(3,rr)
-      const x = calc_stop_size(range, ratio)
-      return {stop, target, entry: tick(stop + x), scale: tick(stop + 2*x), stop_sz: tick(x), risk_reward: rr }
+    // --- target rows management ---
+    function addRow(name = "", price = "", contracts = "") {
+      const tr = document.createElement("tr")
+      const isScale = targetsBody.children.length === 0
+
+      // name
+      const tdName = document.createElement("td")
+      const inpName = document.createElement("input")
+      inpName.type = "text"
+      inpName.value = name || (isScale ? "scale" : "target")
+      inpName.className = "form-control form-control-sm"
+      tdName.appendChild(inpName)
+
+      // price
+      const tdPrice = document.createElement("td")
+      tdPrice.className = "cell-num"
+      const inpPrice = document.createElement("input")
+      inpPrice.type = "number"
+      inpPrice.value = price
+      inpPrice.step = "0.25"
+      inpPrice.className = "form-control form-control-sm"
+      if (isScale) {
+        // scale price is computed in ratio/distance mode -> read-only
+        inpPrice.readOnly = true
+        inpPrice.placeholder = "computed"
+      }
+      tdPrice.appendChild(inpPrice)
+
+      // contracts
+      const tdContracts = document.createElement("td")
+      tdContracts.className = "cell-num"
+      const inpContracts = document.createElement("input")
+      inpContracts.type = "number"
+      inpContracts.value = contracts !== "" ? contracts : 1
+      inpContracts.step = "1"
+      inpContracts.min = "0"
+      inpContracts.className = "form-control form-control-sm"
+      tdContracts.appendChild(inpContracts)
+
+      // remove
+      const tdRemove = document.createElement("td")
+      const btnRemove = document.createElement("button")
+      btnRemove.type = "button"
+      btnRemove.className = "btn btn-sm btn-outline-danger"
+      btnRemove.innerHTML = '<i class="bi bi-x"></i>'
+      btnRemove.addEventListener("click", () => removeRow(tr))
+      tdRemove.appendChild(btnRemove)
+
+      tr.appendChild(tdName)
+      tr.appendChild(tdPrice)
+      tr.appendChild(tdContracts)
+      tr.appendChild(tdRemove)
+      targetsBody.appendChild(tr)
     }
 
-    function calc_risk_reward(stop, target, stop_pts) {
-      if (stop > target) {
-        stop_pts = -stop_pts
+    function removeRow(tr) {
+      // keep at least 2 rows (scale + 1 price target)
+      if (targetsBody.children.length <= 2) return
+      targetsBody.removeChild(tr)
+      calcRiskReward()
+    }
+
+    function readTargets() {
+      // returns [{name, price, contracts}] where targets[0] is scale
+      const rows = [...targetsBody.children]
+      return rows.map(tr => {
+        const inputs = [...tr.querySelectorAll("input")]
+        return {
+          name: inputs[0].value || "target",
+          price: parseFloat(inputs[1].value),
+          contracts: parseFloat(inputs[2].value) || 0,
+          priceInput: inputs[1],
+        }
+      })
+    }
+
+    // --- calc logic mirroring src/futdata/calc.py ---
+    function detectDirection(stop, targets) {
+      const rest = targets.slice(1)
+      let above = 0, below = 0
+      for (const t of rest) {
+        if (t.price > stop) above += t.contracts
+        else if (t.price < stop) below += t.contracts
       }
-      const rr= calc_rr(3, target - stop, stop_pts)
-      return {stop, target, entry: tick(stop + stop_pts), scale: tick(stop + 2*stop_pts), stop_sz: stop_pts, risk_reward: rr }
+      if (above === below) {
+        throw new Error("cannot infer direction: price targets straddle the stop")
+      }
+      return above > below ? LONG : SHORT
+    }
+
+    const isLong = dir => dir === LONG
+    const sign = dir => isLong(dir) ? 1.0 : -1.0
+    const totalContracts = targets => targets.reduce((s, t) => s + t.contracts, 0)
+
+    // replicate _solve_d: solve R(d) = target_ratio then snap to STEP grid
+    function solveD(stop, targets, targetRatio) {
+      const dir = detectDirection(stop, targets)
+      const long = isLong(dir)
+      const scaleC = targets[0].contracts
+      const restC = targets.slice(1).reduce((s, t) => s + t.contracts, 0)
+      const c = scaleC + restC
+      const e = scaleC - restC
+      let a = 0
+      for (const t of targets.slice(1)) {
+        a += (long ? (t.price - stop) : (stop - t.price)) * t.contracts
+      }
+      const denom = c * (targetRatio - e / c)
+      if (denom === 0) throw new Error("degenerate target_ratio: division by zero")
+      const dAnalytic = a / denom
+      if (dAnalytic <= 0) throw new Error(`solved distance non-positive: ${dAnalytic}`)
+      // round-half-up toward smaller grid point (conservative)
+      const steps = Math.floor(dAnalytic / STEP + 0.5)
+      let d = tick(steps * STEP)
+      if (d <= 0) throw new Error(`snapped distance non-positive: ${d}`)
+      return d
+    }
+
+    function targetRewardSum(entry, dir, targets) {
+      const s = sign(dir)
+      return targets.reduce((sum, t) => sum + (t.price - entry) * s * t.contracts, 0)
+    }
+
+    function computeRatio(entry, risk, dir, targets) {
+      const riskAmount = risk * totalContracts(targets)
+      if (riskAmount === 0) return 0
+      return targetRewardSum(entry, dir, targets) / riskAmount
+    }
+
+    // Main entry point. mode = "risk" (distance mode) or "ratio" (target-ratio mode)
+    function tradeCalc({ stop, targets, targetRatio = 0, risk = 0 }) {
+      if (targets.length < 2) throw new Error("need at least one scale target and one price target")
+      if (risk <= 0 && targetRatio <= 0) throw new Error("either a positive target_ratio or a positive distance is required")
+      const dir = detectDirection(stop, targets)
+      const long = isLong(dir)
+
+      if (risk <= 0) {
+        // target-ratio mode: solve for d
+        risk = solveD(stop, targets, targetRatio)
+      }
+      if (risk <= 0) throw new Error(`distance must be positive, got ${risk}`)
+
+      const entry = stop + (long ? risk : -risk)
+      // scale target is symmetric to stop about entry
+      const scalePrice = entry + (long ? risk : -risk)
+      const localTargets = targets.map((t, i) => ({ ...t, price: i === 0 ? scalePrice : t.price }))
+      const ratio = computeRatio(entry, risk, dir, localTargets)
+
+      return {
+        stop, entry, scale: scalePrice, risk, ratio, direction: dir,
+        targets: localTargets,
+      }
+    }
+
+    // --- render ---
+    function showError(msg) {
+      errorMsg.textContent = msg
+      errorRow.style.display = ""
+    }
+    function clearError() {
+      errorRow.style.display = "none"
+      errorMsg.textContent = ""
+    }
+
+    // Build target rows like calc.py target_rows()
+    function targetRows(trade) {
+      const s = sign(trade.direction)
+      const rows = []
+      const total = totalContracts(trade.targets)
+      const stopOffset = -trade.risk
+      rows.push({ name: "stop", price: trade.stop, offset: stopOffset, contracts: total, value: stopOffset * total, note: "loss" })
+      rows.push({ name: "entry", price: trade.entry, offset: 0, contracts: 0, value: 0, note: "" })
+      for (const t of trade.targets) {
+        const offset = (t.price - trade.entry) * s
+        rows.push({ name: t.name, price: t.price, offset, contracts: t.contracts, value: offset * t.contracts, note: "" })
+      }
+      return rows
+    }
+
+    function fmt(x, places = 2) {
+      if (typeof x !== "number" || !isFinite(x)) return ""
+      return x.toFixed(places)
+    }
+
+    function updateUI(trade) {
+      const rewardSum = targetRewardSum(trade.entry, trade.direction, trade.targets)
+
+      // direction badge
+      directionBadge.textContent = trade.direction
+      directionBadge.className = "badge " + (trade.direction === LONG ? "bg-success" : "bg-danger")
+
+      // update scale row's price input in the targets table (targets[0])
+      const scaleRow = targetsBody.children[0]
+      if (scaleRow) {
+        const scalePriceInput = scaleRow.querySelectorAll("input")[1]
+        scalePriceInput.value = fmt(trade.scale)
+      }
+
+      // result table
+      resultBody.innerHTML = ""
+      for (const r of targetRows(trade)) {
+        const tr = document.createElement("tr")
+        tr.innerHTML = `
+          <th scope="row">${r.name}</th>
+          <td>${fmt(r.price)}</td>
+          <td class="text-end">${r.name === "entry" ? "0" : fmt(r.offset)}</td>
+          <td class="text-end">${r.contracts ? r.contracts : ""}</td>
+          <td class="text-end">${r.contracts ? fmt(r.value) : ""}</td>
+        `
+        resultBody.appendChild(tr)
+      }
+      // combined R:R summary row: reward sum / loss sum  ratio
+      const lossSum = trade.risk * totalContracts(trade.targets)
+      const rrTr = document.createElement("tr")
+      rrTr.classList.add("table-active")
+      rrTr.innerHTML = `<th scope="row">R:R</th><td colspan="3" class="text-end">${fmt(rewardSum)} / ${fmt(lossSum)}</td><td class="text-end">${fmt(trade.ratio)}</td>`
+      resultBody.appendChild(rrTr)
+
+      // sync slider to risk
+      slider.value = trade.risk
+      sliderTxt.value = trade.risk
+    }
+
+    // --- calc entry points ---
+    function getStopAndTargets() {
+      if (!txtStop.value) {
+        throw new Error("enter a stop")
+      }
+      const stop = parseFloat(txtStop.value)
+      const targets = readTargets()
+      for (const t of targets.slice(1)) {
+        if (!isFinite(t.price) || t.contracts <= 0) {
+          throw new Error("price targets beyond scale must have a price and positive contracts")
+        }
+      }
+      if (targets[0].contracts <= 0) throw new Error("scale contracts must be positive")
+      return { stop, targets }
     }
 
     function calcEntry() {
-      // calc entry for given r:r
-      if (txtTarget.value && txtStop.value) {
-        const target = parseFloat(txtTarget.value)
-        const stp = parseFloat(txtStop.value)
-        updateUI(calc_entry(stp, target, 2.0))
+      // target-ratio mode: solve for d
+      try {
+        const { stop, targets } = getStopAndTargets()
+        const targetRatio = parseFloat(txtRatio.value) || 0
+        const trade = tradeCalc({ stop, targets, targetRatio })
+        clearError()
+        updateUI(trade)
+      } catch (e) {
+        showError(e.message)
+      }
+    }
+
+    // Populate targets from a single target price: main = target (2c), final = target +/- 10 (1c)
+    function setQuickTrade() {
+      try {
+        if (!txtStop.value || !txtQuickTarget.value) {
+          throw new Error("enter stop and target")
+        }
+        const stop = parseFloat(txtStop.value)
+        const target = parseFloat(txtQuickTarget.value)
+        if (stop === target) throw new Error("target must differ from stop")
+        const finalPrice = tick(target + (target > stop ? 10 : -10))
+
+        // reset table to scale + main + final
+        targetsBody.innerHTML = ""
+        addRow("scale", "", 1)
+        addRow("main", target, 2)
+        addRow("final", finalPrice, 1)
+
+        // calculate in target-ratio mode
+        const targetRatio = parseFloat(txtRatio.value) || 0
+        const targets = readTargets()
+        const trade = tradeCalc({ stop, targets, targetRatio })
+        clearError()
+        updateUI(trade)
+      } catch (e) {
+        showError(e.message)
       }
     }
 
     function calcRiskReward() {
-      // calc r:r for given stop size
-      if (txtTarget.value && txtStop.value) {
-        const target = parseFloat(txtTarget.value)
-        const stp = parseFloat(txtStop.value)
-        const stop_sz = parseFloat(slider.value)
-        updateUI(calc_risk_reward(stp, target, stop_sz))
+      // distance mode: slider provides risk
+      try {
+        const { stop, targets } = getStopAndTargets()
+        const risk = parseFloat(slider.value)
+        if (!(risk > 0)) return
+        const trade = tradeCalc({ stop, targets, risk })
+        clearError()
+        updateUI(trade)
+      } catch (e) {
+        showError(e.message)
       }
     }
 
-    function updateUI(trade) {
-      console.log(trade)
-      const { target, scale, entry, stop_sz, stop, risk_reward } = trade
-      clTgt.innerHTML = target.toFixed(2)
-      clScl.innerHTML = scale.toFixed(2)
-      clEnt.innerHTML = entry.toFixed(2)
-      const rsk = Math.abs(stop_sz)
-      clRsk.innerHTML = rsk.toFixed(2)
-      clStp.innerHTML = stop.toFixed(2)
-      clRr.innerHTML = risk_reward.toFixed(2)
-      slider.value = rsk
-      sliderTxt.value = rsk
-    }
-
     function processRiskChange(value) {
-      // sync slider and input field
       let v = Math.min(value, parseFloat(slider.max))
       v = Math.max(v, parseFloat(slider.min))
       slider.value = v
@@ -221,9 +492,20 @@
       calcRiskReward()
     }
 
+    // --- init ---
+    function seedTargets() {
+      // ex1 from calc.py
+      addRow("scale", "", 1)
+      addRow("main", 7630.50, 2)
+      addRow("final", 7648.75, 1)
+      txtStop.value = 7598.25
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
+        seedTargets()
+
         // slider changed
-        slider.addEventListener('input', () => processRiskChange(slider.value) )
+        slider.addEventListener('input', () => processRiskChange(parseFloat(slider.value)) )
 
         // Increment slider value
         slideInc.addEventListener('click', () => processRiskChange(parseFloat(sliderTxt.value) + 0.25) )
@@ -234,9 +516,16 @@
         // Update slider from the text field
         sliderTxt.addEventListener('keyup', (event) => event.key === 'Enter' && processRiskChange(parseFloat(sliderTxt.value)) )
 
-        btnCalc.addEventListener('click', calcEntry)        
-        txtTarget.addEventListener('keyup', (event) => event.key === 'Enter' && calcEntry() )
+        btnCalc.addEventListener('click', calcEntry)
+        btnSet.addEventListener('click', setQuickTrade)
+        btnAddTarget.addEventListener('click', () => addRow())
+
+        txtRatio.addEventListener('keyup', (event) => event.key === 'Enter' && calcEntry() )
         txtStop.addEventListener('keyup', (event) => event.key === 'Enter' && calcEntry() )
+        txtQuickTarget.addEventListener('keyup', (event) => event.key === 'Enter' && setQuickTrade() )
+
+        // initial calc in ratio mode (ex1)
+        calcEntry()
     })
 
 </script>

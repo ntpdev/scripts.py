@@ -4,8 +4,8 @@
 - [ADVFN](adv.html)
 - [Calculator](tgt.html)
 - [ES](https://www.barchart.com/futures/quotes/ES*0/technical-chart?plot=CANDLE&volume=contract&data=I:30&density=X&pricesOn=0&asPctChange=0&logscale=0&im=30&indicators=SMA(40);SMACD(3,10,16)&sym=ESU22&grid=1&height=375&studyheight=100&timeframe=4%20Months)
-- [Top SCTR](https://stockcharts.com/freecharts/candleglance.html?SNDK,LITE,WDC,CIEN,TER,TTMI,AMKR,INTC,STX,BE,COHR,ASX)
-- [Top DTV](https://stockcharts.com/freecharts/candleglance.html?AAPL,MU,SNDK,AMD,MSFT,GOOGL,NVDA,INTC,META,TSLA,AVGO,AMZN)
+- [Top SCTR](https://stockcharts.com/freecharts/candleglance.html?STX,LITE,WDC,TER,ASX,SNDK,COHR,AMKR,CIEN,TTMI,BE,INTC)
+- [Top DTV](https://stockcharts.com/freecharts/candleglance.html?AAPL,AMD,NVDA,MU,AVGO,SNDK,META,MSFT,INTC,AMZN,GOOGL,TSLA)
 - [Index ETF](https://stockcharts.com/freecharts/candleglance.html?SPY,QQQ,DIA,SPSM,TLT,JNK,GLD,XLK,XLY,XLF,$USDJPY,$EURUSD)
 - [Volatilty & Breadth](https://stockcharts.com/freecharts/candleglance.html?$VIX,$MOVE,$NYMO,$SPXA50R,$UST2Y,$UST10Y,$USD,$CRB,$BTCUSD,GLD,$SPX,$NDX)
 - [Fool large small cap](bigcf.html) **broken**

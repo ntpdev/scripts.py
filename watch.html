@@ -14,7 +14,7 @@
   </head>
   <body>
     <!-- 3 col layout container -->
-    <div class="container">
+    <div class="container-fluid">
       <div class="row d-flex gap-2 align-items-center justify-content-center">
         <!-- buttons groups are grouped by name property -->
         <div class="btn-group btn-group-sm d-inline-flex gap-1 w-auto" role="group" aria-label="Symbol button group">
@@ -23,6 +23,9 @@
         
           <input type="radio" class="btn-check" name="btnradio_sym" id="btn_fool" autocomplete="off" checked>
           <label class="btn btn-outline-primary btn-sm" for="btn_fool">fool</label>
+
+          <input type="radio" class="btn-check" name="btnradio_sym" id="btn_dtv" autocomplete="off">
+          <label class="btn btn-outline-primary btn-sm" for="btn_dtv">dtv</label>
         </div>
         <div class="btn-group btn-group-sm d-inline-flex gap-1 w-auto" role="group" aria-label="Timeframe button group">
           <input type="radio" class="btn-check" name="btnradio_tf" id="btn_daily" autocomplete="off" checked>
@@ -32,10 +35,10 @@
           <label class="btn btn-outline-success btn-sm" for="btn_weekly">weekly</label>
         </div>
       </div>  
-      <div class="row">
-        <div class="col-lg-4"></div>
-        <div class="col-lg-4"></div>
-        <div class="col-lg-4"></div>
+      <div class="row g-3">
+        <div class="col-lg-4 text-center"></div>
+        <div class="col-lg-4 text-center"></div>
+        <div class="col-lg-4 text-center"></div>
       </div>
       <div class="row">
         <a id="lnk_finviz" href="https://finviz.com" target="_blank">finviz</a>
@@ -46,9 +49,11 @@
     "use strict"
     const symbols_index = 'arkk dia eem gld ibit iwm iyt jnk pbw qqq rem spy tan tlt xbi xlb xlc xle xlf xli xlk xlp xlre xlu xlv xly xop'
     const symbols_fool = 'abnb anet coin crwd ddog enph gh meli onon sedg snow team ttd tyl veev vrtx xyz zs'
+    const symbols_dtv = 'mu stx amd sndk mrvl wdc intc aapl nbis avgo tsm nvda googl amzn meta msft pltr glw be tsla spcx'
     // bind elements
     const btn_index = document.getElementById('btn_index')
     const btn_fool = document.getElementById('btn_fool')
+    const btn_dtv = document.getElementById('btn_dtv')
     const btn_daily = document.getElementById('btn_daily')
     const btn_weekly = document.getElementById('btn_weekly')
     const cols = Array.from(document.querySelectorAll('.col-lg-4'))
@@ -63,13 +68,13 @@
 
     function process_changed(id) {
       //console.log(id, btn_index.checked, btn_fool.checked, btn_daily.checked, btn_weekly.checked);
-      insertImages(btn_index.checked ? symbols_index : symbols_fool,
-                   btn_daily.checked ? 'd' : 'w');
+const symbols = btn_index.checked ? symbols_index : btn_dtv.checked ? symbols_dtv : symbols_fool;
+      insertImages(symbols, btn_daily.checked ? 'd' : 'w');
     }
 
     function insertImages(symbols, tf) {
       // Get the container element
-      const container = document.querySelector('.container');
+      const container = document.querySelector('.container-fluid');
 
       // Check if container exists
       if (!container) {
@@ -85,14 +90,22 @@
       for (let i = 0; i < xs.length; i++) {
         const image = document.createElement('img');
         // Set image attributes (source, alt text, etc.)
-        image.src = "https://charts2-node.finviz.com/chart.ashx?cs=m&t=" + xs[i] + "&tf=" + tf +"&ct=candle_stick";
+        image.src = "https://charts2-node.finviz.com/chart?w=466&h=219&bw=1&bm=1&bb=1&t=" + xs[i] + "&tf=" + tf + "&s=linear&pm=240&am=1200&tl=1&tlc=1A1E21&ct=candle_stick&tm=d&o[0][ot]=sma&o[0][op]=50&o[0][oc]=FF8F33C6&o[1][ot]=sma&o[1][op]=200&o[1][oc]=DCB3326D&o[2][ot]=patterns&o[2][op]=&o[2][oc]=000";
         image.alt = xs[i];
-        image.height = 180;
-        image.width = 324;
+        image.height = 219;
+        image.width = 466;
+        // img-fluid: scale down to fit the column (keeps 466x180 aspect ratio, prevents the left edge from overflowing under the previous column)
+        // mb-3: whitespace below each chart; column gutters (g-3 on the row) provide the horizontal whitespace
+        image.className = 'img-fluid mb-3';
 
-        // Append the image to the appropriate column in the container expecting 3 columns
-        cols[i % 3].appendChild(image);
-        cols[i % 3].appendChild(document.createElement('br'));
+        // Wrap the image in a link using the finviz screener-chart-link URL pattern
+        const a = document.createElement('a');
+        a.href = "https://finviz.com/stock?t=" + xs[i] + "&ty=c&p=d&b=1";
+        a.target = "_blank";
+        a.appendChild(image);
+
+        // Append the link to the appropriate column in the container expecting 3 columns
+        cols[i % 3].appendChild(a);
       }
       // add link to finviz
       lnk_finviz.href = 'https://finviz.com/screener.ashx?v=171&t=' + symbols.replaceAll(' ', ',') + '&o=-rsi'

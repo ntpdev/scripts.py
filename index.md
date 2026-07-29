@@ -13,6 +13,7 @@
 - [QQQ with 10% dd](https://schrts.co/cyPVkCQs)
 - [AAII bull bear](https://schrts.co/kfTVkXkg)
 - [SPY 15m 5d sma](https://www.barchart.com/etfs-funds/quotes/SPY/technical-chart?plot=CANDLE&volume=total&data=I:15&density=M60&pricesOn=0&asPctChange=0&logscale=0&im=15&indicators=SMA(130);DASH(472.16,wk)&sym=SPY&grid=1&height=375&studyheight=100)
+- [smh](https://stockcharts.com/freecharts/candleglance.html?NVDA,AMD,ASML,AVGO,MU,AMAT,KLAC,TSM,LRCX,ADI,INTC,QCOM)
 - [fool](https://stockcharts.com/freecharts/candleglance.html?OKTA,AXON,DOCN,ETSY,CRWD,ZM,SHOP,UPST,COST,MELI,TTD,RKT)
 - [crypto](https://stockcharts.com/freecharts/candleglance.html?BMNR,COIN,CRCL,MARA,MSTR,RIOT,IBIT,$BTCUSD,$ETHUSD,$ADAUSD,$SOLUSD,$SUIUSD)
 - [space](https://stockcharts.com/freecharts/candleglance.html?RDW,ASTS,YSS,RKLB,BBAI,LHX,LUNR,FLY,BKSY,JOBY,PL,LDOS)
